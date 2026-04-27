@@ -21,7 +21,7 @@
 ## 🛠️ 技术栈
 | 模块 | 技术/工具 |
 | :--- | :--- |
-| 前端 | iOS (AR Kit) / Android (AR Core) |
+| 前端 | Flutter |
 | 地图服务 | 高德/百度地图 API & SDK |
 | 后端 | Python + Django |
 | 数据库 | PostgreSQL + PostGIS、Redis |
