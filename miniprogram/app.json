@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/dataDemo/dataDemo"
+  ],
+  "window": {
+    "navigationBarTitleText": "地铁跑酷换乘助手",
+    "navigationBarBackgroundColor": "#4b3eb2",
+    "navigationBarTextStyle": "white",
+    "backgroundTextStyle": "light",
+    "backgroundColor": "#f5f7ff"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

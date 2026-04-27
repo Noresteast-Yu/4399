@@ -1,0 +1,145 @@
+<view class="demo-page page-container">
+  <view class="hero">
+    <text class="hero-title">地铁跑酷换乘助手</text>
+    <text class="hero-subtitle">默认演示：虹桥火车站 · 上海地铁10号线</text>
+  </view>
+
+  <view class="card section-card">
+    <text class="section-title">默认配置</text>
+    <view class="kv-row">
+      <text class="kv-label">默认出发站：</text>
+      <text class="kv-value">{{defaultOriginStation.station_name}}</text>
+    </view>
+    <view class="kv-row">
+      <text class="kv-label">默认线路：</text>
+      <text class="kv-value">{{defaultLine.line_name}}</text>
+    </view>
+    <view class="kv-row">
+      <text class="kv-label">默认方向：</text>
+      <text class="kv-value">{{defaultConfig.default_direction}}</text>
+    </view>
+  </view>
+
+  <view class="card section-card">
+    <text class="section-title">换乘规则搜索</text>
+    <input
+      class="search-input"
+      value="{{keyword}}"
+      bindinput="onSearchInput"
+      placeholder="输入站名、线路、标签、换乘提示关键字"
+      placeholder-class="search-placeholder"
+    />
+  </view>
+
+  <view class="card section-card">
+    <text class="section-title">静态资源展示</text>
+    <view class="icon-row">
+      <view class="icon-item">
+        <image class="icon-image" src="{{resources.metroIcon}}" mode="aspectFit" />
+        <text class="icon-text">地铁图标</text>
+      </view>
+      <view class="icon-item">
+        <image class="icon-image" src="{{resources.transferIcon}}" mode="aspectFit" />
+        <text class="icon-text">换乘图标</text>
+      </view>
+    </view>
+    <view class="map-box">
+      <image class="map-image" src="{{resources.line10Map}}" mode="widthFix" />
+    </view>
+  </view>
+
+  <view class="card section-card">
+    <text class="section-title">默认线路站点列表</text>
+    <view wx:for="{{lineStations}}" wx:key="station_id" class="station-item">
+      <view class="station-main">
+        <text class="station-order">{{item.order}}</text>
+        <view class="station-info">
+          <text class="station-name">{{item.station_name}}</text>
+          <text class="station-meta">
+            {{item.is_transfer ? "换乘站" : "普通站"}} · 可换乘：{{item.transfer_line_text}}
+          </text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card section-card">
+    <text class="section-title">重点换乘规则列表</text>
+    <view
+      wx:for="{{filteredRules}}"
+      wx:key="rule_id"
+      class="{{selectedRuleId === item.rule_id ? 'rule-card active' : 'rule-card'}}"
+      data-rule-id="{{item.rule_id}}"
+      bindtap="onSelectRule"
+    >
+      <view class="rule-header">
+        <text class="rule-target">{{item.target_station_name}}</text>
+        <text class="rule-time">约{{item.estimated_time}}分钟</text>
+      </view>
+      <text class="rule-detail">可换乘：{{item.transfer_line_text}}</text>
+      <text class="rule-detail">经过 {{item.stops_count}} 站</text>
+      <text class="rule-tags">{{item.tags_text}}</text>
+    </view>
+    <view wx:if="{{filteredRules.length === 0}}" class="empty-text">
+      没有匹配到换乘规则，请更换关键字。
+    </view>
+  </view>
+
+  <view class="card section-card">
+    <text class="section-title">路线建议</text>
+    <view wx:if="{{routePlan}}">
+      <view class="kv-row">
+        <text class="kv-label">从：</text>
+        <text class="kv-value">{{routePlan.origin_station_name}}</text>
+      </view>
+      <view class="kv-row">
+        <text class="kv-label">乘坐：</text>
+        <text class="kv-value">{{routePlan.line_name}}</text>
+      </view>
+      <view class="kv-row">
+        <text class="kv-label">方向：</text>
+        <text class="kv-value">{{routePlan.direction}}</text>
+      </view>
+      <view class="kv-row">
+        <text class="kv-label">到达：</text>
+        <text class="kv-value">{{routePlan.target_station_name}}</text>
+      </view>
+      <view class="kv-row">
+        <text class="kv-label">经过：</text>
+        <text class="kv-value">{{routePlan.stops_count}}站</text>
+      </view>
+      <view class="kv-row">
+        <text class="kv-label">预计：</text>
+        <text class="kv-value">{{routePlan.estimated_time}}分钟</text>
+      </view>
+      <view class="kv-row">
+        <text class="kv-label">可换乘：</text>
+        <text class="kv-value">{{routePlan.transfer_line_text}}</text>
+      </view>
+      <view class="kv-row">
+        <text class="kv-label">推荐车厢：</text>
+        <text class="kv-value">{{routePlan.carriage_suggestion}}</text>
+      </view>
+      <view class="kv-row">
+        <text class="kv-label">换乘提示：</text>
+        <text class="kv-value">{{routePlan.transfer_tip}}</text>
+      </view>
+    </view>
+    <view wx:else class="empty-text">
+      请选择一条换乘规则查看详细建议。
+    </view>
+  </view>
+
+  <view class="card section-card validation-card">
+    <text class="section-title">数据校验结果</text>
+    <view wx:if="{{validationResult.ok}}">
+      <text class="validation-pass">数据校验：通过</text>
+    </view>
+    <view wx:else>
+      <text class="validation-fail">数据校验：未通过</text>
+      <view wx:for="{{validationResult.errors}}" wx:key="*this" class="error-item">
+        <text>• {{item}}</text>
+      </view>
+    </view>
+  </view>
+</view>
