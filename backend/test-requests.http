@@ -1,0 +1,56 @@
+# 路线规划测试
+POST http://localhost:3000/api/route-plan/plan
+Content-Type: application/json
+
+{
+  "start": "北京南站",
+  "end": "中关村"
+}
+
+# 地铁站点信息测试
+GET http://localhost:3000/api/subway-service/station/1
+
+# 地铁线路信息测试
+GET http://localhost:3000/api/subway-service/lines
+
+# 高铁车次查询测试
+GET http://localhost:3000/api/high-speed-rail/train/G102
+
+# 高铁下车引导测试
+POST http://localhost:3000/api/high-speed-rail/guide
+Content-Type: application/json
+
+{
+  "trainNumber": "G102",
+  "destination": "上海虹桥站",
+  "currentCarriage": "5"
+}
+
+# 换乘时间管理测试
+POST http://localhost:3000/api/transfer-time/start
+Content-Type: application/json
+
+{
+  "from": "北京南站",
+  "to": "中关村",
+  "remainingTime": 300
+}
+
+# 常用路线测试
+GET http://localhost:3000/api/common-routes/user/1
+
+# 添加常用路线测试
+POST http://localhost:3000/api/common-routes/add
+Content-Type: application/json
+
+{
+  "userId": "1",
+  "start": "北京南站",
+  "end": "中关村"
+}
+
+# 出行提醒测试
+GET http://localhost:3000/api/travel-alerts
+
+# 特定类型出行提醒测试
+GET http://localhost:3000/api/travel-alerts/delay
