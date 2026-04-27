@@ -147,7 +147,7 @@ node test-api.js
 
 如有问题，请联系：
 - 开发者：后端开发团队
-- 邮箱：contact@example.com
+- 邮箱：1925992764@qq.com
 - 文档：本 README 文件
 
 ## 版本历史
