@@ -1,0 +1,9 @@
+<view class="index-page page-container">
+  <view class="hero card">
+    <text class="title">地铁跑酷换乘助手</text>
+    <text class="subtitle">高铁 + 地铁精准换乘辅助工具</text>
+    <button class="enter-btn" type="primary" bindtap="goToDataDemo">
+      进入数据模块演示
+    </button>
+  </view>
+</view>

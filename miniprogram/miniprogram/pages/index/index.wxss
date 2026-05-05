@@ -1,0 +1,33 @@
+.index-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.hero {
+  width: 100%;
+  background: linear-gradient(150deg, #4b3eb2, #335ccf);
+  color: #ffffff;
+  border-radius: 24rpx;
+}
+
+.title {
+  font-size: 42rpx;
+  font-weight: 700;
+  display: block;
+}
+
+.subtitle {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  opacity: 0.95;
+  display: block;
+}
+
+.enter-btn {
+  margin-top: 36rpx;
+  background: #ffffff !important;
+  color: #2f4fd3 !important;
+  font-weight: 600;
+  border: none;
+}

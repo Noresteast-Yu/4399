@@ -1,0 +1,17 @@
+{
+  "appid": "touristappid",
+  "projectname": "metro-transfer-helper",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false,
+    "newFeature": true,
+    "coverView": true
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.6.3",
+  "srcMiniprogramRoot": "miniprogram/",
+  "miniprogramRoot": "miniprogram/",
+  "condition": {}
+}
