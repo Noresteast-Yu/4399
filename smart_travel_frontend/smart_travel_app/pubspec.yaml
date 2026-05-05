@@ -13,9 +13,9 @@ dependencies:
   provider: ^6.1.2
   # 网络请求
   dio: ^5.4.3+1
-  # 地图SDK
-  amap_flutter_map: ^3.0.0
-  amap_flutter_location: ^3.0.0
+  # 地图SDK（暂时注释，版本不兼容）
+  # amap_flutter_map: ^3.0.0
+  # amap_flutter_location: ^3.0.0
   # 权限管理
   permission_handler: ^11.3.1
   # 本地存储
