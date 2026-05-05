@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_travel_app/components/common/top_nav_bar.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
+import 'package:smart_travel_app/utils/network_manager.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -11,13 +12,12 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // 常用路线
-  final List<Map<String, dynamic>> _commonRoutes = [
-    {'id': '1', 'start': '北京南站', 'end': '中关村'},
-    {'id': '2', 'start': '上海虹桥站', 'end': '陆家嘴'},
-  ];
+  final NetworkManager _networkManager = NetworkManager();
 
-  // 设置项
+  List<Map<String, dynamic>> _commonRoutes = [];
+  bool _isLoading = true;
+  String? _error;
+
   final List<Map<String, dynamic>> _settings = [
     {'title': '出行偏好', 'icon': Icons.settings, 'route': '/preferences'},
     {'title': '行动能力设置', 'icon': Icons.accessibility, 'route': '/ability'},
@@ -27,13 +27,41 @@ class _ProfilePageState extends State<ProfilePage> {
     {'title': '消息通知', 'icon': Icons.notifications, 'route': '/notifications'},
   ];
 
-  // 辅助功能
   final List<Map<String, dynamic>> _helperFunctions = [
     {'title': '帮助中心', 'icon': Icons.help},
     {'title': '意见反馈', 'icon': Icons.feedback},
     {'title': '关于APP', 'icon': Icons.info},
     {'title': '用户协议', 'icon': Icons.description},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCommonRoutes();
+  }
+
+  Future<void> _loadCommonRoutes() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final response = await _networkManager.get('/common-routes/user/default');
+      final data = response.data;
+
+      setState(() {
+        _commonRoutes =
+            data is List ? List<Map<String, dynamic>>.from(data) : [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,36 +118,61 @@ class _ProfilePageState extends State<ProfilePage> {
 
             SizedBox(height: AppTheme.spacingL),
 
-            // 常用路线
             const Text(
               '常用路线',
               style: AppTheme.headline3,
             ),
             SizedBox(height: AppTheme.spacingM),
-            Column(
-              children: _commonRoutes.map((route) {
-                return Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AppTheme.borderRadiusM,
-                  ),
-                  margin: EdgeInsets.only(bottom: AppTheme.spacingM),
-                  child: Padding(
-                    padding: EdgeInsets.all(AppTheme.spacingM),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${route['start']} → ${route['end']}',
-                          style: AppTheme.bodyText1,
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(AppTheme.spacingM),
+                          child: Column(
+                            children: [
+                              Text('加载失败: $_error'),
+                              TextButton(
+                                onPressed: _loadCommonRoutes,
+                                child: const Text('重试'),
+                              ),
+                            ],
+                          ),
                         ),
-                        const Icon(Icons.chevron_right),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+                      )
+                    : _commonRoutes.isEmpty
+                        ? const Card(
+                            child: Padding(
+                              padding: EdgeInsets.all(AppTheme.spacingM),
+                              child: Text('暂无常用路线'),
+                            ),
+                          )
+                        : Column(
+                            children: _commonRoutes.map((route) {
+                              return Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: AppTheme.borderRadiusM,
+                                ),
+                                margin:
+                                    EdgeInsets.only(bottom: AppTheme.spacingM),
+                                child: Padding(
+                                  padding: EdgeInsets.all(AppTheme.spacingM),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '${route['start'] ?? ''} → ${route['end'] ?? ''}',
+                                        style: AppTheme.bodyText1,
+                                      ),
+                                      const Icon(Icons.chevron_right),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
 
             SizedBox(height: AppTheme.spacingL),
 

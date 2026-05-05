@@ -3,6 +3,7 @@ import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/components/common/common_input.dart';
 import 'package:smart_travel_app/components/common/common_button.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
+import 'package:smart_travel_app/utils/network_manager.dart';
 import 'package:go_router/go_router.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,39 +16,13 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _startController = TextEditingController();
   final TextEditingController _endController = TextEditingController();
-  
-  // 常用路线数据
-  final List<Map<String, dynamic>> _commonRoutes = [
-    {
-      'id': '1',
-      'start': '北京南站',
-      'end': '中关村',
-      'time': '30分钟',
-      'distance': '12公里',
-    },
-    {
-      'id': '2',
-      'start': '上海虹桥站',
-      'end': '陆家嘴',
-      'time': '45分钟',
-      'distance': '18公里',
-    },
-  ];
-  
-  // 实时出行提醒
-  final List<Map<String, dynamic>> _travelAlerts = [
-    {
-      'type': 'delay',
-      'title': 'G102次列车晚点',
-      'message': '预计晚点15分钟',
-    },
-    {
-      'type': 'control',
-      'title': '地铁2号线临时管制',
-      'message': '因设备检修，部分站点暂停服务',
-    },
-  ];
-  
+  final NetworkManager _networkManager = NetworkManager();
+
+  List<Map<String, dynamic>> _commonRoutes = [];
+  List<Map<String, dynamic>> _travelAlerts = [];
+  bool _isLoading = true;
+  String? _error;
+
   // 核心功能快捷入口
   final List<Map<String, dynamic>> _quickAccess = [
     {
@@ -71,6 +46,46 @@ class _HomePageState extends State<HomePage> {
       'route': '/route-plan',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final results = await Future.wait([
+        _networkManager.get('/common-routes/user/default'),
+        _networkManager.get('/travel-alerts'),
+      ]);
+
+      final routesResponse = results[0].data;
+      final alertsResponse = results[1].data;
+
+      setState(() {
+        _commonRoutes = routesResponse is List
+            ? List<Map<String, dynamic>>.from(routesResponse)
+            : [];
+        _travelAlerts = alertsResponse is List
+            ? List<Map<String, dynamic>>.from(alertsResponse)
+            : [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+        _commonRoutes = [];
+        _travelAlerts = [];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,58 +136,85 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            
+
             SizedBox(height: AppTheme.spacingL),
-            
+
             // 常用路线卡片
             const Text(
               '常用路线',
               style: AppTheme.headline3,
             ),
             SizedBox(height: AppTheme.spacingM),
-            Column(
-              children: _commonRoutes.map((route) {
-                return Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AppTheme.borderRadiusM,
-                  ),
-                  margin: EdgeInsets.only(bottom: AppTheme.spacingM),
-                  child: Padding(
-                    padding: EdgeInsets.all(AppTheme.spacingM),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${route['start']} → ${route['end']}',
-                              style: AppTheme.bodyText1,
-                            ),
-                            SizedBox(height: AppTheme.spacingS),
-                            Text(
-                              '${route['time']} · ${route['distance']}',
-                              style: AppTheme.bodyText2,
-                            ),
-                          ],
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(AppTheme.spacingM),
+                          child: Column(
+                            children: [
+                              Text('加载失败: $_error'),
+                              TextButton(
+                                onPressed: _loadData,
+                                child: const Text('重试'),
+                              ),
+                            ],
+                          ),
                         ),
-                        CommonButton(
-                          text: '导航',
-                          onPressed: () {
-                            // 发起导航
-                          },
-                          isPrimary: false,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            
+                      )
+                    : _commonRoutes.isEmpty
+                        ? const Card(
+                            child: Padding(
+                              padding: EdgeInsets.all(AppTheme.spacingM),
+                              child: Text('暂无常用路线'),
+                            ),
+                          )
+                        : Column(
+                            children: _commonRoutes.map((route) {
+                              return Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: AppTheme.borderRadiusM,
+                                ),
+                                margin:
+                                    EdgeInsets.only(bottom: AppTheme.spacingM),
+                                child: Padding(
+                                  padding: EdgeInsets.all(AppTheme.spacingM),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${route['start']} → ${route['end']}',
+                                            style: AppTheme.bodyText1,
+                                          ),
+                                          SizedBox(height: AppTheme.spacingS),
+                                          Text(
+                                            '${route['time']} · ${route['distance']}',
+                                            style: AppTheme.bodyText2,
+                                          ),
+                                        ],
+                                      ),
+                                      CommonButton(
+                                        text: '导航',
+                                        onPressed: () {
+                                          // 发起导航
+                                        },
+                                        isPrimary: false,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+
             SizedBox(height: AppTheme.spacingL),
-            
+
             // 实时出行看板
             const Text(
               '实时出行提醒',
@@ -187,7 +229,7 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: AppTheme.borderRadiusM,
                   ),
                   margin: EdgeInsets.only(bottom: AppTheme.spacingM),
-                  color: alert['type'] == 'delay' 
+                  color: alert['type'] == 'delay'
                       ? AppTheme.warningColor.withOpacity(0.1)
                       : AppTheme.errorColor.withOpacity(0.1),
                   child: Padding(
@@ -210,9 +252,9 @@ class _HomePageState extends State<HomePage> {
                 );
               }).toList(),
             ),
-            
+
             SizedBox(height: AppTheme.spacingL),
-            
+
             // 核心功能快捷入口
             const Text(
               '快捷功能',
