@@ -104,6 +104,135 @@ const stations = [
       "shanghai_metro_line_11"
     ],
     "description": "连接10号线与11号线的换乘站。"
+  },
+  {
+    "station_id": "shanghai_library",
+    "station_name": "上海图书馆",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_10"
+    ],
+    "description": "10号线沿线站点。"
+  },
+  {
+    "station_id": "south_shaanxi_road",
+    "station_name": "陕西南路",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_1",
+      "shanghai_metro_line_10",
+      "shanghai_metro_line_12"
+    ],
+    "description": "连接1号线、10号线与12号线的换乘站。"
+  },
+  {
+    "station_id": "xintiandi",
+    "station_name": "新天地",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_10",
+      "shanghai_metro_line_13"
+    ],
+    "description": "连接10号线与13号线，可前往市中心核心商圈。"
+  },
+  {
+    "station_id": "laoximen",
+    "station_name": "老西门",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_8",
+      "shanghai_metro_line_10"
+    ],
+    "description": "连接8号线与10号线。"
+  },
+  {
+    "station_id": "yuyuan",
+    "station_name": "豫园",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_10",
+      "shanghai_metro_line_14"
+    ],
+    "description": "连接10号线与14号线，靠近历史文化景区。"
+  },
+  {
+    "station_id": "east_nanjing_road",
+    "station_name": "南京东路",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_2",
+      "shanghai_metro_line_10"
+    ],
+    "description": "连接2号线与10号线，位于市中心商业区。"
+  },
+  {
+    "station_id": "tiantong_road",
+    "station_name": "天潼路",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_10",
+      "shanghai_metro_line_12"
+    ],
+    "description": "连接10号线与12号线。"
+  },
+  {
+    "station_id": "sichuan_north_road",
+    "station_name": "四川北路",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_10"
+    ],
+    "description": "10号线沿线站点。"
+  },
+  {
+    "station_id": "hailun_road",
+    "station_name": "海伦路",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_10"
+    ],
+    "description": "10号线沿线站点。"
+  },
+  {
+    "station_id": "youdian_xincun",
+    "station_name": "邮电新村",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_10"
+    ],
+    "description": "10号线沿线站点。"
+  },
+  {
+    "station_id": "siping_road",
+    "station_name": "四平路",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_8",
+      "shanghai_metro_line_10"
+    ],
+    "description": "连接8号线与10号线。"
+  },
+  {
+    "station_id": "tongji_university",
+    "station_name": "同济大学",
+    "city": "上海",
+    "station_type": "地铁站",
+    "available_line_ids": [
+      "shanghai_metro_line_10",
+      "shanghai_metro_line_18"
+    ],
+    "description": "连接10号线与18号线，服务同济大学四平路校区周边区域。"
   }
 ]
 
