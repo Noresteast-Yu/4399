@@ -4,14 +4,14 @@ import 'package:smart_travel_app/theme/app_theme.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
-  
+
   const BottomNavBar({super.key, required this.currentIndex});
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) {
+    return NavigationBar(
+      selectedIndex: currentIndex,
+      onDestinationSelected: (index) {
         switch (index) {
           case 0:
             context.go('/');
@@ -27,27 +27,24 @@ class BottomNavBar extends StatelessWidget {
             break;
         }
       },
-      items: const [
-        BottomNavigationBarItem(
+      destinations: const [
+        NavigationDestination(
           icon: Icon(Icons.home),
           label: '首页',
         ),
-        BottomNavigationBarItem(
+        NavigationDestination(
           icon: Icon(Icons.navigation),
           label: '规划',
         ),
-        BottomNavigationBarItem(
+        NavigationDestination(
           icon: Icon(Icons.subway),
           label: '服务',
         ),
-        BottomNavigationBarItem(
+        NavigationDestination(
           icon: Icon(Icons.person),
           label: '我的',
         ),
       ],
-      selectedItemColor: AppTheme.primaryColor,
-      unselectedItemColor: AppTheme.textSecondary,
-      type: BottomNavigationBarType.fixed,
     );
   }
 }

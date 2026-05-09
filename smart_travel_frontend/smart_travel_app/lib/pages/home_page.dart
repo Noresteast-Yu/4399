@@ -16,7 +16,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final TextEditingController _startController = TextEditingController();
+  final TextEditingController _startController =
+      TextEditingController(text: '同济大学');
   final TextEditingController _endController = TextEditingController();
   final NetworkManager _networkManager = NetworkManager();
 
@@ -97,8 +98,22 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('智能出行'),
-        backgroundColor: AppTheme.primaryColor,
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            border: Border.all(color: Colors.white, width: 1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Text(
+            '智能出行',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        backgroundColor: AppTheme.lightTheme.colorScheme.primary,
+        foregroundColor: AppTheme.lightTheme.colorScheme.onPrimary,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -221,7 +236,9 @@ class _HomePageState extends State<HomePage> {
                                             SizedBox(height: AppTheme.spacingS),
                                             Text(
                                               '${route['time']} · ${route['distance']}',
-                                              style: AppTheme.bodyText2,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium,
                                             ),
                                           ],
                                         ),

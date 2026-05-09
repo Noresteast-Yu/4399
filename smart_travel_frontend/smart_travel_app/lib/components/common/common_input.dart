@@ -11,7 +11,7 @@ class CommonInput extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
-  
+
   const CommonInput({
     super.key,
     required this.hintText,
@@ -40,15 +40,22 @@ class CommonInput extends StatelessWidget {
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: AppTheme.borderRadiusM,
-          borderSide: BorderSide(color: AppTheme.textTertiary),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppTheme.borderRadiusM,
-          borderSide: BorderSide(color: AppTheme.primaryColor),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 2.0,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: AppTheme.borderRadiusM,
-          borderSide: BorderSide(color: AppTheme.errorColor),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.error,
+          ),
         ),
         contentPadding: EdgeInsets.symmetric(
           horizontal: AppTheme.spacingM,

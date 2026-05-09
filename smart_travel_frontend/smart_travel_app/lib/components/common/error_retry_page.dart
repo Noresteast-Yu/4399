@@ -5,7 +5,7 @@ class ErrorRetryPage extends StatelessWidget {
   final String title;
   final String message;
   final VoidCallback onRetry;
-  
+
   const ErrorRetryPage({
     super.key,
     required this.title,
@@ -24,18 +24,18 @@ class ErrorRetryPage extends StatelessWidget {
             Icon(
               Icons.error_outline,
               size: 80,
-              color: AppTheme.errorColor,
+              color: Theme.of(context).colorScheme.error,
             ),
             SizedBox(height: AppTheme.spacingM),
             Text(
               title,
-              style: AppTheme.headline3,
+              style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             SizedBox(height: AppTheme.spacingS),
             Text(
               message,
-              style: AppTheme.bodyText2,
+              style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             Padding(
@@ -43,7 +43,8 @@ class ErrorRetryPage extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onRetry,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding: EdgeInsets.symmetric(
                     horizontal: AppTheme.spacingL,
                     vertical: AppTheme.spacingM,

@@ -6,7 +6,7 @@ class EmptyDataPage extends StatelessWidget {
   final String message;
   final String? buttonText;
   final VoidCallback? onButtonPressed;
-  
+
   const EmptyDataPage({
     super.key,
     required this.title,
@@ -26,18 +26,18 @@ class EmptyDataPage extends StatelessWidget {
             Icon(
               Icons.inbox_outlined,
               size: 80,
-              color: AppTheme.textTertiary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             SizedBox(height: AppTheme.spacingM),
             Text(
               title,
-              style: AppTheme.headline3,
+              style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             SizedBox(height: AppTheme.spacingS),
             Text(
               message,
-              style: AppTheme.bodyText2,
+              style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             if (buttonText != null && onButtonPressed != null)
@@ -46,7 +46,8 @@ class EmptyDataPage extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onButtonPressed,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: EdgeInsets.symmetric(
                       horizontal: AppTheme.spacingL,
                       vertical: AppTheme.spacingM,

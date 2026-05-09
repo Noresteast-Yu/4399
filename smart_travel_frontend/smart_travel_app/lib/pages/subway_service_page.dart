@@ -78,11 +78,11 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       case '拥挤':
         return AppTheme.errorColor;
       case '适中':
-        return AppTheme.warningColor;
-      case '宽松':
-        return AppTheme.secondaryColor;
+         return AppTheme.secondaryColor;
+       case '空旷':
+         return AppTheme.textTertiary;
       default:
-        return AppTheme.textTertiary;
+        return AppTheme.textPrimary;
     }
   }
 

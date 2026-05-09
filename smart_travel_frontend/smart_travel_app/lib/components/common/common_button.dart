@@ -9,7 +9,7 @@ class CommonButton extends StatelessWidget {
   final bool isDisabled;
   final double? width;
   final double? height;
-  
+
   const CommonButton({
     super.key,
     required this.text,
@@ -30,14 +30,14 @@ class CommonButton extends StatelessWidget {
         onPressed: isLoading || isDisabled ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: isPrimary
-              ? AppTheme.primaryColor
-              : AppTheme.surface,
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.secondaryContainer,
           foregroundColor: isPrimary
-              ? AppTheme.surface
-              : AppTheme.primaryColor,
+              ? Theme.of(context).colorScheme.onPrimary
+              : Theme.of(context).colorScheme.onSecondaryContainer,
           side: isPrimary
               ? null
-              : BorderSide(color: AppTheme.primaryColor),
+              : BorderSide(color: Theme.of(context).colorScheme.primary),
           padding: EdgeInsets.symmetric(
             horizontal: AppTheme.spacingL,
             vertical: AppTheme.spacingM,
@@ -53,7 +53,9 @@ class CommonButton extends StatelessWidget {
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isPrimary ? AppTheme.surface : AppTheme.primaryColor,
+                    isPrimary
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSecondaryContainer,
                   ),
                 ),
               )

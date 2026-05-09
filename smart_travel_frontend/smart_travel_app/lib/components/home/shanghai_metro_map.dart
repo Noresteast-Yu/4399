@@ -18,10 +18,13 @@ class ShanghaiMetroMap extends StatefulWidget {
 }
 
 class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
-  String? _selectedStartStation;
+  String? _selectedStartStation = '同济大学';
   String? _selectedEndStation;
+  final TransformationController _thumbnailController =
+      TransformationController();
 
   static const List<String> _commonStations = [
+    '同济大学',
     '莘庄',
     '外环路',
     '莲花路',
@@ -112,6 +115,18 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
     super.initState();
     _selectedStartStation = widget.initialStartStation;
     _selectedEndStation = widget.initialEndStation;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final matrix = Matrix4.identity();
+      matrix.translate(150.0, -50.0);
+      matrix.scale(4.0);
+      _thumbnailController.value = matrix;
+    });
+  }
+
+  @override
+  void dispose() {
+    _thumbnailController.dispose();
+    super.dispose();
   }
 
   void _openFullScreenMap() {
@@ -214,7 +229,7 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
                 IconButton(
                   icon: Icon(
                     Icons.fullscreen,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   onPressed: _openFullScreenMap,
                   tooltip: '全屏查看',
@@ -334,36 +349,42 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
           child: ClipRRect(
             borderRadius: AppTheme.borderRadiusM,
             child: Container(
-              height: 180,
+              height: 220,
               decoration: BoxDecoration(
                 borderRadius: AppTheme.borderRadiusM,
                 border: Border.all(color: Colors.grey[300]!),
               ),
               child: Stack(
                 children: [
-                  Image.asset(
-                    'assets/images/shmetro-map.jpg',
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[100],
-                        child: const Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.subway, size: 48, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text(
-                                '上海地铁线路图',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ],
+                  InteractiveViewer(
+                    transformationController: _thumbnailController,
+                    minScale: 0.5,
+                    maxScale: 3.0,
+                    child: Image.asset(
+                      'assets/images/shmetro-map.jpg',
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[100],
+                          child: const Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.subway,
+                                    size: 48, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  '上海地铁线路图',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                   Positioned(
                     bottom: 8,
@@ -410,8 +431,8 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
             icon: const Icon(Icons.list, size: 18),
             label: const Text('从站点列表选择'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -451,7 +472,10 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
     _selectedStartStation = widget.selectedStartStation;
     _selectedEndStation = widget.selectedEndStation;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _transformationController.value = Matrix4.identity()..scale(1.0);
+      final matrix = Matrix4.identity();
+      matrix.translate(0.0, 0.0);
+      matrix.scale(1.0);
+      _transformationController.value = matrix;
     });
   }
 
@@ -734,6 +758,7 @@ class _StationPickerSheet extends StatelessWidget {
   });
 
   static const List<String> _allStations = [
+    '同济大学',
     '莘庄',
     '外环路',
     '莲花路',

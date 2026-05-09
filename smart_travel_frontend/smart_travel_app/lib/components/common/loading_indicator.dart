@@ -4,7 +4,7 @@ import 'package:smart_travel_app/theme/app_theme.dart';
 class LoadingIndicator extends StatelessWidget {
   final String? message;
   final bool fullScreen;
-  
+
   const LoadingIndicator({
     super.key,
     this.message,
@@ -17,26 +17,28 @@ class LoadingIndicator extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircularProgressIndicator(
-          color: AppTheme.primaryColor,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            Theme.of(context).colorScheme.primary,
+          ),
         ),
         if (message != null)
           Padding(
             padding: EdgeInsets.only(top: AppTheme.spacingM),
             child: Text(
               message!,
-              style: AppTheme.bodyText2,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
       ],
     );
-    
+
     if (fullScreen) {
       return Container(
-        color: AppTheme.background,
+        color: Theme.of(context).colorScheme.background,
         child: content,
       );
     }
-    
+
     return content;
   }
 }
