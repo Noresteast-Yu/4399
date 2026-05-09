@@ -2,7 +2,6 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/pages/home_page.dart';
 import 'package:smart_travel_app/pages/route_plan_page.dart';
 import 'package:smart_travel_app/pages/subway_service_page.dart';
-import 'package:smart_travel_app/pages/high_speed_rail_page.dart';
 import 'package:smart_travel_app/pages/transfer_time_page.dart';
 import 'package:smart_travel_app/pages/profile_page.dart';
 import 'package:smart_travel_app/pages/map_navigation_page.dart';
@@ -21,10 +20,6 @@ class AppRouter {
       GoRoute(
         path: '/subway-service',
         builder: (context, state) => const SubwayServicePage(),
-      ),
-      GoRoute(
-        path: '/high-speed-rail',
-        builder: (context, state) => const HighSpeedRailPage(),
       ),
       GoRoute(
         path: '/transfer-time',
