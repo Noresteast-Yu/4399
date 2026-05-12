@@ -1,33 +1,48 @@
-# Week 02 补齐10号线至同济大学数据
+﻿# Week 03 基础交通数据库补全
 
-## 本周定位
+## 本周主题
 
-补充上海地铁10号线从上海虹桥火车站到同济大学的完整演示站序。
+基础交通数据库先做出来，用户画像先不作为重点。
 
-## 本周新增
+本周完成：
 
-- 新增同济大学站
-- 新增18号线换乘参考
-- 补齐虹桥火车站至同济大学的站序
-- 新增同济大学换乘推荐规则
+- 站点基础表 `stations`
+- 地铁线路表 `metro_lines`
+- 线路站点顺序表 `line_stations`
+- 换乘推荐规则表 `transfer_rules`
+- 出入口和站内导向表 `station_exits`
+- 上海虹桥火车站到同济大学的 10 号线沿途站点数据
 
-## 验证方式
+## 本周文件
 
-在本目录执行：
-
-```bash
-node database/scripts/validateDatabaseData.js
+```text
+database/schema.sql          建基础交通表
+database/seed.sql            插入站点、线路、换乘规则数据
+database/query_examples.sql  查询基础交通数据
+docs/data-source-note.md     数据来源和演示数据说明
 ```
 
-预期输出包含：
+## 运行顺序
 
-```json
-{
-  "ok": true,
-  "errors": []
-}
+在 MySQL Workbench 中依次运行：
+
+```text
+database/schema.sql
+database/seed.sql
+database/query_examples.sql
+```
+
+## 本周可展示内容
+
+可以展示：
+
+```text
+10号线从上海虹桥火车站到同济大学的站点顺序
+重点换乘站
+虹桥火车站到同济大学的路线规则
+出入口和站内导向演示数据
 ```
 
 ## 说明
 
-本版本只包含数据库/数据模块内容，不包含 Android 页面代码，也不包含后端路由开发。
+当前数据为课程项目演示数据，后续可以继续替换为更完整的真实运营数据。
