@@ -5,6 +5,9 @@ import 'package:smart_travel_app/pages/subway_service_page.dart';
 import 'package:smart_travel_app/pages/transfer_time_page.dart';
 import 'package:smart_travel_app/pages/profile_page.dart';
 import 'package:smart_travel_app/pages/map_navigation_page.dart';
+import 'package:smart_travel_app/pages/settings/theme_settings_page.dart';
+import 'package:smart_travel_app/pages/settings/feedback_page.dart';
+import 'package:smart_travel_app/pages/settings/about_app_page.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -15,7 +18,14 @@ class AppRouter {
       ),
       GoRoute(
         path: '/route-plan',
-        builder: (context, state) => const RoutePlanPage(),
+        builder: (context, state) {
+          final start = state.uri.queryParameters['start'];
+          final end = state.uri.queryParameters['end'];
+          return RoutePlanPage(
+            initialStartStation: start,
+            initialEndStation: end,
+          );
+        },
       ),
       GoRoute(
         path: '/subway-service',
@@ -32,6 +42,18 @@ class AppRouter {
       GoRoute(
         path: '/map-navigation',
         builder: (context, state) => const MapNavigationPage(),
+      ),
+      GoRoute(
+        path: '/theme',
+        builder: (context, state) => const ThemeSettingsPage(),
+      ),
+      GoRoute(
+        path: '/feedback',
+        builder: (context, state) => const FeedbackPage(),
+      ),
+      GoRoute(
+        path: '/about',
+        builder: (context, state) => const AboutAppPage(),
       ),
     ],
   );

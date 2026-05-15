@@ -45,6 +45,9 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: const TopNavBar(title: '地图导航'),
       body: Column(
@@ -52,25 +55,25 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
           // 地图容器
           Expanded(
             child: Container(
-              color: AppTheme.background,
+              color: colorScheme.surfaceContainer,
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.map,
                       size: 80,
-                      color: AppTheme.primaryColor,
+                      color: colorScheme.primary,
                     ),
                     SizedBox(height: AppTheme.spacingM),
                     Text(
                       '地图导航功能',
-                      style: AppTheme.headline3,
+                      style: textTheme.headlineSmall,
                     ),
                     SizedBox(height: AppTheme.spacingS),
                     Text(
                       '高德地图SDK在Web平台暂不支持',
-                      style: AppTheme.bodyText2,
+                      style: textTheme.bodyMedium,
                     ),
                   ],
                 ),
@@ -106,7 +109,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
           // 导航控制栏
           Container(
             padding: EdgeInsets.all(AppTheme.spacingM),
-            color: AppTheme.surface,
+            color: colorScheme.surfaceContainer,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [

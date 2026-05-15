@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:smart_travel_app/theme/app_theme.dart';
 
 class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -20,10 +19,14 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return AppBar(
       title: Text(
         title,
-        style: AppTheme.headline3,
+        style: textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
       ),
       leading: showBack
           ? IconButton(
@@ -32,8 +35,6 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
       actions: actions,
-      backgroundColor: AppTheme.surface,
-      elevation: 1,
     );
   }
 }

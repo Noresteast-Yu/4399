@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:smart_travel_app/theme/app_theme.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -9,8 +8,13 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return NavigationBar(
       selectedIndex: currentIndex,
+      backgroundColor: colorScheme.surfaceContainerHighest,
+      indicatorColor: colorScheme.primaryContainer,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       onDestinationSelected: (index) {
         switch (index) {
           case 0:

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_travel_app/components/common/top_nav_bar.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
-import 'package:smart_travel_app/utils/network_manager.dart';
+import 'package:smart_travel_app/services/api_service.dart';
 
 class SubwayServicePage extends StatefulWidget {
   const SubwayServicePage({super.key});
@@ -12,14 +12,14 @@ class SubwayServicePage extends StatefulWidget {
 }
 
 class _SubwayServicePageState extends State<SubwayServicePage> {
-  final NetworkManager _networkManager = NetworkManager();
+  final ApiService _apiService = ApiService();
 
   Map<String, dynamic>? _stationInfo;
   List<Map<String, dynamic>> _facilities = [];
   List<Map<String, dynamic>> _crowdLevels = [];
   bool _isLoading = true;
   String? _error;
-  String _stationId = 'beijing_south';
+  String _stationId = 'tongji_university';
 
   @override
   void initState() {
@@ -34,23 +34,29 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
         _error = null;
       });
 
-      final response =
-          await _networkManager.get('/subway-service/station/$_stationId');
-      final data = response.data;
+      final response = await _apiService.getStationInfo(_stationId);
 
-      setState(() {
-        _stationInfo = Map<String, dynamic>.from(data);
-        _facilities = _stationInfo!['facilities'] != null
-            ? List<Map<String, dynamic>>.from(_stationInfo!['facilities'])
-            : [];
-        _crowdLevels = _stationInfo!['crowdLevels'] != null
-            ? List<Map<String, dynamic>>.from(_stationInfo!['crowdLevels'])
-            : [];
-        _isLoading = false;
-      });
+      if (response.success && response.data != null) {
+        final data = response.data!;
+        setState(() {
+          _stationInfo = data;
+          _facilities = data['facilities'] != null
+              ? List<Map<String, dynamic>>.from(data['facilities'])
+              : [];
+          _crowdLevels = data['crowdLevels'] != null
+              ? List<Map<String, dynamic>>.from(data['crowdLevels'])
+              : [];
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = response.error ?? '加载失败';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = '网络异常: $e';
         _isLoading = false;
       });
     }
@@ -73,21 +79,11 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     }
   }
 
-  Color _getLevelColor(String? level) {
-    switch (level) {
-      case '拥挤':
-        return AppTheme.errorColor;
-      case '适中':
-         return AppTheme.secondaryColor;
-       case '空旷':
-         return AppTheme.textTertiary;
-      default:
-        return AppTheme.textPrimary;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: const TopNavBar(title: '地铁人性化服务'),
       body: _isLoading
@@ -124,19 +120,20 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                                 children: [
                                   Text(
                                     _stationInfo!['name'] ?? '未知站点',
-                                    style: AppTheme.headline2,
+                                    style: textTheme.headlineMedium,
                                   ),
                                   SizedBox(height: AppTheme.spacingM),
                                   Row(
                                     children: [
-                                      const Icon(Icons.train),
+                                      Icon(Icons.train,
+                                          color: colorScheme.onSurfaceVariant),
                                       SizedBox(width: AppTheme.spacingS),
                                       Expanded(
                                         child: Text(
                                           (_stationInfo!['lines'] as List?)
                                                   ?.join('、') ??
                                               '',
-                                          style: AppTheme.bodyText1,
+                                          style: textTheme.bodyLarge,
                                         ),
                                       ),
                                     ],
@@ -144,22 +141,24 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                                   SizedBox(height: AppTheme.spacingS),
                                   Row(
                                     children: [
-                                      const Icon(Icons.access_time),
+                                      Icon(Icons.access_time,
+                                          color: colorScheme.onSurfaceVariant),
                                       SizedBox(width: AppTheme.spacingS),
                                       Text(
                                         '首班车: ${_stationInfo!['firstTrain'] ?? ''}, 末班车: ${_stationInfo!['lastTrain'] ?? ''}',
-                                        style: AppTheme.bodyText2,
+                                        style: textTheme.bodyMedium,
                                       ),
                                     ],
                                   ),
                                   SizedBox(height: AppTheme.spacingS),
                                   Row(
                                     children: [
-                                      const Icon(Icons.info),
+                                      Icon(Icons.info,
+                                          color: colorScheme.onSurfaceVariant),
                                       SizedBox(width: AppTheme.spacingS),
                                       Text(
                                         '发车间隔: ${_stationInfo!['interval'] ?? ''}',
-                                        style: AppTheme.bodyText2,
+                                        style: textTheme.bodyMedium,
                                       ),
                                     ],
                                   ),
@@ -168,9 +167,9 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                             ),
                           ),
                           SizedBox(height: AppTheme.spacingL),
-                          const Text(
+                          Text(
                             '站内设施',
-                            style: AppTheme.headline3,
+                            style: textTheme.titleLarge,
                           ),
                           SizedBox(height: AppTheme.spacingM),
                           GridView.builder(
@@ -199,7 +198,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                                     children: [
                                       Icon(
                                         _getFacilityIcon(facility['icon']),
-                                        color: AppTheme.primaryColor,
+                                        color: colorScheme.primary,
                                       ),
                                       SizedBox(width: AppTheme.spacingM),
                                       Expanded(
@@ -209,11 +208,11 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                                           children: [
                                             Text(
                                               facility['name'] ?? '',
-                                              style: AppTheme.bodyText1,
+                                              style: textTheme.bodyLarge,
                                             ),
                                             Text(
                                               facility['location'] ?? '',
-                                              style: AppTheme.bodyText2,
+                                              style: textTheme.bodyMedium,
                                             ),
                                           ],
                                         ),
@@ -225,9 +224,9 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                             },
                           ),
                           SizedBox(height: AppTheme.spacingL),
-                          const Text(
+                          Text(
                             '客流拥挤度',
-                            style: AppTheme.headline3,
+                            style: textTheme.titleLarge,
                           ),
                           SizedBox(height: AppTheme.spacingM),
                           Card(
@@ -239,6 +238,13 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                               padding: EdgeInsets.all(AppTheme.spacingM),
                               child: Column(
                                 children: _crowdLevels.map((level) {
+                                  final crowdLevel = level['level'] ?? '';
+                                  final levelColor = _getCrowdLevelColor(
+                                      colorScheme, crowdLevel);
+                                  final levelContainerColor =
+                                      _getCrowdLevelContainerColor(
+                                          colorScheme, crowdLevel);
+
                                   return Padding(
                                     padding: EdgeInsets.only(
                                         bottom: AppTheme.spacingM),
@@ -248,7 +254,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                                       children: [
                                         Text(
                                           level['time'] ?? '',
-                                          style: AppTheme.bodyText1,
+                                          style: textTheme.bodyLarge,
                                         ),
                                         Container(
                                           padding: EdgeInsets.symmetric(
@@ -256,17 +262,14 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                                             vertical: AppTheme.spacingS,
                                           ),
                                           decoration: BoxDecoration(
-                                            color:
-                                                _getLevelColor(level['level'])
-                                                    .withOpacity(0.1),
+                                            color: levelContainerColor,
                                             borderRadius:
                                                 AppTheme.borderRadiusS,
                                           ),
                                           child: Text(
-                                            level['level'] ?? '',
+                                            crowdLevel,
                                             style: TextStyle(
-                                              color: _getLevelColor(
-                                                  level['level']),
+                                              color: levelColor,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -283,5 +286,31 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                     ),
       bottomNavigationBar: BottomNavBar(currentIndex: 2),
     );
+  }
+
+  Color _getCrowdLevelColor(ColorScheme colorScheme, String level) {
+    switch (level) {
+      case '拥挤':
+        return colorScheme.error;
+      case '适中':
+        return colorScheme.secondary;
+      case '空旷':
+        return colorScheme.tertiary;
+      default:
+        return colorScheme.onSurface;
+    }
+  }
+
+  Color _getCrowdLevelContainerColor(ColorScheme colorScheme, String level) {
+    switch (level) {
+      case '拥挤':
+        return colorScheme.errorContainer;
+      case '适中':
+        return colorScheme.secondaryContainer;
+      case '空旷':
+        return colorScheme.tertiaryContainer;
+      default:
+        return colorScheme.surfaceVariant;
+    }
   }
 }

@@ -4,7 +4,7 @@ import 'package:smart_travel_app/components/common/common_input.dart';
 import 'package:smart_travel_app/components/common/common_button.dart';
 import 'package:smart_travel_app/components/home/shanghai_metro_map.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
-import 'package:smart_travel_app/utils/network_manager.dart';
+import 'package:smart_travel_app/services/api_service.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 
@@ -19,7 +19,7 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _startController =
       TextEditingController(text: '同济大学');
   final TextEditingController _endController = TextEditingController();
-  final NetworkManager _networkManager = NetworkManager();
+  final ApiService _apiService = ApiService();
 
   List<Map<String, dynamic>> _commonRoutes = [];
   List<Map<String, dynamic>> _travelAlerts = [];
@@ -59,8 +59,8 @@ class _HomePageState extends State<HomePage> {
       });
 
       final results = await Future.wait([
-        _networkManager.get('/common-routes/user/default'),
-        _networkManager.get('/travel-alerts'),
+        _apiService.getCommonRoutes('default'),
+        _apiService.getTravelAlerts(),
       ]).timeout(
         Duration(seconds: 10),
         onTimeout: () {
@@ -68,16 +68,16 @@ class _HomePageState extends State<HomePage> {
         },
       );
 
-      final routesResponse = results[0].data;
-      final alertsResponse = results[1].data;
+      final routesResponse = results[0];
+      final alertsResponse = results[1];
 
       if (mounted) {
         setState(() {
-          _commonRoutes = routesResponse is List
-              ? List<Map<String, dynamic>>.from(routesResponse)
+          _commonRoutes = routesResponse.success && routesResponse.data != null
+              ? List<Map<String, dynamic>>.from(routesResponse.data!)
               : [];
-          _travelAlerts = alertsResponse is List
-              ? List<Map<String, dynamic>>.from(alertsResponse)
+          _travelAlerts = alertsResponse.success && alertsResponse.data != null
+              ? List<Map<String, dynamic>>.from(alertsResponse.data!)
               : [];
           _isLoading = false;
         });
@@ -96,24 +96,27 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
         title: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            border: Border.all(color: Colors.white, width: 1),
+            color: colorScheme.primary.withOpacity(0.2),
+            border: Border.all(color: colorScheme.primary, width: 1),
             borderRadius: BorderRadius.circular(4),
           ),
           child: const Text(
-            '智能出行',
+            '地铁跑酷换乘助手',
             style: TextStyle(
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
-        backgroundColor: AppTheme.lightTheme.colorScheme.primary,
-        foregroundColor: AppTheme.lightTheme.colorScheme.onPrimary,
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        foregroundColor: colorScheme.onSurface,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -142,7 +145,6 @@ class _HomePageState extends State<HomePage> {
               SizedBox(height: AppTheme.spacingM),
               // 快捷规划入口
               Card(
-                elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: AppTheme.borderRadiusL,
                 ),
@@ -150,9 +152,11 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.all(AppTheme.spacingM),
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         '快捷规划',
-                        style: AppTheme.headline3,
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       SizedBox(height: AppTheme.spacingM),
                       CommonInput(
@@ -170,7 +174,8 @@ class _HomePageState extends State<HomePage> {
                       CommonButton(
                         text: '开始规划',
                         onPressed: () {
-                          context.go('/route-plan');
+                          context.go(
+                              '/route-plan?start=${Uri.encodeComponent(_startController.text)}&end=${Uri.encodeComponent(_endController.text)}');
                         },
                       ),
                     ],
@@ -181,9 +186,11 @@ class _HomePageState extends State<HomePage> {
               SizedBox(height: AppTheme.spacingM),
 
               // 常用路线卡片
-              const Text(
+              Text(
                 '常用路线',
-                style: AppTheme.headline3,
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               SizedBox(height: AppTheme.spacingM),
               _isLoading
@@ -213,7 +220,6 @@ class _HomePageState extends State<HomePage> {
                           : Column(
                               children: _commonRoutes.map((route) {
                                 return Card(
-                                  elevation: 2,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: AppTheme.borderRadiusM,
                                   ),
@@ -231,14 +237,16 @@ class _HomePageState extends State<HomePage> {
                                           children: [
                                             Text(
                                               '${route['start']} → ${route['end']}',
-                                              style: AppTheme.bodyText1,
+                                              style: textTheme.bodyLarge,
                                             ),
                                             SizedBox(height: AppTheme.spacingS),
                                             Text(
                                               '${route['time']} · ${route['distance']}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium,
+                                              style: textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -259,22 +267,29 @@ class _HomePageState extends State<HomePage> {
               SizedBox(height: AppTheme.spacingM),
 
               // 实时出行看板
-              const Text(
+              Text(
                 '实时出行提醒',
-                style: AppTheme.headline3,
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               SizedBox(height: AppTheme.spacingM),
               Column(
                 children: _travelAlerts.map((alert) {
+                  final isWarning = alert['type'] == 'delay';
+                  final alertColor = isWarning
+                      ? colorScheme.tertiaryContainer
+                      : colorScheme.errorContainer;
+                  final alertOnColor = isWarning
+                      ? colorScheme.onTertiaryContainer
+                      : colorScheme.onErrorContainer;
+
                   return Card(
-                    elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusM,
                     ),
                     margin: EdgeInsets.only(bottom: AppTheme.spacingM),
-                    color: alert['type'] == 'delay'
-                        ? AppTheme.warningColor.withOpacity(0.1)
-                        : AppTheme.errorColor.withOpacity(0.1),
+                    color: alertColor,
                     child: Padding(
                       padding: EdgeInsets.all(AppTheme.spacingM),
                       child: Column(
@@ -282,12 +297,16 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           Text(
                             alert['title'],
-                            style: AppTheme.bodyText1,
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: alertOnColor,
+                            ),
                           ),
                           SizedBox(height: AppTheme.spacingS),
                           Text(
                             alert['message'],
-                            style: AppTheme.bodyText2,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: alertOnColor,
+                            ),
                           ),
                         ],
                       ),
@@ -299,9 +318,11 @@ class _HomePageState extends State<HomePage> {
               SizedBox(height: AppTheme.spacingM),
 
               // 核心功能快捷入口
-              const Text(
+              Text(
                 '快捷功能',
-                style: AppTheme.headline3,
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               SizedBox(height: AppTheme.spacingM),
               GridView.count(
@@ -321,12 +342,12 @@ class _HomePageState extends State<HomePage> {
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.1),
+                            color: colorScheme.secondaryContainer,
                             borderRadius: AppTheme.borderRadiusL,
                           ),
                           child: Icon(
                             item['icon'],
-                            color: AppTheme.primaryColor,
+                            color: colorScheme.onSecondaryContainer,
                             size: 30,
                           ),
                         ),
@@ -334,7 +355,7 @@ class _HomePageState extends State<HomePage> {
                         Flexible(
                           child: Text(
                             item['title'],
-                            style: AppTheme.bodyText2,
+                            style: textTheme.bodyMedium,
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,

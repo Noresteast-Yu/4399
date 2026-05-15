@@ -25,7 +25,7 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
 
   static const List<String> _commonStations = [
     '同济大学',
-    '莘庄',
+    '国权路',
     '外环路',
     '莲花路',
     '锦江乐园',
@@ -116,9 +116,12 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
     _selectedStartStation = widget.initialStartStation;
     _selectedEndStation = widget.initialEndStation;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final matrix = Matrix4.identity();
-      matrix.translate(150.0, -50.0);
-      matrix.scale(4.0);
+      const scale = 3.0;
+      final translateX = -1200.0;
+      final translateY = -400.0;
+      final matrix = Matrix4.identity()
+        ..translate(translateX, translateY)
+        ..scale(scale);
       _thumbnailController.value = matrix;
     });
   }
@@ -130,11 +133,12 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
   }
 
   void _openFullScreenMap() {
+    final colorScheme = Theme.of(context).colorScheme;
     Navigator.of(context).push(
       PageRouteBuilder(
         opaque: false,
         barrierDismissible: true,
-        barrierColor: Colors.black87,
+        barrierColor: colorScheme.scrim.withOpacity(0.8),
         pageBuilder: (context, animation, secondaryAnimation) {
           return _FullScreenMetroMap(
             selectedStartStation: _selectedStartStation,
@@ -199,15 +203,19 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               '上海地铁图',
-              style: AppTheme.headline3,
+              style: AppTheme.headline3.copyWith(
+                color: colorScheme.onSurface,
+              ),
             ),
             Row(
               children: [
@@ -229,7 +237,7 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
                 IconButton(
                   icon: Icon(
                     Icons.fullscreen,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: colorScheme.primary,
                   ),
                   onPressed: _openFullScreenMap,
                   tooltip: '全屏查看',
@@ -251,25 +259,26 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.15),
+                        color: colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(8),
-                        border:
-                            Border.all(color: Colors.green.withOpacity(0.3)),
+                        border: Border.all(
+                          color: colorScheme.primary.withOpacity(0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.trip_origin,
                             size: 16,
-                            color: Colors.green,
+                            color: colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _selectedStartStation!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.green,
+                                color: colorScheme.onPrimaryContainer,
                                 fontWeight: FontWeight.w500,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -281,10 +290,10 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
                                 _selectedStartStation = null;
                               });
                             },
-                            child: const Icon(
+                            child: Icon(
                               Icons.close,
                               size: 16,
-                              color: Colors.green,
+                              color: colorScheme.primary,
                             ),
                           ),
                         ],
@@ -302,24 +311,26 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.15),
+                        color: colorScheme.errorContainer,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        border: Border.all(
+                          color: colorScheme.error.withOpacity(0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.flag,
                             size: 16,
-                            color: Colors.red,
+                            color: colorScheme.error,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _selectedEndStation!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.red,
+                                color: colorScheme.onErrorContainer,
                                 fontWeight: FontWeight.w500,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -331,10 +342,10 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
                                 _selectedEndStation = null;
                               });
                             },
-                            child: const Icon(
+                            child: Icon(
                               Icons.close,
                               size: 16,
-                              color: Colors.red,
+                              color: colorScheme.error,
                             ),
                           ),
                         ],
@@ -352,7 +363,7 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
               height: 220,
               decoration: BoxDecoration(
                 borderRadius: AppTheme.borderRadiusM,
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: colorScheme.outlineVariant),
               ),
               child: Stack(
                 children: [
@@ -367,17 +378,22 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Colors.grey[100],
-                          child: const Center(
+                          color: colorScheme.surfaceVariant,
+                          child: Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.subway,
-                                    size: 48, color: Colors.grey),
+                                Icon(
+                                  Icons.subway,
+                                  size: 48,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                                 SizedBox(height: 8),
                                 Text(
                                   '上海地铁线路图',
-                                  style: TextStyle(color: Colors.grey),
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ],
                             ),
@@ -395,22 +411,22 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
+                        color: colorScheme.scrim.withOpacity(0.54),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.touch_app,
                             size: 14,
-                            color: Colors.white,
+                            color: colorScheme.onSurface,
                           ),
                           SizedBox(width: 4),
                           Text(
                             '点击查看大图',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: colorScheme.onSurface,
                               fontSize: 11,
                             ),
                           ),
@@ -431,8 +447,8 @@ class _ShanghaiMetroMapState extends State<ShanghaiMetroMap> {
             icon: const Icon(Icons.list, size: 18),
             label: const Text('从站点列表选择'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -523,6 +539,8 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -541,17 +559,23 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      color: Colors.grey[900],
-                      child: const Center(
+                      color: colorScheme.surface,
+                      child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.subway, size: 64, color: Colors.grey),
+                            Icon(
+                              Icons.subway,
+                              size: 64,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                             SizedBox(height: 16),
                             Text(
                               '上海地铁线路图',
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 18),
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 18,
+                              ),
                             ),
                           ],
                         ),
@@ -570,32 +594,33 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  icon:
+                      Icon(Icons.close, color: colorScheme.onSurface, size: 28),
                   onPressed: () => Navigator.pop(context),
                   style: IconButton.styleFrom(
-                    backgroundColor: Colors.black54,
+                    backgroundColor: colorScheme.scrim.withOpacity(0.54),
                   ),
                 ),
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.zoom_out_map,
-                          color: Colors.white, size: 24),
+                      icon: Icon(Icons.zoom_out_map,
+                          color: colorScheme.onSurface, size: 24),
                       onPressed: () {
                         _transformationController.value = Matrix4.identity()
                           ..scale(1.0);
                       },
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.black54,
+                        backgroundColor: colorScheme.scrim.withOpacity(0.54),
                       ),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon:
-                          const Icon(Icons.list, color: Colors.white, size: 24),
+                      icon: Icon(Icons.list,
+                          color: colorScheme.onSurface, size: 24),
                       onPressed: _showStationPicker,
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.black54,
+                        backgroundColor: colorScheme.scrim.withOpacity(0.54),
                       ),
                     ),
                   ],
@@ -623,20 +648,26 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.9),
+                                color: colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: colorScheme.primary.withOpacity(0.3),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.trip_origin,
-                                      size: 16, color: Colors.white),
+                                  Icon(
+                                    Icons.trip_origin,
+                                    size: 16,
+                                    color: colorScheme.primary,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       _selectedStartStation!,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
-                                        color: Colors.white,
+                                        color: colorScheme.onPrimaryContainer,
                                         fontWeight: FontWeight.w500,
                                       ),
                                       overflow: TextOverflow.ellipsis,
@@ -647,10 +678,12 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                                       setState(() {
                                         _selectedStartStation = null;
                                       });
-                                      widget.onStationSelected('', true);
                                     },
-                                    child: const Icon(Icons.close,
-                                        size: 16, color: Colors.white),
+                                    child: Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: colorScheme.primary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -667,20 +700,26 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.9),
+                                color: colorScheme.errorContainer,
                                 borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: colorScheme.error.withOpacity(0.3),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.flag,
-                                      size: 16, color: Colors.white),
+                                  Icon(
+                                    Icons.flag,
+                                    size: 16,
+                                    color: colorScheme.error,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       _selectedEndStation!,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
-                                        color: Colors.white,
+                                        color: colorScheme.onErrorContainer,
                                         fontWeight: FontWeight.w500,
                                       ),
                                       overflow: TextOverflow.ellipsis,
@@ -691,10 +730,12 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                                       setState(() {
                                         _selectedEndStation = null;
                                       });
-                                      widget.onStationSelected('', false);
                                     },
-                                    child: const Icon(Icons.close,
-                                        size: 16, color: Colors.white),
+                                    child: Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: colorScheme.error,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -703,38 +744,6 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                       ],
                     ),
                   ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.touch_app,
-                              size: 16, color: Colors.white70),
-                          SizedBox(width: 4),
-                          Text('单点选择站点',
-                              style: TextStyle(
-                                  color: Colors.white70, fontSize: 12)),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.pinch, size: 16, color: Colors.white70),
-                          SizedBox(width: 4),
-                          Text('双指缩放',
-                              style: TextStyle(
-                                  color: Colors.white70, fontSize: 12)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -757,198 +766,82 @@ class _StationPickerSheet extends StatelessWidget {
     required this.onStationSelected,
   });
 
-  static const List<String> _allStations = [
-    '同济大学',
-    '莘庄',
-    '外环路',
-    '莲花路',
-    '锦江乐园',
-    '上海南站',
-    '漕宝路',
-    '上海体育馆',
-    '徐家汇',
-    '衡山路',
-    '常熟路',
-    '陕西南路',
-    '黄陂南路',
-    '人民广场',
-    '新闸路',
-    '上海火车站',
-    '中山北路',
-    '徐泾东',
-    '虹桥火车站',
-    '虹桥2号航站楼',
-    '淞虹路',
-    '北新泾',
-    '威宁路',
-    '娄山关路',
-    '中山公园',
-    '江苏路',
-    '静安寺',
-    '南京西路',
-    '陆家嘴',
-    '世纪大道',
-    '龙阳路',
-    '张江高科',
-    '金科路',
-    '广兰路',
-    '浦东机场',
-    '浦东大道',
-    '东昌路',
-    '商城路',
-    '蓝村路',
-    '浦电路',
-    '肇嘉浜路',
-    '交通大学',
-    '伊犁路',
-    '宋园路',
-    '虹桥路',
-    '虹口足球场',
-    '东宝兴路',
-    '宝山路',
-    '中潭路',
-    '镇坪路',
-    '曹杨路',
-    '金沙江路',
-    '隆德路',
-    '东安路',
-    '大木桥路',
-    '嘉善路',
-    '东方体育中心',
-    '凌兆新村',
-    '芦恒路',
-    '浦江镇',
-    '江月路',
-    '联航路',
-    '沈杜公路',
-    '望园路',
-    '金海湖',
-    '奉贤新城',
-    '罗山路',
-    '御桥路',
-    '浦三路',
-    '三林镇',
-    '上南路',
-    '杨思',
-    '耀华路',
-    '长清路',
-    '高科西路',
-    '锦绣路',
-    '芳草路',
-    '北蔡',
-    '陈春路',
-    '莲溪路',
-    '芳华路',
-    '培华路',
-    '孙桥路',
-    '张江路',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
         children: [
-          Container(
+          Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   '选择站点',
-                  style: AppTheme.headline3,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
           ),
           const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: '搜索站点...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-              ),
-            ),
-          ),
           Expanded(
             child: ListView.builder(
               controller: scrollController,
-              itemCount: _allStations.length,
+              itemCount: _ShanghaiMetroMapState._commonStations.length,
               itemBuilder: (context, index) {
-                final station = _allStations[index];
-                final isStartSelected = station == selectedStartStation;
-                final isEndSelected = station == selectedEndStation;
+                final station = _ShanghaiMetroMapState._commonStations[index];
+                final isStart = selectedStartStation == station;
+                final isEnd = selectedEndStation == station;
+
                 return ListTile(
-                  leading: isStartSelected
-                      ? const Icon(Icons.trip_origin, color: Colors.green)
-                      : isEndSelected
-                          ? const Icon(Icons.flag, color: Colors.red)
-                          : const Icon(Icons.place, color: Colors.grey),
                   title: Text(
                     station,
                     style: TextStyle(
-                      color: isStartSelected
-                          ? Colors.green
-                          : isEndSelected
-                              ? Colors.red
-                              : null,
-                      fontWeight: isStartSelected || isEndSelected
-                          ? FontWeight.bold
-                          : null,
+                      color: isStart
+                          ? colorScheme.primary
+                          : isEnd
+                              ? colorScheme.error
+                              : colorScheme.onSurface,
+                      fontWeight: (isStart || isEnd) ? FontWeight.w600 : null,
                     ),
                   ),
-                  subtitle: isStartSelected
-                      ? const Text('起点', style: TextStyle(color: Colors.green))
-                      : isEndSelected
-                          ? const Text('终点',
-                              style: TextStyle(color: Colors.red))
-                          : null,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (!isStartSelected)
-                        IconButton(
-                          icon: const Icon(Icons.trip_origin,
-                              color: Colors.green, size: 20),
-                          onPressed: () {
-                            onStationSelected(station, true);
-                            Navigator.pop(context);
-                          },
-                          tooltip: '设为起点',
+                      if (isStart)
+                        Icon(
+                          Icons.trip_origin,
+                          size: 16,
+                          color: colorScheme.primary,
                         ),
-                      if (!isEndSelected)
-                        IconButton(
-                          icon: const Icon(Icons.flag,
-                              color: Colors.red, size: 20),
-                          onPressed: () {
-                            onStationSelected(station, false);
-                            Navigator.pop(context);
-                          },
-                          tooltip: '设为终点',
+                      if (isEnd)
+                        Icon(
+                          Icons.flag,
+                          size: 16,
+                          color: colorScheme.error,
                         ),
                     ],
                   ),
                   onTap: () {
-                    if (selectedStartStation == null) {
+                    if (selectedStartStation == null ||
+                        selectedEndStation != null) {
                       onStationSelected(station, true);
-                    } else if (selectedEndStation == null) {
-                      onStationSelected(station, false);
                     } else {
-                      onStationSelected(station, true);
+                      onStationSelected(station, false);
                     }
                     Navigator.pop(context);
                   },

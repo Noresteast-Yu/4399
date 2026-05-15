@@ -31,13 +31,13 @@ class CommonButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: isPrimary
               ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.secondaryContainer,
+              : Theme.of(context).colorScheme.surfaceContainer,
           foregroundColor: isPrimary
               ? Theme.of(context).colorScheme.onPrimary
-              : Theme.of(context).colorScheme.onSecondaryContainer,
+              : Theme.of(context).colorScheme.onSurfaceVariant,
           side: isPrimary
               ? null
-              : BorderSide(color: Theme.of(context).colorScheme.primary),
+              : BorderSide(color: Theme.of(context).colorScheme.outline),
           padding: EdgeInsets.symmetric(
             horizontal: AppTheme.spacingL,
             vertical: AppTheme.spacingM,

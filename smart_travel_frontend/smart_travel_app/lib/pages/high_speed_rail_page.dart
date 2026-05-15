@@ -3,7 +3,7 @@ import 'package:smart_travel_app/components/common/top_nav_bar.dart';
 import 'package:smart_travel_app/components/common/common_input.dart';
 import 'package:smart_travel_app/components/common/common_button.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
-import 'package:smart_travel_app/utils/network_manager.dart';
+import 'package:smart_travel_app/services/api_service.dart';
 
 class HighSpeedRailPage extends StatefulWidget {
   const HighSpeedRailPage({super.key});
@@ -14,7 +14,7 @@ class HighSpeedRailPage extends StatefulWidget {
 
 class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
   final TextEditingController _trainNumberController = TextEditingController();
-  final NetworkManager _networkManager = NetworkManager();
+  final ApiService _apiService = ApiService();
 
   Map<String, dynamic>? _trainInfo;
   List<Map<String, dynamic>> _carriages = [];
@@ -40,24 +40,31 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
         _isLoading = true;
         _error = null;
         _hasSearched = true;
+        _guideInfo = null;
       });
 
-      final response =
-          await _networkManager.get('/high-speed-rail/train/$trainNumber');
-      final data = response.data;
+      final response = await _apiService.getTrainInfo(trainNumber);
 
-      setState(() {
-        _trainInfo = Map<String, dynamic>.from(data);
-        _carriages = _trainInfo!['carriages'] != null
-            ? List<Map<String, dynamic>>.from(_trainInfo!['carriages'])
-            : [];
-        _isLoading = false;
-      });
+      if (response.success && response.data != null) {
+        final data = response.data!;
+        setState(() {
+          _trainInfo = data;
+          _carriages = data['carriages'] != null
+              ? List<Map<String, dynamic>>.from(data['carriages'])
+              : [];
+          _isLoading = false;
+        });
 
-      _loadGuideInfo(trainNumber);
+        _loadGuideInfo(trainNumber);
+      } else {
+        setState(() {
+          _error = response.error ?? '未找到车次信息';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = '网络异常: $e';
         _isLoading = false;
       });
     }
@@ -65,15 +72,16 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
 
   Future<void> _loadGuideInfo(String trainNumber) async {
     try {
-      final response =
-          await _networkManager.post('/high-speed-rail/guide', data: {
-        'trainNumber': trainNumber,
-        'destination': _trainInfo?['end'] ?? '',
-        'currentCarriage': '10',
-      });
-      setState(() {
-        _guideInfo = Map<String, dynamic>.from(response.data);
-      });
+      final response = await _apiService.getTrainGuide(
+        trainNumber: trainNumber,
+        destination: _trainInfo?['end'] ?? '',
+        currentCarriage: '10',
+      );
+      if (response.success && response.data != null) {
+        setState(() {
+          _guideInfo = response.data!;
+        });
+      }
     } catch (e) {
       // 引导信息加载失败不影响主体显示
     }
@@ -81,6 +89,9 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: const TopNavBar(title: '高铁精准下车引导'),
       body: SingleChildScrollView(
@@ -149,7 +160,7 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
                     children: [
                       Text(
                         _trainInfo!['number'] ?? '',
-                        style: AppTheme.headline2,
+                        style: textTheme.headlineMedium,
                       ),
                       SizedBox(height: AppTheme.spacingM),
                       Row(
@@ -160,27 +171,28 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
                               children: [
                                 Text(
                                   _trainInfo!['start'] ?? '',
-                                  style: AppTheme.bodyText1,
+                                  style: textTheme.bodyLarge,
                                 ),
                                 Text(
                                   _trainInfo!['departure'] ?? '',
-                                  style: AppTheme.bodyText2,
+                                  style: textTheme.bodyMedium,
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.arrow_forward),
+                          Icon(Icons.arrow_forward,
+                              color: colorScheme.onSurfaceVariant),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
                                   _trainInfo!['end'] ?? '',
-                                  style: AppTheme.bodyText1,
+                                  style: textTheme.bodyLarge,
                                 ),
                                 Text(
                                   _trainInfo!['arrival'] ?? '',
-                                  style: AppTheme.bodyText2,
+                                  style: textTheme.bodyMedium,
                                 ),
                               ],
                             ),
@@ -192,22 +204,24 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
                       SizedBox(height: AppTheme.spacingM),
                       Row(
                         children: [
-                          const Icon(Icons.location_on),
+                          Icon(Icons.location_on,
+                              color: colorScheme.onSurfaceVariant),
                           SizedBox(width: AppTheme.spacingS),
                           Text(
                             '停靠站台: ${_trainInfo!['platform'] ?? ''}',
-                            style: AppTheme.bodyText1,
+                            style: textTheme.bodyLarge,
                           ),
                         ],
                       ),
                       SizedBox(height: AppTheme.spacingS),
                       Row(
                         children: [
-                          const Icon(Icons.directions),
+                          Icon(Icons.directions,
+                              color: colorScheme.onSurfaceVariant),
                           SizedBox(width: AppTheme.spacingS),
                           Text(
                             '开门方向: ${_trainInfo!['doorDirection'] ?? ''}',
-                            style: AppTheme.bodyText1,
+                            style: textTheme.bodyLarge,
                           ),
                         ],
                       ),
@@ -229,20 +243,20 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
                       children: [
                         Text(
                           '最优下车位置',
-                          style: AppTheme.headline3,
+                          style: textTheme.titleLarge,
                         ),
                         SizedBox(height: AppTheme.spacingM),
                         Container(
                           padding: EdgeInsets.all(AppTheme.spacingM),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.1),
+                            color: colorScheme.primaryContainer,
                             borderRadius: AppTheme.borderRadiusM,
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.flag,
-                                color: AppTheme.primaryColor,
+                                color: colorScheme.onPrimaryContainer,
                                 size: 30,
                               ),
                               SizedBox(width: AppTheme.spacingM),
@@ -252,11 +266,11 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
                                   children: [
                                     Text(
                                       '推荐车厢: ${_guideInfo!['recommendedCarriage'] ?? ''}',
-                                      style: AppTheme.bodyText1,
+                                      style: textTheme.bodyLarge,
                                     ),
                                     Text(
                                       _guideInfo!['reason'] ?? '',
-                                      style: AppTheme.bodyText2,
+                                      style: textTheme.bodyMedium,
                                     ),
                                   ],
                                 ),
@@ -269,9 +283,9 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
                   ),
                 ),
               SizedBox(height: AppTheme.spacingL),
-              const Text(
+              Text(
                 '车厢信息',
-                style: AppTheme.headline3,
+                style: textTheme.titleLarge,
               ),
               SizedBox(height: AppTheme.spacingM),
               ...(_carriages.map((carriage) {
@@ -291,17 +305,17 @@ class _HighSpeedRailPageState extends State<HighSpeedRailPage> {
                           children: [
                             Text(
                               '车厢: ${carriage['number'] ?? ''}',
-                              style: AppTheme.bodyText1,
+                              style: textTheme.bodyLarge,
                             ),
                             Text(
                               carriage['type'] ?? '',
-                              style: AppTheme.bodyText2,
+                              style: textTheme.bodyMedium,
                             ),
                           ],
                         ),
                         Text(
                           carriage['distance'] ?? '',
-                          style: AppTheme.bodyText2,
+                          style: textTheme.bodyMedium,
                         ),
                       ],
                     ),

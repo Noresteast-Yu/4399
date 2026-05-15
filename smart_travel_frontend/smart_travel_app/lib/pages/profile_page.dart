@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/top_nav_bar.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
@@ -22,15 +23,14 @@ class _ProfilePageState extends State<ProfilePage> {
     {'title': '出行偏好', 'icon': Icons.settings, 'route': '/preferences'},
     {'title': '行动能力设置', 'icon': Icons.accessibility, 'route': '/ability'},
     {'title': '行李设置', 'icon': Icons.business_center, 'route': '/luggage'},
-    {'title': '字体大小', 'icon': Icons.text_fields, 'route': '/font'},
-    {'title': '夜间模式', 'icon': Icons.nights_stay, 'route': '/theme'},
+    {'title': '外观', 'icon': Icons.palette, 'route': '/theme'},
     {'title': '消息通知', 'icon': Icons.notifications, 'route': '/notifications'},
   ];
 
   final List<Map<String, dynamic>> _helperFunctions = [
     {'title': '帮助中心', 'icon': Icons.help},
-    {'title': '意见反馈', 'icon': Icons.feedback},
-    {'title': '关于APP', 'icon': Icons.info},
+    {'title': '意见反馈', 'icon': Icons.feedback, 'route': '/feedback'},
+    {'title': '关于APP', 'icon': Icons.info, 'route': '/about'},
     {'title': '用户协议', 'icon': Icons.description},
   ];
 
@@ -65,6 +65,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: const TopNavBar(title: '个人中心'),
       body: SingleChildScrollView(
@@ -74,7 +77,6 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             // 用户信息
             Card(
-              elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
@@ -86,12 +88,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
+                        color: colorScheme.primaryContainer,
                         borderRadius: AppTheme.borderRadiusXL,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.person,
-                        color: Colors.white,
+                        color: colorScheme.onPrimaryContainer,
                         size: 30,
                       ),
                     ),
@@ -102,11 +104,15 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           Text(
                             '用户',
-                            style: AppTheme.headline3,
+                            style: textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           Text(
-                            '智能出行用户',
-                            style: AppTheme.bodyText2,
+                            '地铁跑酷换乘助手用户',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -118,9 +124,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
             SizedBox(height: AppTheme.spacingL),
 
-            const Text(
+            Text(
               '常用路线',
-              style: AppTheme.headline3,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             SizedBox(height: AppTheme.spacingM),
             _isLoading
@@ -150,7 +158,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         : Column(
                             children: _commonRoutes.map((route) {
                               return Card(
-                                elevation: 2,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: AppTheme.borderRadiusM,
                                 ),
@@ -164,9 +171,12 @@ class _ProfilePageState extends State<ProfilePage> {
                                     children: [
                                       Text(
                                         '${route['start'] ?? ''} → ${route['end'] ?? ''}',
-                                        style: AppTheme.bodyText1,
+                                        style: textTheme.bodyLarge,
                                       ),
-                                      const Icon(Icons.chevron_right),
+                                      Icon(
+                                        Icons.chevron_right,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -177,24 +187,33 @@ class _ProfilePageState extends State<ProfilePage> {
             SizedBox(height: AppTheme.spacingL),
 
             // 设置
-            const Text(
+            Text(
               '设置',
-              style: AppTheme.headline3,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             SizedBox(height: AppTheme.spacingM),
             Card(
-              elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Column(
                 children: _settings.map((setting) {
                   return ListTile(
-                    leading: Icon(setting['icon']),
+                    leading: Icon(
+                      setting['icon'],
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     title: Text(setting['title']),
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     onTap: () {
-                      // 导航到设置页面
+                      if (setting['route'] != null) {
+                        context.push(setting['route']);
+                      }
                     },
                   );
                 }).toList(),
@@ -204,24 +223,33 @@ class _ProfilePageState extends State<ProfilePage> {
             SizedBox(height: AppTheme.spacingL),
 
             // 辅助功能
-            const Text(
+            Text(
               '辅助功能',
-              style: AppTheme.headline3,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             SizedBox(height: AppTheme.spacingM),
             Card(
-              elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Column(
                 children: _helperFunctions.map((function) {
                   return ListTile(
-                    leading: Icon(function['icon']),
+                    leading: Icon(
+                      function['icon'],
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     title: Text(function['title']),
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     onTap: () {
-                      // 导航到对应页面
+                      if (function['route'] != null) {
+                        context.push(function['route']);
+                      }
                     },
                   );
                 }).toList(),

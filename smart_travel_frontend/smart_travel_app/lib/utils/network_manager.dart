@@ -11,7 +11,7 @@ class NetworkManager {
   NetworkManager._internal() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.28.154.73:3000/api',
+        baseUrl: 'http://100.79.206.167:3000/api',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ),
