@@ -30,11 +30,30 @@ class ApiService {
 
   Future<ApiResponse<List<dynamic>>> getRoutePlans(String start, String end) {
     return _handleApiCall<List<dynamic>>(() async {
+      // #region debug-point 1
+      print('[DEBUG] getRoutePlans called with start=$start, end=$end');
+      // #endregion
       final response = await _networkManager.post('/route-plan/plan', data: {
         'start': start,
         'end': end,
       });
-      return response.data is List ? response.data : [];
+      // #region debug-point 2
+      print('[DEBUG] Response status: ${response.statusCode}');
+      print('[DEBUG] Response data type: ${response.data.runtimeType}');
+      print('[DEBUG] Response data: ${response.data}');
+      // #endregion
+      if (response.data is Map && response.data['success'] == true) {
+        final routes = response.data['routes'];
+        // #region debug-point 3
+        print('[DEBUG] Routes extracted: $routes');
+        print('[DEBUG] Routes type: ${routes.runtimeType}');
+        // #endregion
+        return routes is List ? routes : [];
+      }
+      // #region debug-point 4
+      print('[DEBUG] Response format invalid, returning empty list');
+      // #endregion
+      return [];
     });
   }
 
@@ -67,12 +86,12 @@ class ApiService {
     required String currentCarriage,
   }) {
     return _handleApiCall<Map<String, dynamic>>(() async {
-      final response = await _networkManager.post('/high-speed-rail/guide',
-          data: {
-            'trainNumber': trainNumber,
-            'destination': destination,
-            'currentCarriage': currentCarriage,
-          });
+      final response =
+          await _networkManager.post('/high-speed-rail/guide', data: {
+        'trainNumber': trainNumber,
+        'destination': destination,
+        'currentCarriage': currentCarriage,
+      });
       return Map<String, dynamic>.from(response.data);
     });
   }
@@ -83,7 +102,8 @@ class ApiService {
     int remainingTime = 300,
   }) {
     return _handleApiCall<Map<String, dynamic>>(() async {
-      final response = await _networkManager.post('/transfer-time/start', data: {
+      final response =
+          await _networkManager.post('/transfer-time/start', data: {
         'from': from,
         'to': to,
         'remainingTime': remainingTime,
@@ -92,7 +112,8 @@ class ApiService {
     });
   }
 
-  Future<ApiResponse<Map<String, dynamic>>> getTransferUpdate(String sessionId) {
+  Future<ApiResponse<Map<String, dynamic>>> getTransferUpdate(
+      String sessionId) {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response =
           await _networkManager.get('/transfer-time/update/$sessionId');
@@ -102,8 +123,7 @@ class ApiService {
 
   Future<ApiResponse<List<dynamic>>> getCommonRoutes(String userId) {
     return _handleApiCall<List<dynamic>>(() async {
-      final response =
-          await _networkManager.get('/common-routes/user/$userId');
+      final response = await _networkManager.get('/common-routes/user/$userId');
       return response.data is List ? response.data : [];
     });
   }

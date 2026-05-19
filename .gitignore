@@ -13,6 +13,9 @@ node_modules/
 pubspec.lock
 *.metadata
 devtools_options.yaml
+**/generated_plugin_registrant.*
+**/GeneratedPluginRegistrant.swift
+**/generated_plugins.cmake
 
 # IDE
 .idea/
@@ -37,3 +40,9 @@ backend/package-lock.json
 database/.env
 *.pdf
 *.docx
+
+# Test and seed scripts
+backend/test-*.js
+backend/check-*.js
+backend/seed*.js
+database/**/scripts/

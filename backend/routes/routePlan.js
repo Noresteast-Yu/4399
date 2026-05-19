@@ -1,19 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const databaseRepository = require('../../database/database/services/databaseRepository');
+const routeService = require('../services/routeService');
 
-// 路线规划 API
-// 目前先接入本地数据库/静态数据模块，后续可以把 databaseRepository 替换为 MySQL 实现。
-router.post('/plan', (req, res) => {
-  const { start, end } = req.body || {};
-
+router.post('/plan', async (req, res) => {
   try {
-    const routePlans = databaseRepository.getRoutePlans(start, end);
-    return res.status(200).json(routePlans);
+    const { start, end } = req.body;
+    
+    if (!start || !end) {
+      return res.status(400).json({
+        success: false,
+        error: '请提供起点和终点',
+        routes: []
+      });
+    }
+
+    const result = await routeService.planRoute(start, end);
+    
+    res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({
-      message: '路线规划失败',
-      error: error.message
+    console.error('路线规划API错误:', error);
+    res.status(500).json({
+      success: false,
+      error: '服务器内部错误',
+      routes: []
     });
   }
 });

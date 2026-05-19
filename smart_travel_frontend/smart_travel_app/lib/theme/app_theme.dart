@@ -2,32 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:smart_travel_app/providers/theme_provider.dart';
 
 class AppTheme {
-  // 品牌色
   static const Color secondaryColor = Color(0xFF585E72);
   static const Color errorColor = Color(0xFFBA1A1A);
   static const Color warningColor = Color(0xFFE4BE00);
   static const Color infoColor = Color(0xFF5AC8FA);
 
-  // 指示性颜色
   static const Color colorPositive = Color(0xFF46C705);
   static const Color colorMedium = Color(0xFFE4BE00);
   static const Color colorNegative = Color(0xFFE40000);
   static const Color colorUnknown = Color(0xFF808080);
 
-  // 暗色指示性颜色
   static const Color darkColorPositive = Color(0xFF88D867);
   static const Color darkColorMedium = Color(0xFFE7CA3F);
   static const Color darkColorNegative = Color(0xFFFF795B);
   static const Color darkColorUnknown = Color(0xFFBFBFBF);
 
-  // 中性色
   static const Color background = Color(0xFFFAF8FF);
   static const Color surface = Color(0xFFFAF8FF);
   static const Color textPrimary = Color(0xFF1A1B21);
   static const Color textSecondary = Color(0xFF45464F);
   static const Color textTertiary = Color(0xFF757680);
 
-  // 字体字号
   static const TextStyle headline1 = TextStyle(
     fontSize: 34,
     fontWeight: FontWeight.bold,
@@ -53,7 +48,6 @@ class AppTheme {
     fontWeight: FontWeight.normal,
   );
 
-  // 字体大小倍率
   static double getFontSizeMultiplier(FontSizeOption size) {
     switch (size) {
       case FontSizeOption.smallest:
@@ -69,7 +63,6 @@ class AppTheme {
     }
   }
 
-  // 根据字体大小倍率缩放 TextTheme 的字号
   static TextTheme scaleTextTheme(TextTheme base, double multiplier) {
     return base.copyWith(
       displayLarge: base.displayLarge?.copyWith(

@@ -26,7 +26,6 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
   String? _error;
 
-  // 核心功能快捷入口
   final List<Map<String, dynamic>> _quickAccess = [
     {
       'icon': Icons.subway,
@@ -127,7 +126,6 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 上海地铁地图
               ShanghaiMetroMap(
                 onStationSelected: (station, isStart) {
                   if (isStart) {
@@ -143,7 +141,6 @@ class _HomePageState extends State<HomePage> {
                     _endController.text.isNotEmpty ? _endController.text : null,
               ),
               SizedBox(height: AppTheme.spacingM),
-              // 快捷规划入口
               Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: AppTheme.borderRadiusL,
@@ -182,10 +179,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-
               SizedBox(height: AppTheme.spacingM),
-
-              // 常用路线卡片
               Text(
                 '常用路线',
                 style: textTheme.titleLarge?.copyWith(
@@ -252,9 +246,7 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                         CommonButton(
                                           text: '导航',
-                                          onPressed: () {
-                                            // 发起导航
-                                          },
+                                          onPressed: () {},
                                           isPrimary: false,
                                         ),
                                       ],
@@ -263,10 +255,7 @@ class _HomePageState extends State<HomePage> {
                                 );
                               }).toList(),
                             ),
-
               SizedBox(height: AppTheme.spacingM),
-
-              // 实时出行看板
               Text(
                 '实时出行提醒',
                 style: textTheme.titleLarge?.copyWith(
@@ -314,10 +303,7 @@ class _HomePageState extends State<HomePage> {
                   );
                 }).toList(),
               ),
-
               SizedBox(height: AppTheme.spacingM),
-
-              // 核心功能快捷入口
               Text(
                 '快捷功能',
                 style: textTheme.titleLarge?.copyWith(

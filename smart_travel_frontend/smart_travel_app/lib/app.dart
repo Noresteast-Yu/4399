@@ -2,11 +2,49 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_travel_app/providers/theme_provider.dart';
+import 'package:smart_travel_app/providers/user_preferences_provider.dart';
 import 'package:smart_travel_app/routes/app_router.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
 
 class SmartTravelApp extends StatelessWidget {
   const SmartTravelApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider()..loadSettings(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => UserPreferencesProvider()..loadPreferences(),
+        ),
+      ],
+      child: Consumer2<ThemeProvider, UserPreferencesProvider>(
+        builder: (context, themeProvider, userPreferences, child) {
+          return DynamicColorBuilder(
+            builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+              return MaterialApp.router(
+                title: '地铁跑酷换乘助手',
+                theme: _buildLightTheme(
+                  themeProvider.themeColor,
+                  themeProvider.fontSize,
+                  lightDynamic,
+                ),
+                darkTheme: _buildDarkTheme(
+                  themeProvider.themeColor,
+                  themeProvider.fontSize,
+                  darkDynamic,
+                ),
+                themeMode: themeProvider.themeModeEnum,
+                routerConfig: AppRouter.router,
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 
   ThemeData _buildLightTheme(
     ThemeColorOption themeColor,
@@ -68,35 +106,5 @@ class SmartTravelApp extends StatelessWidget {
     }
 
     return AppTheme.generateDarkTheme(themeColor, fontSize: fontSize);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider()..loadSettings(),
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return DynamicColorBuilder(
-            builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-              return MaterialApp.router(
-                title: '地铁跑酷换乘助手',
-                theme: _buildLightTheme(
-                  themeProvider.themeColor,
-                  themeProvider.fontSize,
-                  lightDynamic,
-                ),
-                darkTheme: _buildDarkTheme(
-                  themeProvider.themeColor,
-                  themeProvider.fontSize,
-                  darkDynamic,
-                ),
-                themeMode: themeProvider.themeModeEnum,
-                routerConfig: AppRouter.router,
-              );
-            },
-          );
-        },
-      ),
-    );
   }
 }

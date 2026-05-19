@@ -8,6 +8,7 @@ const highSpeedRailRoutes = require('./highSpeedRail');
 const transferTimeRoutes = require('./transferTime');
 const commonRoutesRoutes = require('./commonRoutes');
 const travelAlertsRoutes = require('./travelAlerts');
+const userPreferencesRoutes = require('./userPreferences');
 
 // 注册路由
 router.use('/route-plan', routePlanRoutes);
@@ -16,5 +17,6 @@ router.use('/high-speed-rail', highSpeedRailRoutes);
 router.use('/transfer-time', transferTimeRoutes);
 router.use('/common-routes', commonRoutesRoutes);
 router.use('/travel-alerts', travelAlertsRoutes);
+router.use('/user-preferences', userPreferencesRoutes);
 
 module.exports = router;

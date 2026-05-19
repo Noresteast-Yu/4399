@@ -8,6 +8,12 @@ import 'package:smart_travel_app/pages/map_navigation_page.dart';
 import 'package:smart_travel_app/pages/settings/theme_settings_page.dart';
 import 'package:smart_travel_app/pages/settings/feedback_page.dart';
 import 'package:smart_travel_app/pages/settings/about_app_page.dart';
+import 'package:smart_travel_app/pages/settings/preferences_page.dart';
+import 'package:smart_travel_app/pages/settings/ability_settings_page.dart';
+import 'package:smart_travel_app/pages/settings/luggage_settings_page.dart';
+import 'package:smart_travel_app/pages/settings/notifications_page.dart';
+import 'package:smart_travel_app/pages/settings/help_center_page.dart';
+import 'package:smart_travel_app/pages/settings/user_agreement_page.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -38,22 +44,48 @@ class AppRouter {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfilePage(),
+        routes: [
+          GoRoute(
+            path: 'theme',
+            builder: (context, state) => const ThemeSettingsPage(),
+          ),
+          GoRoute(
+            path: 'feedback',
+            builder: (context, state) => const FeedbackPage(),
+          ),
+          GoRoute(
+            path: 'about',
+            builder: (context, state) => const AboutAppPage(),
+          ),
+          GoRoute(
+            path: 'preferences',
+            builder: (context, state) => const PreferencesPage(),
+          ),
+          GoRoute(
+            path: 'ability',
+            builder: (context, state) => const AbilitySettingsPage(),
+          ),
+          GoRoute(
+            path: 'luggage',
+            builder: (context, state) => const LuggageSettingsPage(),
+          ),
+          GoRoute(
+            path: 'notifications',
+            builder: (context, state) => const NotificationsPage(),
+          ),
+          GoRoute(
+            path: 'help-center',
+            builder: (context, state) => const HelpCenterPage(),
+          ),
+          GoRoute(
+            path: 'user-agreement',
+            builder: (context, state) => const UserAgreementPage(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/map-navigation',
         builder: (context, state) => const MapNavigationPage(),
-      ),
-      GoRoute(
-        path: '/theme',
-        builder: (context, state) => const ThemeSettingsPage(),
-      ),
-      GoRoute(
-        path: '/feedback',
-        builder: (context, state) => const FeedbackPage(),
-      ),
-      GoRoute(
-        path: '/about',
-        builder: (context, state) => const AboutAppPage(),
       ),
     ],
   );

@@ -69,6 +69,10 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     final start = _startController.text.trim();
     final end = _endController.text.trim();
 
+    // #region debug-point 5
+    print('[DEBUG] _planRoute called: start=$start, end=$end');
+    // #endregion
+
     try {
       setState(() {
         _isLoading = true;
@@ -79,19 +83,34 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         _usingStaticData = false;
       });
 
+      // #region debug-point 6
+      print('[DEBUG] Calling ApiService.getRoutePlans...');
+      // #endregion
       final response = await _apiService.getRoutePlans(start, end);
+      // #region debug-point 7
+      print(
+          '[DEBUG] ApiService response: success=${response.success}, data=${response.data}, error=${response.error}');
+      // #endregion
 
       if (response.success && response.data != null) {
         final routeData = response.data!;
-        if (routeData.isEmpty) {
+        if (routeData is List && routeData.isNotEmpty) {
+          setState(() {
+            _routePlans =
+                routeData.map((e) => e as Map<String, dynamic>).toList();
+            _usingStaticData = false;
+          });
+          // #region debug-point 8
+          print('[DEBUG] Routes loaded from API: ${_routePlans.length} routes');
+          // #endregion
+        } else {
           setState(() {
             _routePlans = _getStaticRoutes(start, end);
             _usingStaticData = true;
           });
-        } else {
-          setState(() {
-            _routePlans = List<Map<String, dynamic>>.from(routeData);
-          });
+          // #region debug-point 9
+          print('[DEBUG] Using static routes (API returned empty)');
+          // #endregion
         }
       } else {
         setState(() {
@@ -99,6 +118,10 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
           _usingStaticData = true;
           _error = response.error;
         });
+        // #region debug-point 10
+        print(
+            '[DEBUG] API call failed, using static routes. Error: ${response.error}');
+        // #endregion
       }
     } catch (e) {
       setState(() {
@@ -106,10 +129,16 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         _usingStaticData = true;
         _error = '网络异常，已显示离线数据';
       });
+      // #region debug-point 11
+      print('[DEBUG] Exception caught: $e');
+      // #endregion
     } finally {
       setState(() {
         _isLoading = false;
       });
+      // #region debug-point 12
+      print('[DEBUG] Loading finished, _isLoading=false');
+      // #endregion
     }
   }
 

@@ -20,18 +20,18 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _error;
 
   final List<Map<String, dynamic>> _settings = [
-    {'title': '出行偏好', 'icon': Icons.settings, 'route': '/preferences'},
-    {'title': '行动能力设置', 'icon': Icons.accessibility, 'route': '/ability'},
-    {'title': '行李设置', 'icon': Icons.business_center, 'route': '/luggage'},
-    {'title': '外观', 'icon': Icons.palette, 'route': '/theme'},
-    {'title': '消息通知', 'icon': Icons.notifications, 'route': '/notifications'},
+    {'title': '出行偏好', 'icon': Icons.settings, 'route': 'preferences'},
+    {'title': '行动能力设置', 'icon': Icons.accessibility, 'route': 'ability'},
+    {'title': '行李设置', 'icon': Icons.business_center, 'route': 'luggage'},
+    {'title': '外观', 'icon': Icons.palette, 'route': 'theme'},
+    {'title': '消息通知', 'icon': Icons.notifications, 'route': 'notifications'},
   ];
 
   final List<Map<String, dynamic>> _helperFunctions = [
-    {'title': '帮助中心', 'icon': Icons.help},
-    {'title': '意见反馈', 'icon': Icons.feedback, 'route': '/feedback'},
-    {'title': '关于APP', 'icon': Icons.info, 'route': '/about'},
-    {'title': '用户协议', 'icon': Icons.description},
+    {'title': '帮助中心', 'icon': Icons.help, 'route': 'help-center'},
+    {'title': '意见反馈', 'icon': Icons.feedback, 'route': 'feedback'},
+    {'title': '关于APP', 'icon': Icons.info, 'route': 'about'},
+    {'title': '用户协议', 'icon': Icons.description, 'route': 'user-agreement'},
   ];
 
   @override
@@ -51,8 +51,16 @@ class _ProfilePageState extends State<ProfilePage> {
       final data = response.data;
 
       setState(() {
-        _commonRoutes =
-            data is List ? List<Map<String, dynamic>>.from(data) : [];
+        if (data is Map && data['success'] == true) {
+          final routesData = data['data'];
+          _commonRoutes = routesData is List
+              ? List<Map<String, dynamic>>.from(routesData)
+              : [];
+        } else if (data is List) {
+          _commonRoutes = List<Map<String, dynamic>>.from(data);
+        } else {
+          _commonRoutes = [];
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -61,6 +69,168 @@ class _ProfilePageState extends State<ProfilePage> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _showAddRouteDialog() async {
+    final startController = TextEditingController();
+    final endController = TextEditingController();
+
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('添加常用路线'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: startController,
+              decoration: const InputDecoration(
+                labelText: '起点',
+                hintText: '请输入起点站名',
+                prefixIcon: Icon(Icons.location_on),
+              ),
+            ),
+            SizedBox(height: AppTheme.spacingM),
+            TextField(
+              controller: endController,
+              decoration: const InputDecoration(
+                labelText: '终点',
+                hintText: '请输入终点站名',
+                prefixIcon: Icon(Icons.location_off),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final start = startController.text.trim();
+              final end = endController.text.trim();
+
+              if (start.isEmpty || end.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('请输入起点和终点'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(context);
+
+              try {
+                final response = await _networkManager.post(
+                  '/common-routes/add',
+                  data: {'start': start, 'end': end},
+                );
+
+                if (response.data is Map && response.data['success'] == true) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('添加成功'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  _loadCommonRoutes();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(response.data['error'] ?? '添加失败'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('添加失败: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('添加'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteRoute(Map<String, dynamic> route) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除 "${route['start']} → ${route['end']}" 吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final response = await _networkManager.delete(
+        '/common-routes/${route['id']}',
+      );
+
+      if (response.data is Map && response.data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('删除成功'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadCommonRoutes();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.data['error'] ?? '删除失败'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('删除失败: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _navigateToRoute(Map<String, dynamic> route) {
+    final start = route['start'] ?? '';
+    final end = route['end'] ?? '';
+
+    if (start.isEmpty || end.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('路线信息不完整'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    context.push(
+      '/route-plan?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}',
+    );
   }
 
   @override
@@ -75,7 +245,6 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 用户信息
             Card(
               shape: RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
@@ -121,14 +290,22 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
-
             SizedBox(height: AppTheme.spacingL),
-
-            Text(
-              '常用路线',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '常用路线',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.add_circle, color: colorScheme.primary),
+                  onPressed: _showAddRouteDialog,
+                  tooltip: '添加常用路线',
+                ),
+              ],
             ),
             SizedBox(height: AppTheme.spacingM),
             _isLoading
@@ -149,10 +326,32 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       )
                     : _commonRoutes.isEmpty
-                        ? const Card(
+                        ? Card(
                             child: Padding(
-                              padding: EdgeInsets.all(AppTheme.spacingM),
-                              child: Text('暂无常用路线'),
+                              padding: EdgeInsets.all(AppTheme.spacingL),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.route,
+                                    size: 48,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  SizedBox(height: AppTheme.spacingM),
+                                  Text(
+                                    '暂无常用路线',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  SizedBox(height: AppTheme.spacingS),
+                                  Text(
+                                    '点击 + 按钮添加常用路线',
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           )
                         : Column(
@@ -166,16 +365,57 @@ class _ProfilePageState extends State<ProfilePage> {
                                 child: Padding(
                                   padding: EdgeInsets.all(AppTheme.spacingM),
                                   child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        '${route['start'] ?? ''} → ${route['end'] ?? ''}',
-                                        style: textTheme.bodyLarge,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${route['start'] ?? ''} → ${route['end'] ?? ''}',
+                                              style:
+                                                  textTheme.bodyLarge?.copyWith(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            if (route['time'] != null ||
+                                                route['distance'] != null)
+                                              SizedBox(height: 4),
+                                            if (route['time'] != null ||
+                                                route['distance'] != null)
+                                              Text(
+                                                '${route['time'] ?? ''}${route['time'] != null && route['distance'] != null ? ' · ' : ''}${route['distance'] ?? ''}',
+                                                style: textTheme.bodySmall
+                                                    ?.copyWith(
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
                                       ),
-                                      Icon(
-                                        Icons.chevron_right,
-                                        color: colorScheme.onSurfaceVariant,
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.navigation,
+                                              color: colorScheme.primary,
+                                            ),
+                                            onPressed: () =>
+                                                _navigateToRoute(route),
+                                            tooltip: '导航',
+                                          ),
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.delete_outline,
+                                              color: colorScheme.error,
+                                            ),
+                                            onPressed: () =>
+                                                _deleteRoute(route),
+                                            tooltip: '删除',
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -183,10 +423,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               );
                             }).toList(),
                           ),
-
             SizedBox(height: AppTheme.spacingL),
-
-            // 设置
             Text(
               '设置',
               style: textTheme.titleLarge?.copyWith(
@@ -219,10 +456,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 }).toList(),
               ),
             ),
-
             SizedBox(height: AppTheme.spacingL),
-
-            // 辅助功能
             Text(
               '辅助功能',
               style: textTheme.titleLarge?.copyWith(
