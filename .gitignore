@@ -11,6 +11,8 @@ node_modules/
 **/build/
 **/coverage/
 pubspec.lock
+*.metadata
+devtools_options.yaml
 
 # IDE
 .idea/
@@ -18,6 +20,7 @@ pubspec.lock
 *.iml
 *.ipr
 *.iws
+**/WorkspaceSettings.xcsettings
 
 # OS
 .DS_Store
@@ -33,3 +36,4 @@ Thumbs.db
 backend/package-lock.json
 database/.env
 *.pdf
+*.docx
