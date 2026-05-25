@@ -63,7 +63,4 @@ app.*.map.json
 /macos/Pods/
 /macos/.symlinks/
 
-# Code generation
-*.g.dart
-*.freezed.dart
-*.mocks.dart
+# iOS & macOS
