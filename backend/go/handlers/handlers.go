@@ -146,6 +146,11 @@ func GetCommonRoutes(c *gin.Context) {
 	userID := c.Param("userId")
 	_ = userID
 
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []interface{}{}})
+		return
+	}
+
 	rows, err := database.DB.Query("SELECT id, start, end, title FROM common_routes ORDER BY id DESC")
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": true, "data": []interface{}{}})

@@ -1,31 +1,47 @@
 import 'package:dio/dio.dart';
+import 'package:smart_travel_app/utils/server_config.dart';
 
 class NetworkManager {
   static final NetworkManager _instance = NetworkManager._internal();
   late Dio _dio;
-
-  // 修改为你的电脑局域网IP地址（手机连接同一WiFi时使用）
-  // 查看方法：在电脑终端运行 ipconfig，找到 IPv4 地址
-  static const String serverIP = '100.79.206.167';
+  String _baseUrl = 'http://localhost:3000/api';
 
   factory NetworkManager() {
     return _instance;
   }
 
   NetworkManager._internal() {
-    _dio = Dio(
+    _dio = _createDio(_baseUrl);
+    _loadServerConfig();
+  }
+
+  Future<void> _loadServerConfig() async {
+    final baseUrl = await ServerConfig.getBaseUrl();
+    _baseUrl = baseUrl;
+    _dio = _createDio(baseUrl);
+  }
+
+  Future<void> refreshBaseUrl() async {
+    final baseUrl = await ServerConfig.getBaseUrl();
+    _baseUrl = baseUrl;
+    _dio = _createDio(baseUrl);
+  }
+
+  String get baseUrl => _baseUrl;
+
+  Dio _createDio(String baseUrl) {
+    final dio = Dio(
       BaseOptions(
-        baseUrl: 'http://$serverIP:3000/api',
+        baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
       ),
     );
 
-    _dio.interceptors.add(
+    dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
           options.headers['Content-Type'] = 'application/json';
-          options.headers['Authorization'] = 'Bearer token';
           return handler.next(options);
         },
         onResponse: (response, handler) {
@@ -37,6 +53,8 @@ class NetworkManager {
         },
       ),
     );
+
+    return dio;
   }
 
   Future<Response> get(String path,

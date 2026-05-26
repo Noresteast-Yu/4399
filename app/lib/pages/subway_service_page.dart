@@ -105,10 +105,20 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline,
-                          size: 48, color: colorScheme.error),
+                      Icon(Icons.cloud_off,
+                          size: 48, color: colorScheme.onSurfaceVariant),
                       const SizedBox(height: 16),
-                      Text('加载失败: $_error'),
+                      Text(
+                        '后端服务未连接',
+                        style: textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '请前往 个人中心 → 设置 → 服务配置 设置后端地址',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadAllFacilities,

@@ -22,12 +22,8 @@ class AIPlanningPage extends StatefulWidget {
 class _AIPlanningPageState extends State<AIPlanningPage> {
   final TextEditingController _startController = TextEditingController();
   final TextEditingController _endController = TextEditingController();
-  final TextEditingController _apiKeyController = TextEditingController();
-  final TextEditingController _endpointController = TextEditingController();
-  final TextEditingController _modelController = TextEditingController();
 
   bool _isLoading = false;
-  bool _showSettings = false;
   AIPlanResult? _result;
   String? _error;
   bool _preferFastest = true;
@@ -45,26 +41,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         widget.initialEndStation!.isNotEmpty;
     if (hasInitialStations) {
       _isLoading = true;
-    }
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    final key = await AIPlanningService.getApiKey();
-    final endpoint = await AIPlanningService.getApiEndpoint();
-    final model = await AIPlanningService.getModel();
-    if (mounted) {
-      setState(() {
-        _apiKeyController.text = key ?? '';
-        _endpointController.text = endpoint;
-        _modelController.text = model;
-      });
-    }
-    final hasInitialStations = widget.initialStartStation != null &&
-        widget.initialStartStation!.isNotEmpty &&
-        widget.initialEndStation != null &&
-        widget.initialEndStation!.isNotEmpty;
-    if (hasInitialStations) {
       _startPlanning();
     }
   }
@@ -73,22 +49,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   void dispose() {
     _startController.dispose();
     _endController.dispose();
-    _apiKeyController.dispose();
-    _endpointController.dispose();
-    _modelController.dispose();
     super.dispose();
-  }
-
-  Future<void> _saveSettings() async {
-    await AIPlanningService.setApiKey(_apiKeyController.text.trim());
-    await AIPlanningService.setApiEndpoint(_endpointController.text.trim());
-    await AIPlanningService.setModel(_modelController.text.trim());
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('AI配置已保存')),
-      );
-      setState(() => _showSettings = false);
-    }
   }
 
   Future<void> _startPlanning() async {
@@ -151,16 +112,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         title: const Text('AI智能规划'),
         backgroundColor: colorScheme.surfaceContainerHighest,
         foregroundColor: colorScheme.onSurface,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.settings,
-              color: _showSettings ? colorScheme.primary : null,
-            ),
-            onPressed: () => setState(() => _showSettings = !_showSettings),
-            tooltip: 'AI配置',
-          ),
-        ],
       ),
       body: SafeArea(
         child: _isLoading
@@ -191,7 +142,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (_showSettings) _buildSettingsSection(colorScheme),
                     _buildInputSection(colorScheme, textTheme),
                     SizedBox(height: AppTheme.spacingM),
                     _buildPreferencesSection(colorScheme, textTheme),
@@ -217,76 +167,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     );
   }
 
-  Widget _buildSettingsSection(ColorScheme colorScheme) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: AppTheme.borderRadiusL,
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(AppTheme.spacingM),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'AI接口配置',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                TextButton(
-                  onPressed: _saveSettings,
-                  child: const Text('保存配置'),
-                ),
-              ],
-            ),
-            SizedBox(height: AppTheme.spacingS),
-            CommonInput(
-              controller: _apiKeyController,
-              hintText: 'API Key',
-              obscureText: true,
-              prefixIcon:
-                  Icon(Icons.key, color: colorScheme.onSurfaceVariant),
-            ),
-            SizedBox(height: AppTheme.spacingS),
-            CommonInput(
-              controller: _endpointController,
-              hintText: 'API端点地址',
-              prefixIcon:
-                  Icon(Icons.link, color: colorScheme.onSurfaceVariant),
-            ),
-            SizedBox(height: AppTheme.spacingS),
-            CommonInput(
-              controller: _modelController,
-              hintText: '模型名称 (如: qwen-plus)',
-              prefixIcon: Icon(Icons.model_training,
-                  color: colorScheme.onSurfaceVariant),
-            ),
-            SizedBox(height: AppTheme.spacingS),
-            Container(
-              padding: EdgeInsets.all(AppTheme.spacingS),
-              decoration: BoxDecoration(
-                color: colorScheme.tertiaryContainer.withOpacity(0.5),
-                borderRadius: AppTheme.borderRadiusS,
-              ),
-              child: Text(
-                '支持任何兼容OpenAI格式的API，如通义千问、DeepSeek、Moonshot等。'
-                'API Key将安全存储在本地设备中。',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onTertiaryContainer,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildInputSection(ColorScheme colorScheme, TextTheme textTheme) {
     return Card(
       shape: RoundedRectangleBorder(
@@ -299,8 +179,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.auto_awesome,
-                    color: colorScheme.primary, size: 22),
+                Icon(Icons.auto_awesome, color: colorScheme.primary, size: 22),
                 SizedBox(width: 8),
                 Text(
                   'AI智能路线规划',
@@ -329,7 +208,8 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     );
   }
 
-  Widget _buildPreferencesSection(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildPreferencesSection(
+      ColorScheme colorScheme, TextTheme textTheme) {
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: AppTheme.borderRadiusL,
@@ -373,8 +253,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                 FilterChip(
                   label: const Text('避开拥挤'),
                   selected: _avoidCrowded,
-                  onSelected: (v) =>
-                      setState(() => _avoidCrowded = v),
+                  onSelected: (v) => setState(() => _avoidCrowded = v),
                   selectedColor: colorScheme.tertiaryContainer,
                   checkmarkColor: colorScheme.tertiary,
                 ),
@@ -429,8 +308,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
             ),
             const Spacer(),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(12),
@@ -499,8 +377,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                     final step = entry.value;
                     final isTransfer = step.type == 'transfer';
                     return Padding(
-                      padding:
-                          EdgeInsets.only(bottom: AppTheme.spacingS),
+                      padding: EdgeInsets.only(bottom: AppTheme.spacingS),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -529,8 +406,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                           SizedBox(width: 12),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   isTransfer ? '换乘' : step.line,
@@ -546,8 +422,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                                   step.description,
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color:
-                                        colorScheme.onSurfaceVariant,
+                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
@@ -555,8 +430,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                                   '${step.stops != null ? ' · ${step.stops}站' : ''}',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color:
-                                        colorScheme.onSurfaceVariant,
+                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -580,8 +454,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                   ),
                   SizedBox(height: AppTheme.spacingS),
                   ...result.tips.map((tip) => Padding(
-                        padding: EdgeInsets.only(
-                            bottom: AppTheme.spacingXS),
+                        padding: EdgeInsets.only(bottom: AppTheme.spacingXS),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -596,8 +469,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                                 tip,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color:
-                                      colorScheme.onSurfaceVariant,
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),

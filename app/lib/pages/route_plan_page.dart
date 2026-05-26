@@ -5,6 +5,7 @@ import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/providers/user_preferences_provider.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
 import 'package:smart_travel_app/services/api_service.dart';
+import 'package:smart_travel_app/services/ai_planning_service.dart';
 
 class RoutePlanPage extends StatefulWidget {
   final String? initialStartStation;
@@ -44,6 +45,41 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         widget.initialEndStation != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _planRoute();
+      });
+    }
+  }
+
+  Future<void> _fallbackToOfflinePlan(String start, String end) async {
+    try {
+      final result = await AIPlanningService.planRoute(
+        startStation: start,
+        endStation: end,
+      );
+
+      final steps = result.steps.map((s) => {
+            'line': s.line,
+            'type': s.type,
+            'description': s.description,
+            'time': '${s.timeMinutes}分钟',
+            'distance': s.stops != null ? '${s.stops}站' : '',
+          }).toList();
+
+      setState(() {
+        _routePlans = [
+          {
+            'title': result.title,
+            'time': '${result.totalTimeMinutes}分钟',
+            'transfers': result.transfers,
+            'description': result.summary,
+            'segments': steps,
+          },
+        ];
+        _error = null;
+      });
+    } catch (e) {
+      setState(() {
+        _routePlans = [];
+        _error = '后端服务不可用，离线规划也未能找到路线。请检查站点名称是否正确';
       });
     }
   }
@@ -109,34 +145,14 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             _routePlans =
                 routeData.map((e) => e as Map<String, dynamic>).toList();
           });
-          // #region debug-point 8
-          print('[DEBUG] Routes loaded from API: ${_routePlans.length} routes');
-          // #endregion
         } else {
-          setState(() {
-            _routePlans = [];
-          });
-          // #region debug-point 9
-          print('[DEBUG] API returned empty');
-          // #endregion
+          await _fallbackToOfflinePlan(start, end);
         }
       } else {
-        setState(() {
-          _routePlans = [];
-          _error = response.error ?? '规划失败';
-        });
-        // #region debug-point 10
-        print('[DEBUG] API call failed. Error: ${response.error}');
-        // #endregion
+        await _fallbackToOfflinePlan(start, end);
       }
     } catch (e) {
-      setState(() {
-        _routePlans = [];
-        _error = '网络异常';
-      });
-      // #region debug-point 11
-      print('[DEBUG] Exception caught: $e');
-      // #endregion
+      await _fallbackToOfflinePlan(start, end);
     } finally {
       setState(() {
         _isLoading = false;

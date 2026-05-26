@@ -14,6 +14,7 @@ import 'package:smart_travel_app/pages/settings/luggage_settings_page.dart';
 import 'package:smart_travel_app/pages/settings/notifications_page.dart';
 import 'package:smart_travel_app/pages/settings/help_center_page.dart';
 import 'package:smart_travel_app/pages/settings/user_agreement_page.dart';
+import 'package:smart_travel_app/pages/settings/api_settings_page.dart';
 import 'package:smart_travel_app/pages/ai_planning_page.dart';
 
 class AppRouter {
@@ -81,6 +82,10 @@ class AppRouter {
           GoRoute(
             path: 'user-agreement',
             builder: (context, state) => const UserAgreementPage(),
+          ),
+          GoRoute(
+            path: 'api-settings',
+            builder: (context, state) => const ApiSettingsPage(),
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_app/data/shanghai_metro_data.dart';
+import 'package:smart_travel_app/utils/api_config.dart';
 
 class AIPlanResult {
   final String title;
@@ -30,10 +31,9 @@ class AIPlanResult {
               ?.map((s) => AIPlanStep.fromJson(s as Map<String, dynamic>))
               .toList() ??
           [],
-      tips: (json['tips'] as List<dynamic>?)
-              ?.map((t) => t.toString())
-              .toList() ??
-          [],
+      tips:
+          (json['tips'] as List<dynamic>?)?.map((t) => t.toString()).toList() ??
+              [],
     );
   }
 }
@@ -71,7 +71,10 @@ class AIPlanningService {
 
   static Future<String?> getApiKey() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_apiKeyKey);
+    if (prefs.containsKey(_apiKeyKey)) {
+      return prefs.getString(_apiKeyKey);
+    }
+    return null;
   }
 
   static Future<void> setApiKey(String key) async {
@@ -81,8 +84,7 @@ class AIPlanningService {
 
   static Future<String> getApiEndpoint() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_apiEndpointKey) ??
-        'https://dashscope.aliyuncs.com/compatible-mode/v1';
+    return prefs.getString(_apiEndpointKey) ?? defaultApiEndpoint;
   }
 
   static Future<void> setApiEndpoint(String endpoint) async {
@@ -92,7 +94,7 @@ class AIPlanningService {
 
   static Future<String> getModel() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_modelKey) ?? 'qwen-plus';
+    return prefs.getString(_modelKey) ?? defaultApiModel;
   }
 
   static Future<void> setModel(String model) async {
@@ -139,11 +141,13 @@ class AIPlanningService {
         }
       }
 
-      final linesInfo = allLines.map((l) => {
-            'lineId': l.lineId,
-            'lineName': l.lineName,
-            'stations': l.stations.map((s) => s.name).toList(),
-          }).toList();
+      final linesInfo = allLines
+          .map((l) => {
+                'lineId': l.lineId,
+                'lineName': l.lineName,
+                'stations': l.stations.map((s) => s.name).toList(),
+              })
+          .toList();
 
       final systemPrompt = '''你是一个上海地铁智能规划助手。你需要根据用户提供的起终点和偏好，规划最优的地铁路线。
 
@@ -301,23 +305,20 @@ ${jsonEncode(allStations.values.where((s) => s['isTransfer'] == true).toList())}
                   AIPlanStep(
                     type: 'ride',
                     line: sLine.lineName,
-                    description:
-                        '$startStation → ${transferStation.name}',
+                    description: '$startStation → ${transferStation.name}',
                     timeMinutes: leg1 * 2,
                     stops: leg1,
                   ),
                   AIPlanStep(
                     type: 'transfer',
                     line: '',
-                    description:
-                        '在${transferStation.name}换乘${eLine.lineName}',
+                    description: '在${transferStation.name}换乘${eLine.lineName}',
                     timeMinutes: 5,
                   ),
                   AIPlanStep(
                     type: 'ride',
                     line: eLine.lineName,
-                    description:
-                        '${transferStation.name} → $endStation',
+                    description: '${transferStation.name} → $endStation',
                     timeMinutes: leg2 * 2,
                     stops: leg2,
                   ),
@@ -350,7 +351,8 @@ ${jsonEncode(allStations.values.where((s) => s['isTransfer'] == true).toList())}
       title: routeTitle,
       totalTimeMinutes: totalTime,
       transfers: transfers,
-      summary: '从$startStation前往$endStation，${transfers > 0 ? "需换乘$transfers次" : "无需换乘"}，预计耗时$totalTime分钟',
+      summary:
+          '从$startStation前往$endStation，${transfers > 0 ? "需换乘$transfers次" : "无需换乘"}，预计耗时$totalTime分钟',
       steps: steps,
       tips: [
         '请留意地铁末班车时间',

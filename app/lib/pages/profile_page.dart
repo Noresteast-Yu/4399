@@ -20,6 +20,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _error;
 
   final List<Map<String, dynamic>> _settings = [
+    {'title': '服务配置', 'icon': Icons.dns, 'route': '/profile/api-settings'},
     {'title': '出行偏好', 'icon': Icons.settings, 'route': '/profile/preferences'},
     {'title': '行动能力设置', 'icon': Icons.accessibility, 'route': '/profile/ability'},
     {'title': '行李设置', 'icon': Icons.business_center, 'route': '/profile/luggage'},
@@ -316,7 +317,25 @@ class _ProfilePageState extends State<ProfilePage> {
                           padding: EdgeInsets.all(AppTheme.spacingM),
                           child: Column(
                             children: [
-                              Text('加载失败: $_error'),
+                              Icon(
+                                Icons.cloud_off,
+                                size: 32,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              SizedBox(height: AppTheme.spacingS),
+                              Text(
+                                '后端服务未连接',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              SizedBox(height: AppTheme.spacingXS),
+                              Text(
+                                '请前往 个人中心 → 设置 → 服务配置 设置后端地址',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
                               TextButton(
                                 onPressed: _loadCommonRoutes,
                                 child: const Text('重试'),
