@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -31,7 +32,15 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBack
           ? IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: onBack ?? () => Navigator.of(context).pop(),
+              onPressed: () {
+                if (onBack != null) {
+                  onBack!();
+                } else if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/');
+                }
+              },
             )
           : null,
       actions: actions,

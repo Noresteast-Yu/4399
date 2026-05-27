@@ -287,14 +287,14 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            alert['title'],
+                            (alert['title'] ?? '出行提醒').toString(),
                             style: textTheme.bodyLarge?.copyWith(
                               color: alertOnColor,
                             ),
                           ),
                           SizedBox(height: AppTheme.spacingS),
                           Text(
-                            alert['message'],
+                            (alert['message'] ?? alert['content'] ?? '暂无详情').toString(),
                             style: textTheme.bodyMedium?.copyWith(
                               color: alertOnColor,
                             ),
@@ -321,7 +321,7 @@ class _HomePageState extends State<HomePage> {
                 children: _quickAccess.map((item) {
                   return GestureDetector(
                     onTap: () {
-                      context.go(item['route']);
+                      context.push(item['route'] as String);
                     },
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
