@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:smart_travel_app/data/shanghai_metro_data.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
@@ -20,90 +18,10 @@ class ShanghaiFullMetroMap extends StatefulWidget {
   State<ShanghaiFullMetroMap> createState() => _ShanghaiFullMetroMapState();
 }
 
-const double _thumbnailMapHeight = 420;
-const double _mapFitPadding = 120;
-
-class _MapBounds {
-  final double left;
-  final double top;
-  final double right;
-  final double bottom;
-
-  const _MapBounds({
-    required this.left,
-    required this.top,
-    required this.right,
-    required this.bottom,
-  });
-
-  double get width => right - left;
-  double get height => bottom - top;
-}
-
-const _thumbnailOverviewBounds = _MapBounds(
-  left: 420,
-  top: 480,
-  right: 2100,
-  bottom: 1620,
-);
-
-_MapBounds _calculateMapBounds(List<MetroLine> lines) {
-  var minX = double.infinity;
-  var minY = double.infinity;
-  var maxX = -double.infinity;
-  var maxY = -double.infinity;
-
-  for (final line in lines) {
-    for (final station in line.stations) {
-      minX = math.min(minX, station.x);
-      minY = math.min(minY, station.y);
-      maxX = math.max(maxX, station.x);
-      maxY = math.max(maxY, station.y);
-    }
-  }
-
-  if (minX == double.infinity) {
-    return const _MapBounds(
-      left: 0,
-      top: 0,
-      right: ShanghaiMetroData.canvasWidth,
-      bottom: ShanghaiMetroData.canvasHeight,
-    );
-  }
-
-  return _MapBounds(
-    left: math.max(0, minX - _mapFitPadding),
-    top: math.max(0, minY - _mapFitPadding),
-    right: math.min(ShanghaiMetroData.canvasWidth, maxX + _mapFitPadding),
-    bottom: math.min(ShanghaiMetroData.canvasHeight, maxY + _mapFitPadding),
-  );
-}
-
-Matrix4 _buildFittedMapMatrix(
-  Size viewportSize,
-  _MapBounds bounds, {
-  double scaleFactor = 0.92,
-}) {
-  final safeWidth = math.max(bounds.width, 1.0);
-  final safeHeight = math.max(bounds.height, 1.0);
-  final scaleX = viewportSize.width / safeWidth;
-  final scaleY = viewportSize.height / safeHeight;
-  final scale = math.min(scaleX, scaleY) * scaleFactor;
-  final translateX =
-      (viewportSize.width - safeWidth * scale) / 2 - bounds.left * scale;
-  final translateY =
-      (viewportSize.height - safeHeight * scale) / 2 - bounds.top * scale;
-
-  return Matrix4.identity()
-    ..translate(translateX, translateY)
-    ..scale(scale);
-}
-
 class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
   String? _selectedStartStation;
   String? _selectedEndStation;
   late final List<MetroLine> _metroLines;
-  double? _lastThumbnailWidth;
   final TransformationController _thumbnailController =
       TransformationController();
 
@@ -113,20 +31,33 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
     _selectedStartStation = widget.initialStartStation;
     _selectedEndStation = widget.initialEndStation;
     _metroLines = ShanghaiMetroData.getAllLines();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fitMapToContainer();
+    });
   }
 
-  void _fitThumbnailToContainer(double containerWidth) {
-    if (containerWidth <= 0) return;
-    if (_lastThumbnailWidth != null &&
-        (_lastThumbnailWidth! - containerWidth).abs() < 1) {
-      return;
-    }
-    _lastThumbnailWidth = containerWidth;
-    _thumbnailController.value = _buildFittedMapMatrix(
-      Size(containerWidth, _thumbnailMapHeight),
-      _thumbnailOverviewBounds,
-      scaleFactor: 0.88,
-    );
+  void _fitMapToContainer() {
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+
+    final containerWidth = renderBox.size.width;
+    const contentWidth = ShanghaiMetroData.canvasWidth;
+    const contentHeight = ShanghaiMetroData.canvasHeight;
+    const visibleHeight = 650.0;
+
+    final scaleX = (containerWidth - 40) / contentWidth;
+    final scaleY = (visibleHeight - 40) / contentHeight;
+    final initialScale = (scaleX < scaleY ? scaleX : scaleY) * 0.75;
+
+    final scaledWidth = contentWidth * initialScale;
+    final scaledHeight = contentHeight * initialScale;
+    final translateX = (containerWidth - scaledWidth) / 2;
+    final translateY = (visibleHeight - scaledHeight) / 2;
+
+    final matrix = Matrix4.identity()
+      ..translate(translateX, translateY)
+      ..scale(initialScale);
+    _thumbnailController.value = matrix;
   }
 
   @override
@@ -206,10 +137,7 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
 
     final matrix = _thumbnailController.value;
     final inverseMatrix = Matrix4.inverted(matrix);
-    final transformed = MatrixUtils.transformPoint(
-      inverseMatrix,
-      localPosition,
-    );
+    final transformed = MatrixUtils.transformPoint(inverseMatrix, localPosition);
 
     const hitRadius = 24.0;
     MetroStation? closestStation;
@@ -289,21 +217,19 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
             Row(
               children: [
                 const Text(
-                  '上海地铁示意图',
+                  '上海地铁线路图',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    '${_metroLines.length}条线路示意',
+                    '${_metroLines.length}条线路',
                     style: TextStyle(
                       fontSize: 11,
                       color: colorScheme.onPrimaryContainer,
@@ -330,7 +256,10 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
                     ),
                   ),
                 IconButton(
-                  icon: Icon(Icons.fullscreen, color: colorScheme.primary),
+                  icon: Icon(
+                    Icons.fullscreen,
+                    color: colorScheme.primary,
+                  ),
                   onPressed: _openFullScreenMap,
                   tooltip: '全屏查看',
                 ),
@@ -378,7 +307,7 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
           child: ClipRRect(
             borderRadius: AppTheme.borderRadiusM,
             child: Container(
-              height: _thumbnailMapHeight,
+              height: 650,
               decoration: BoxDecoration(
                 borderRadius: AppTheme.borderRadiusM,
                 border: Border.all(color: colorScheme.outlineVariant),
@@ -386,36 +315,25 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
               ),
               child: Stack(
                 children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!mounted) return;
-                        _fitThumbnailToContainer(constraints.maxWidth);
-                      });
-
-                      return InteractiveViewer(
-                        transformationController: _thumbnailController,
-                        minScale: 0.12,
-                        maxScale: 4.0,
-                        boundaryMargin: const EdgeInsets.all(double.infinity),
-                        child: SizedBox(
-                          width: ShanghaiMetroData.canvasWidth,
-                          height: ShanghaiMetroData.canvasHeight,
-                          child: CustomPaint(
-                            size: Size(
-                              ShanghaiMetroData.canvasWidth,
-                              ShanghaiMetroData.canvasHeight,
-                            ),
-                            painter: _MetroLinePainter(
-                              lines: _metroLines,
-                              startStation: _selectedStartStation,
-                              endStation: _selectedEndStation,
-                              transferStations: _getTransferStations(),
-                            ),
-                          ),
+                  InteractiveViewer(
+                    transformationController: _thumbnailController,
+                    minScale: 0.08,
+                    maxScale: 4.0,
+                    boundaryMargin: const EdgeInsets.all(double.infinity),
+                    child: SizedBox(
+                      width: ShanghaiMetroData.canvasWidth,
+                      height: ShanghaiMetroData.canvasHeight,
+                      child: CustomPaint(
+                        size: Size(ShanghaiMetroData.canvasWidth,
+                            ShanghaiMetroData.canvasHeight),
+                        painter: _MetroLinePainter(
+                          lines: _metroLines,
+                          startStation: _selectedStartStation,
+                          endStation: _selectedEndStation,
+                          transferStations: _getTransferStations(),
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                   Positioned(
                     bottom: 12,
@@ -424,9 +342,7 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
                       onTap: _openFullScreenMap,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest
                               .withOpacity(0.92),
@@ -506,85 +422,80 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
         color: colorScheme.surfaceContainerHighest.withOpacity(0.6),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  '图例',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                '图例',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
                 ),
-                const SizedBox(width: 12),
-                ...legendLines.map(
-                  (line) => Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: line.lineColor,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          line.lineName,
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (legendLines2.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Row(
-                children: legendLines2
-                    .map(
-                      (line) => Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 20,
-                              height: 3,
-                              decoration: BoxDecoration(
-                                color: line.lineColor,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              line.lineName,
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
+              ),
+              const SizedBox(width: 12),
+              ...legendLines.map(
+                (line) => Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: line.lineColor,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                    )
-                    .toList(),
+                      const SizedBox(width: 2),
+                      Text(
+                        line.lineName,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
+          ),
+          if (legendLines2.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: legendLines2.map(
+                (line) => Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: line.lineColor,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        line.lineName,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ).toList(),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -723,23 +634,21 @@ class _MetroLinePainter extends CustomPainter {
       final radius = 14.0;
 
       canvas.drawCircle(
-        Offset(station.x, station.y),
-        radius + 3,
-        outerRingPaint,
-      );
-      canvas.drawCircle(Offset(station.x, station.y), radius, transferPaint);
+          Offset(station.x, station.y), radius + 3, outerRingPaint);
       canvas.drawCircle(
-        Offset(station.x, station.y),
-        radius,
-        transferBorderPaint,
-      );
+          Offset(station.x, station.y), radius, transferPaint);
+      canvas.drawCircle(
+          Offset(station.x, station.y), radius, transferBorderPaint);
 
       if (isStart) {
-        canvas.drawCircle(Offset(station.x, station.y), radius - 2, startPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), radius - 2, startPaint);
       } else if (isEnd) {
-        canvas.drawCircle(Offset(station.x, station.y), radius - 2, endPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), radius - 2, endPaint);
       } else {
-        canvas.drawCircle(Offset(station.x, station.y), 6, innerPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), 6, innerPaint);
       }
     }
 
@@ -763,13 +672,17 @@ class _MetroLinePainter extends CustomPainter {
       final isStart = station.name == startStation;
       final isEnd = station.name == endStation;
 
-      canvas.drawCircle(Offset(station.x, station.y), 7, smallOuterPaint);
+      canvas.drawCircle(
+          Offset(station.x, station.y), 7, smallOuterPaint);
       if (isStart) {
-        canvas.drawCircle(Offset(station.x, station.y), 5, startPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), 5, startPaint);
       } else if (isEnd) {
-        canvas.drawCircle(Offset(station.x, station.y), 5, endPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), 5, endPaint);
       } else {
-        canvas.drawCircle(Offset(station.x, station.y), 4, normalPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), 4, normalPaint);
       }
     }
   }
@@ -803,21 +716,30 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
       TransformationController();
   String? _selectedStartStation;
   String? _selectedEndStation;
-  late final _MapBounds _mapBounds;
 
   @override
   void initState() {
     super.initState();
     _selectedStartStation = widget.selectedStartStation;
     _selectedEndStation = widget.selectedEndStation;
-    _mapBounds = _calculateMapBounds(widget.metroLines);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final screenSize = MediaQuery.of(context).size;
-      _transformationController.value = _buildFittedMapMatrix(
-        screenSize,
-        _mapBounds,
-        scaleFactor: 0.82,
-      );
+      const contentWidth = ShanghaiMetroData.canvasWidth;
+      const contentHeight = ShanghaiMetroData.canvasHeight;
+
+      final scaleX = screenSize.width / contentWidth;
+      final scaleY = screenSize.height / contentHeight;
+      final initialScale = (scaleX < scaleY ? scaleX : scaleY) * 0.78;
+
+      final scaledWidth = contentWidth * initialScale;
+      final scaledHeight = contentHeight * initialScale;
+      final translateX = (screenSize.width - scaledWidth) / 2;
+      final translateY = (screenSize.height - scaledHeight) / 2;
+
+      final matrix = Matrix4.identity()
+        ..translate(translateX, translateY)
+        ..scale(initialScale);
+      _transformationController.value = matrix;
     });
   }
 
@@ -878,10 +800,7 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
 
     final matrix = _transformationController.value;
     final inverseMatrix = Matrix4.inverted(matrix);
-    final transformed = MatrixUtils.transformPoint(
-      inverseMatrix,
-      localPosition,
-    );
+    final transformed = MatrixUtils.transformPoint(inverseMatrix, localPosition);
 
     const hitRadius = 30.0;
     MetroStation? closestStation;
@@ -943,20 +862,20 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
               minScale: 0.2,
               maxScale: 6.0,
               boundaryMargin: const EdgeInsets.all(double.infinity),
-              child: SizedBox(
-                width: ShanghaiMetroData.canvasWidth,
-                height: ShanghaiMetroData.canvasHeight,
-                child: CustomPaint(
-                  size: Size(
-                    ShanghaiMetroData.canvasWidth,
-                    ShanghaiMetroData.canvasHeight,
-                  ),
-                  painter: _FullScreenMetroPainter(
-                    lines: widget.metroLines,
-                    startStation: _selectedStartStation,
-                    endStation: _selectedEndStation,
-                    transferStations: _getTransferStations(),
-                    scale: _transformationController.value.getMaxScaleOnAxis(),
+              child: Center(
+                child: SizedBox(
+                  width: ShanghaiMetroData.canvasWidth,
+                  height: ShanghaiMetroData.canvasHeight,
+                  child: CustomPaint(
+                    size: Size(ShanghaiMetroData.canvasWidth,
+                        ShanghaiMetroData.canvasHeight),
+                    painter: _FullScreenMetroPainter(
+                      lines: widget.metroLines,
+                      startStation: _selectedStartStation,
+                      endStation: _selectedEndStation,
+                      transferStations: _getTransferStations(),
+                      scale: _transformationController.value.getMaxScaleOnAxis(),
+                    ),
                   ),
                 ),
               ),
@@ -970,11 +889,8 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    color: colorScheme.onSurface,
-                    size: 28,
-                  ),
+                  icon: Icon(Icons.close,
+                      color: colorScheme.onSurface, size: 28),
                   onPressed: () => Navigator.pop(context),
                   style: IconButton.styleFrom(
                     backgroundColor: colorScheme.scrim.withOpacity(0.6),
@@ -983,18 +899,19 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                 Row(
                   children: [
                     IconButton(
-                      icon: Icon(
-                        Icons.zoom_out_map,
-                        color: colorScheme.onSurface,
-                        size: 24,
-                      ),
+                      icon: Icon(Icons.zoom_out_map,
+                          color: colorScheme.onSurface, size: 24),
                       onPressed: () {
                         final screenSize = MediaQuery.of(context).size;
-                        _transformationController.value = _buildFittedMapMatrix(
-                          screenSize,
-                          _mapBounds,
-                          scaleFactor: 0.82,
-                        );
+                        const cw = ShanghaiMetroData.canvasWidth;
+                        const ch = ShanghaiMetroData.canvasHeight;
+                        final s =
+                            (screenSize.width / cw < screenSize.height / ch
+                                    ? screenSize.width / cw
+                                    : screenSize.height / ch) *
+                                0.78;
+                        _transformationController.value = Matrix4.identity()
+                          ..scale(s);
                       },
                       style: IconButton.styleFrom(
                         backgroundColor: colorScheme.scrim.withOpacity(0.6),
@@ -1002,11 +919,8 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(
-                        Icons.search,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                      icon: const Icon(Icons.search,
+                          color: Colors.white, size: 24),
                       onPressed: _showStationSearchSheet,
                       style: IconButton.styleFrom(
                         backgroundColor: colorScheme.scrim.withOpacity(0.6),
@@ -1014,11 +928,8 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(
-                        Icons.refresh,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                      icon: const Icon(Icons.refresh,
+                          color: Colors.white, size: 24),
                       onPressed: () {
                         setState(() {
                           _selectedStartStation = null;
@@ -1077,10 +988,8 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                     ),
                   ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerHighest.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(8),
@@ -1102,10 +1011,8 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                         decoration: BoxDecoration(
                           color: Colors.grey.shade300,
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.grey.shade600,
-                            width: 2,
-                          ),
+                          border:
+                              Border.all(color: Colors.grey.shade600, width: 2),
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -1125,7 +1032,10 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
     return Container(
       width: 14,
       height: 14,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+      ),
     );
   }
 }
@@ -1216,21 +1126,18 @@ class _FullScreenMetroPainter extends CustomPainter {
       final radius = 16.0;
 
       canvas.drawCircle(
-        Offset(station.x, station.y),
-        radius + 4,
-        outerRingPaint,
-      );
-      canvas.drawCircle(Offset(station.x, station.y), radius, transferBgPaint);
+          Offset(station.x, station.y), radius + 4, outerRingPaint);
       canvas.drawCircle(
-        Offset(station.x, station.y),
-        radius,
-        transferBorderPaint,
-      );
+          Offset(station.x, station.y), radius, transferBgPaint);
+      canvas.drawCircle(
+          Offset(station.x, station.y), radius, transferBorderPaint);
 
       if (isStart) {
-        canvas.drawCircle(Offset(station.x, station.y), radius - 3, startPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), radius - 3, startPaint);
       } else if (isEnd) {
-        canvas.drawCircle(Offset(station.x, station.y), radius - 3, endPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), radius - 3, endPaint);
       } else {
         canvas.drawCircle(Offset(station.x, station.y), 7, innerPaint);
       }
@@ -1273,13 +1180,17 @@ class _FullScreenMetroPainter extends CustomPainter {
       final isStart = station.name == startStation;
       final isEnd = station.name == endStation;
 
-      canvas.drawCircle(Offset(station.x, station.y), 8, smallOuterPaint);
+      canvas.drawCircle(
+          Offset(station.x, station.y), 8, smallOuterPaint);
       if (isStart) {
-        canvas.drawCircle(Offset(station.x, station.y), 6, startPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), 6, startPaint);
       } else if (isEnd) {
-        canvas.drawCircle(Offset(station.x, station.y), 6, endPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), 6, endPaint);
       } else {
-        canvas.drawCircle(Offset(station.x, station.y), 5, normalPaint);
+        canvas.drawCircle(
+            Offset(station.x, station.y), 5, normalPaint);
       }
 
       if (isStart || isEnd) {
@@ -1371,7 +1282,8 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
       builder: (context, scrollController) => Container(
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(16)),
         ),
         child: Column(
           children: [
@@ -1389,10 +1301,8 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    icon: Icon(Icons.close,
+                        color: colorScheme.onSurfaceVariant),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -1419,9 +1329,7 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
+                      horizontal: 12, vertical: 10),
                 ),
               ),
             ),
@@ -1438,14 +1346,13 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
                     color: Colors.grey,
                     onTap: () => setState(() => _filterLineId = null),
                   ),
-                  ...widget.metroLines.map(
-                    (line) => _FilterChip(
-                      label: line.lineName,
-                      isSelected: _filterLineId == line.lineId,
-                      color: line.lineColor,
-                      onTap: () => setState(() => _filterLineId = line.lineId),
-                    ),
-                  ),
+                  ...widget.metroLines.map((line) => _FilterChip(
+                        label: line.lineName,
+                        isSelected: _filterLineId == line.lineId,
+                        color: line.lineColor,
+                        onTap: () => setState(
+                            () => _filterLineId = line.lineId),
+                      )),
                 ],
               ),
             ),
@@ -1455,7 +1362,9 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
                   ? Center(
                       child: Text(
                         '没有找到匹配的站点',
-                        style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     )
                   : ListView.builder(
@@ -1465,8 +1374,10 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
                         final station = filteredStations[index];
                         final isStart =
                             station.name == widget.selectedStartStation;
-                        final isEnd = station.name == widget.selectedEndStation;
-                        final isTransfer = station.transferLines.isNotEmpty;
+                        final isEnd =
+                            station.name == widget.selectedEndStation;
+                        final isTransfer =
+                            station.transferLines.isNotEmpty;
 
                         return ListTile(
                           leading: Container(
@@ -1476,23 +1387,19 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
                               color: isStart
                                   ? Colors.green
                                   : isEnd
-                                  ? Colors.red
-                                  : isTransfer
-                                  ? Colors.grey.shade300
-                                  : Colors.grey.shade200,
+                                      ? Colors.red
+                                      : isTransfer
+                                          ? Colors.grey.shade300
+                                          : Colors.grey.shade200,
                               shape: BoxShape.circle,
                               border: isTransfer
                                   ? Border.all(
-                                      color: Colors.grey.shade600,
-                                      width: 2,
-                                    )
+                                      color: Colors.grey.shade600, width: 2)
                                   : null,
                             ),
                             child: isTransfer
-                                ? const Icon(
-                                    Icons.transfer_within_a_station,
-                                    size: 16,
-                                  )
+                                ? const Icon(Icons.transfer_within_a_station,
+                                    size: 16)
                                 : null,
                           ),
                           title: Text(
@@ -1501,11 +1408,12 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
                               color: isStart
                                   ? Colors.green
                                   : isEnd
-                                  ? Colors.red
-                                  : colorScheme.onSurface,
-                              fontWeight: (isStart || isEnd)
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                                      ? Colors.red
+                                      : colorScheme.onSurface,
+                              fontWeight:
+                                  (isStart || isEnd)
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                             ),
                           ),
                           subtitle: station.transferLines.isNotEmpty
@@ -1523,44 +1431,30 @@ class _StationSearchSheetState extends State<_StationSearchSheet> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (isStart)
-                                const Icon(
-                                  Icons.trip_origin,
-                                  size: 16,
-                                  color: Colors.green,
-                                ),
+                                const Icon(Icons.trip_origin,
+                                    size: 16, color: Colors.green),
                               if (isEnd)
-                                const Icon(
-                                  Icons.flag,
-                                  size: 16,
-                                  color: Colors.red,
+                                const Icon(Icons.flag,
+                                    size: 16, color: Colors.red),
+                              if (!isStart && !isEnd)
+                                TextButton(
+                                  onPressed: () {
+                                    widget.onStationSelected(
+                                        station.name, true);
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text('设为起点',
+                                      style: TextStyle(fontSize: 12)),
                                 ),
                               if (!isStart && !isEnd)
                                 TextButton(
                                   onPressed: () {
                                     widget.onStationSelected(
-                                      station.name,
-                                      true,
-                                    );
+                                        station.name, false);
                                     Navigator.pop(context);
                                   },
-                                  child: const Text(
-                                    '设为起点',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                              if (!isStart && !isEnd)
-                                TextButton(
-                                  onPressed: () {
-                                    widget.onStationSelected(
-                                      station.name,
-                                      false,
-                                    );
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text(
-                                    '设为终点',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
+                                  child: const Text('设为终点',
+                                      style: TextStyle(fontSize: 12)),
                                 ),
                             ],
                           ),
