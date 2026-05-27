@@ -6,6 +6,7 @@
 secrets.yaml
 secret.dart
 api_config.dart
+!lib/utils/api_config.dart
 
 # Miscellaneous
 *.class

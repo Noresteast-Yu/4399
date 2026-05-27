@@ -1612,20 +1612,22 @@ class ShanghaiMetroData {
       lineColor: line10Color,
       stations: [
         const MetroStation(
-            id: 'hangzhong_road',
-            name: '航中路',
+            id: 'hongqiao_railway_10',
+            name: '虹桥火车站',
             x: 580,
             y: 1080,
+            transferLines: ['2', '17'],
             order: 1),
         const MetroStation(
-            id: 'ziteng_road',
-            name: '紫藤路',
+            id: 'hongqiao_t2_10',
+            name: '虹桥2号航站楼',
             x: 640,
             y: 1080,
+            transferLines: ['2'],
             order: 2),
         const MetroStation(
-            id: 'longbai_xincun',
-            name: '龙柏新村',
+            id: 'hongqiao_t1_10',
+            name: '虹桥1号航站楼',
             x: 700,
             y: 1080,
             order: 3),
