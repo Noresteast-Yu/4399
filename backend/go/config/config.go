@@ -8,12 +8,16 @@ import (
 )
 
 type Config struct {
-	ServerPort string
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
+	ServerPort       string
+	DBHost           string
+	DBPort           string
+	DBUser           string
+	DBPassword       string
+	DBName           string
+	ShmaasHost       string
+	ShmaasMerchantID string
+	ShmaasSalt       string
+	ShmaasCityCode   string
 }
 
 var AppConfig *Config
@@ -25,12 +29,16 @@ func LoadConfig() {
 	}
 
 	AppConfig = &Config{
-		ServerPort: getEnv("PORT", "3000"),
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "3306"),
-		DBUser:     getEnv("DB_USER", "root"),
-		DBPassword: getEnv("DB_PASSWORD", ""),
-		DBName:     getEnv("DB_NAME", "smart_travel"),
+		ServerPort:       getEnv("PORT", "3000"),
+		DBHost:           getEnv("DB_HOST", "localhost"),
+		DBPort:           getEnv("DB_PORT", "3306"),
+		DBUser:           getEnv("DB_USER", "root"),
+		DBPassword:       getEnv("DB_PASSWORD", ""),
+		DBName:           getEnv("DB_NAME", "smart_travel"),
+		ShmaasHost:       getEnv("SHMAAS_HOST", "http://127.0.0.1:8787"),
+		ShmaasMerchantID: getEnv("SHMAAS_MERCHANT_ID", "mock-merchant"),
+		ShmaasSalt:       getEnv("SHMAAS_SALT", "mock-salt"),
+		ShmaasCityCode:   getEnv("SHMAAS_CITY_CODE", "mock-shanghai"),
 	}
 }
 

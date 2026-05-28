@@ -142,6 +142,29 @@ func GetLines(c *gin.Context) {
 	c.JSON(http.StatusOK, lines)
 }
 
+func GetMetroArrival(c *gin.Context) {
+	query := services.MetroArrivalQuery{
+		LineID:    c.DefaultQuery("lineId", "mock-line-10"),
+		LineName:  c.DefaultQuery("lineName", "10号线"),
+		StopID:    c.Query("stopId"),
+		StopName:  c.Query("stopName"),
+		Direction: c.DefaultQuery("direction", "0"),
+		CityCode:  c.Query("cityCode"),
+	}
+	if query.StopID == "" && query.StopName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "stopId or stopName is required"})
+		return
+	}
+
+	result, err := services.QueryMetroArrival(query)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+}
+
 func GetCommonRoutes(c *gin.Context) {
 	userID := c.Param("userId")
 	_ = userID

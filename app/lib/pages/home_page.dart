@@ -23,8 +23,55 @@ class _HomePageState extends State<HomePage> {
 
   List<Map<String, dynamic>> _commonRoutes = [];
   List<Map<String, dynamic>> _travelAlerts = [];
+  Map<String, dynamic>? _metroArrival;
+  String? _metroArrivalError;
   bool _isLoading = true;
+  bool _isArrivalLoading = false;
   String? _error;
+
+  String _selectedMetroStopId = 'mock-l10-wujiaochang';
+  String _selectedMetroStopName = '五角场';
+  int _selectedMetroDirection = 0;
+
+  final List<Map<String, String>> _line10Stops = const [
+    {'id': 'mock-l10-hongqiao-railway', 'name': '虹桥火车站'},
+    {'id': 'mock-l10-hongqiao-t2', 'name': '虹桥2号航站楼'},
+    {'id': 'mock-l10-hongqiao-t1', 'name': '虹桥1号航站楼'},
+    {'id': 'mock-l10-shanghai-zoo', 'name': '上海动物园'},
+    {'id': 'mock-l10-longxi-road', 'name': '龙溪路'},
+    {'id': 'mock-l10-shuicheng-road', 'name': '水城路'},
+    {'id': 'mock-l10-yili-road', 'name': '伊犁路'},
+    {'id': 'mock-l10-songyuan-road', 'name': '宋园路'},
+    {'id': 'mock-l10-hongqiao-road', 'name': '虹桥路'},
+    {'id': 'mock-l10-jiaotong-university', 'name': '交通大学'},
+    {'id': 'mock-l10-shanghai-library', 'name': '上海图书馆'},
+    {'id': 'mock-l10-south-shaanxi-road', 'name': '陕西南路'},
+    {'id': 'mock-l10-xintiandi', 'name': '一大会址·新天地'},
+    {'id': 'mock-l10-laoximen', 'name': '老西门'},
+    {'id': 'mock-l10-yuyuan', 'name': '豫园'},
+    {'id': 'mock-l10-east-nanjing-road', 'name': '南京东路'},
+    {'id': 'mock-l10-tiantong-road', 'name': '天潼路'},
+    {'id': 'mock-l10-north-sichuan-road', 'name': '四川北路'},
+    {'id': 'mock-l10-hailun-road', 'name': '海伦路'},
+    {'id': 'mock-l10-youdian-xincun', 'name': '邮电新村'},
+    {'id': 'mock-l10-siping-road', 'name': '四平路'},
+    {'id': 'mock-l10-tongji-university', 'name': '同济大学'},
+    {'id': 'mock-l10-guoquan-road', 'name': '国权路'},
+    {'id': 'mock-l10-wujiaochang', 'name': '五角场'},
+    {'id': 'mock-l10-jiangwan-stadium', 'name': '江湾体育场'},
+    {'id': 'mock-l10-sanmen-road', 'name': '三门路'},
+    {'id': 'mock-l10-yingao-east-road', 'name': '殷高东路'},
+    {'id': 'mock-l10-xinjiangwan-city', 'name': '新江湾城'},
+    {'id': 'mock-l10-guofan-road', 'name': '国帆路'},
+    {'id': 'mock-l10-shuangjiang-road', 'name': '双江路'},
+    {'id': 'mock-l10-gaoqiao-west', 'name': '高桥西'},
+    {'id': 'mock-l10-gaoqiao', 'name': '高桥'},
+    {'id': 'mock-l10-gangcheng-road', 'name': '港城路'},
+    {'id': 'mock-l10-jilong-road', 'name': '基隆路'},
+    {'id': 'mock-l10-hangzhong-road', 'name': '航中路'},
+    {'id': 'mock-l10-ziteng-road', 'name': '紫藤路'},
+    {'id': 'mock-l10-longbai-xincun', 'name': '龙柏新村'},
+  ];
 
   final List<Map<String, dynamic>> _quickAccess = [
     {
@@ -49,12 +96,18 @@ class _HomePageState extends State<HomePage> {
     try {
       setState(() {
         _isLoading = true;
+        _isArrivalLoading = true;
         _error = null;
       });
 
       final results = await Future.wait([
         _apiService.getCommonRoutes('default'),
         _apiService.getTravelAlerts(),
+        _apiService.getMetroArrival(
+          stopId: _selectedMetroStopId,
+          stopName: _selectedMetroStopName,
+          direction: _selectedMetroDirection,
+        ),
       ]).timeout(
         Duration(seconds: 10),
         onTimeout: () {
@@ -62,8 +115,9 @@ class _HomePageState extends State<HomePage> {
         },
       );
 
-      final routesResponse = results[0];
-      final alertsResponse = results[1];
+      final routesResponse = results[0] as ApiResponse<List<dynamic>>;
+      final alertsResponse = results[1] as ApiResponse<List<dynamic>>;
+      final arrivalResponse = results[2] as ApiResponse<Map<String, dynamic>>;
 
       if (mounted) {
         setState(() {
@@ -73,7 +127,14 @@ class _HomePageState extends State<HomePage> {
           _travelAlerts = alertsResponse.success && alertsResponse.data != null
               ? List<Map<String, dynamic>>.from(alertsResponse.data!)
               : [];
+          _metroArrival =
+              arrivalResponse.success && arrivalResponse.data != null
+                  ? Map<String, dynamic>.from(arrivalResponse.data!)
+                  : null;
+          _metroArrivalError =
+              arrivalResponse.success ? null : arrivalResponse.error;
           _isLoading = false;
+          _isArrivalLoading = false;
         });
       }
     } catch (e) {
@@ -81,11 +142,34 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _error = e.toString();
           _isLoading = false;
+          _isArrivalLoading = false;
           _commonRoutes = [];
           _travelAlerts = [];
         });
       }
     }
+  }
+
+  Future<void> _loadMetroArrival() async {
+    setState(() {
+      _isArrivalLoading = true;
+      _metroArrivalError = null;
+    });
+
+    final response = await _apiService.getMetroArrival(
+      stopId: _selectedMetroStopId,
+      stopName: _selectedMetroStopName,
+      direction: _selectedMetroDirection,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _metroArrival = response.success && response.data != null
+          ? Map<String, dynamic>.from(response.data!)
+          : null;
+      _metroArrivalError = response.success ? null : response.error;
+      _isArrivalLoading = false;
+    });
   }
 
   @override
@@ -135,6 +219,8 @@ class _HomePageState extends State<HomePage> {
                 initialEndStation:
                     _endController.text.isNotEmpty ? _endController.text : null,
               ),
+              SizedBox(height: AppTheme.spacingM),
+              _buildMetroArrivalCard(colorScheme, textTheme),
               SizedBox(height: AppTheme.spacingM),
               Card(
                 shape: RoundedRectangleBorder(
@@ -294,7 +380,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                           SizedBox(height: AppTheme.spacingS),
                           Text(
-                            (alert['message'] ?? alert['content'] ?? '暂无详情').toString(),
+                            (alert['message'] ?? alert['content'] ?? '暂无详情')
+                                .toString(),
                             style: textTheme.bodyMedium?.copyWith(
                               color: alertOnColor,
                             ),
@@ -360,6 +447,137 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: 0),
+    );
+  }
+
+  Widget _buildMetroArrivalCard(ColorScheme colorScheme, TextTheme textTheme) {
+    final arrival = _metroArrival;
+    final hasData = arrival != null;
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: AppTheme.borderRadiusL,
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(AppTheme.spacingM),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedMetroStopId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: '站点',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _line10Stops.map((stop) {
+                      return DropdownMenuItem<String>(
+                        value: stop['id'],
+                        child: Text(stop['name']!),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      final selected = _line10Stops
+                          .firstWhere((stop) => stop['id'] == value);
+                      setState(() {
+                        _selectedMetroStopId = selected['id']!;
+                        _selectedMetroStopName = selected['name']!;
+                      });
+                      _loadMetroArrival();
+                    },
+                  ),
+                ),
+                SizedBox(width: AppTheme.spacingS),
+                SizedBox(
+                  width: 132,
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedMetroDirection,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: '方向',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 0, child: Text('往基隆路')),
+                      DropdownMenuItem(value: 1, child: Text('反方向')),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() {
+                        _selectedMetroDirection = value;
+                      });
+                      _loadMetroArrival();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: AppTheme.spacingM),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: AppTheme.borderRadiusM,
+                  ),
+                  child:
+                      Icon(Icons.train, color: colorScheme.onPrimaryContainer),
+                ),
+                SizedBox(width: AppTheme.spacingM),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '10号线 $_selectedMetroStopName到站',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: AppTheme.spacingS),
+                      if (_isArrivalLoading)
+                        Text(
+                          '正在连接模拟到站 API...',
+                          style: textTheme.bodyMedium,
+                        )
+                      else if (hasData) ...[
+                        Text(
+                          '最近一班 ${arrival['currentArriveMinutes'] ?? '?'} 分钟后，下一班 ${arrival['nextArriveMinutes'] ?? '?'} 分钟后',
+                          style: textTheme.bodyMedium,
+                        ),
+                        SizedBox(height: AppTheme.spacingS),
+                        Text(
+                          '列车位置：${arrival['trainLocation'] ?? '未知'} → ${arrival['trainNextStop'] ?? '未知'}',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ] else
+                        Text(
+                          _metroArrivalError ?? '模拟到站 API 未连接',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.error,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: '刷新到站时间',
+                  onPressed: _loadMetroArrival,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

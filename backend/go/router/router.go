@@ -37,6 +37,11 @@ func SetupRouter() *gin.Engine {
 			subway.GET("/lines", handlers.GetLines)
 		}
 
+		metro := api.Group("/metro")
+		{
+			metro.GET("/arrival", handlers.GetMetroArrival)
+		}
+
 		highSpeedRail := api.Group("/high-speed-rail")
 		{
 			highSpeedRail.GET("/train/:trainNumber", handlers.GetTrainInfo)

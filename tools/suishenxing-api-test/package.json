@@ -1,0 +1,17 @@
+{
+  "name": "suishenxing-api-test",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal CLI for testing Shmaas metro station and arrival APIs.",
+  "scripts": {
+    "mock": "node ./src/mock-server.mjs",
+    "ssx": "node ./src/ssx-cli.mjs",
+    "near": "node ./src/ssx-cli.mjs near",
+    "line": "node ./src/ssx-cli.mjs line",
+    "arrive": "node ./src/ssx-cli.mjs arrive"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

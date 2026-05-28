@@ -100,6 +100,34 @@ class ApiService {
     });
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> getMetroArrival({
+    required String stopId,
+    String? stopName,
+    String lineId = 'mock-line-10',
+    String lineName = '10号线',
+    int direction = 0,
+    String cityCode = 'mock-shanghai',
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.get(
+        '/metro/arrival',
+        queryParameters: {
+          'lineId': lineId,
+          'lineName': lineName,
+          'stopId': stopId,
+          if (stopName != null && stopName.isNotEmpty) 'stopName': stopName,
+          'direction': direction,
+          'cityCode': cityCode,
+        },
+      );
+      final data = response.data;
+      if (data is Map && data['success'] == true && data['data'] is Map) {
+        return Map<String, dynamic>.from(data['data']);
+      }
+      return Map<String, dynamic>.from(data);
+    });
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> getTrainInfo(String trainNumber) {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response =
