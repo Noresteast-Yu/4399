@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/components/common/common_input.dart';
 import 'package:smart_travel_app/components/common/common_button.dart';
-import 'package:smart_travel_app/components/home/shanghai_full_metro_map.dart';
+import 'package:smart_travel_app/components/home/line10_interactive_metro_map.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:go_router/go_router.dart';
@@ -32,46 +32,6 @@ class _HomePageState extends State<HomePage> {
   String _selectedMetroStopId = 'mock-l10-wujiaochang';
   String _selectedMetroStopName = '五角场';
   int _selectedMetroDirection = 0;
-
-  final List<Map<String, String>> _line10Stops = const [
-    {'id': 'mock-l10-hongqiao-railway', 'name': '虹桥火车站'},
-    {'id': 'mock-l10-hongqiao-t2', 'name': '虹桥2号航站楼'},
-    {'id': 'mock-l10-hongqiao-t1', 'name': '虹桥1号航站楼'},
-    {'id': 'mock-l10-shanghai-zoo', 'name': '上海动物园'},
-    {'id': 'mock-l10-longxi-road', 'name': '龙溪路'},
-    {'id': 'mock-l10-shuicheng-road', 'name': '水城路'},
-    {'id': 'mock-l10-yili-road', 'name': '伊犁路'},
-    {'id': 'mock-l10-songyuan-road', 'name': '宋园路'},
-    {'id': 'mock-l10-hongqiao-road', 'name': '虹桥路'},
-    {'id': 'mock-l10-jiaotong-university', 'name': '交通大学'},
-    {'id': 'mock-l10-shanghai-library', 'name': '上海图书馆'},
-    {'id': 'mock-l10-south-shaanxi-road', 'name': '陕西南路'},
-    {'id': 'mock-l10-xintiandi', 'name': '一大会址·新天地'},
-    {'id': 'mock-l10-laoximen', 'name': '老西门'},
-    {'id': 'mock-l10-yuyuan', 'name': '豫园'},
-    {'id': 'mock-l10-east-nanjing-road', 'name': '南京东路'},
-    {'id': 'mock-l10-tiantong-road', 'name': '天潼路'},
-    {'id': 'mock-l10-north-sichuan-road', 'name': '四川北路'},
-    {'id': 'mock-l10-hailun-road', 'name': '海伦路'},
-    {'id': 'mock-l10-youdian-xincun', 'name': '邮电新村'},
-    {'id': 'mock-l10-siping-road', 'name': '四平路'},
-    {'id': 'mock-l10-tongji-university', 'name': '同济大学'},
-    {'id': 'mock-l10-guoquan-road', 'name': '国权路'},
-    {'id': 'mock-l10-wujiaochang', 'name': '五角场'},
-    {'id': 'mock-l10-jiangwan-stadium', 'name': '江湾体育场'},
-    {'id': 'mock-l10-sanmen-road', 'name': '三门路'},
-    {'id': 'mock-l10-yingao-east-road', 'name': '殷高东路'},
-    {'id': 'mock-l10-xinjiangwan-city', 'name': '新江湾城'},
-    {'id': 'mock-l10-guofan-road', 'name': '国帆路'},
-    {'id': 'mock-l10-shuangjiang-road', 'name': '双江路'},
-    {'id': 'mock-l10-gaoqiao-west', 'name': '高桥西'},
-    {'id': 'mock-l10-gaoqiao', 'name': '高桥'},
-    {'id': 'mock-l10-gangcheng-road', 'name': '港城路'},
-    {'id': 'mock-l10-jilong-road', 'name': '基隆路'},
-    {'id': 'mock-l10-hangzhong-road', 'name': '航中路'},
-    {'id': 'mock-l10-ziteng-road', 'name': '紫藤路'},
-    {'id': 'mock-l10-longbai-xincun', 'name': '龙柏新村'},
-  ];
 
   final List<Map<String, dynamic>> _quickAccess = [
     {
@@ -172,6 +132,15 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _selectMetroStation(Line10MapStation station) {
+    setState(() {
+      _selectedMetroStopId = station.id;
+      _selectedMetroStopName = station.name;
+      _startController.text = station.name;
+    });
+    _loadMetroArrival();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -205,19 +174,9 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ShanghaiFullMetroMap(
-                onStationSelected: (station, isStart) {
-                  if (isStart) {
-                    _startController.text = station;
-                  } else {
-                    _endController.text = station;
-                  }
-                },
-                initialStartStation: _startController.text.isNotEmpty
-                    ? _startController.text
-                    : null,
-                initialEndStation:
-                    _endController.text.isNotEmpty ? _endController.text : null,
+              Line10InteractiveMetroMap(
+                selectedStationId: _selectedMetroStopId,
+                onStationSelected: _selectMetroStation,
               ),
               SizedBox(height: AppTheme.spacingM),
               _buildMetroArrivalCard(colorScheme, textTheme),
@@ -465,60 +424,6 @@ class _HomePageState extends State<HomePage> {
           children: [
             Row(
               children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedMetroStopId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: '站点',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _line10Stops.map((stop) {
-                      return DropdownMenuItem<String>(
-                        value: stop['id'],
-                        child: Text(stop['name']!),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      final selected = _line10Stops
-                          .firstWhere((stop) => stop['id'] == value);
-                      setState(() {
-                        _selectedMetroStopId = selected['id']!;
-                        _selectedMetroStopName = selected['name']!;
-                      });
-                      _loadMetroArrival();
-                    },
-                  ),
-                ),
-                SizedBox(width: AppTheme.spacingS),
-                SizedBox(
-                  width: 132,
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedMetroDirection,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: '方向',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 0, child: Text('往基隆路')),
-                      DropdownMenuItem(value: 1, child: Text('反方向')),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() {
-                        _selectedMetroDirection = value;
-                      });
-                      _loadMetroArrival();
-                    },
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: AppTheme.spacingM),
-            Row(
-              children: [
                 Container(
                   width: 48,
                   height: 48,
@@ -535,36 +440,18 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '10号线 $_selectedMetroStopName到站',
-                        style: textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+                        _selectedMetroStopName,
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(height: AppTheme.spacingS),
-                      if (_isArrivalLoading)
-                        Text(
-                          '正在连接模拟到站 API...',
-                          style: textTheme.bodyMedium,
-                        )
-                      else if (hasData) ...[
-                        Text(
-                          '最近一班 ${arrival['currentArriveMinutes'] ?? '?'} 分钟后，下一班 ${arrival['nextArriveMinutes'] ?? '?'} 分钟后',
-                          style: textTheme.bodyMedium,
+                      SizedBox(height: AppTheme.spacingXS),
+                      Text(
+                        '点击上方线路图站点切换',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                        SizedBox(height: AppTheme.spacingS),
-                        Text(
-                          '列车位置：${arrival['trainLocation'] ?? '未知'} → ${arrival['trainNextStop'] ?? '未知'}',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ] else
-                        Text(
-                          _metroArrivalError ?? '模拟到站 API 未连接',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.error,
-                          ),
-                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -572,6 +459,81 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.refresh),
                   tooltip: '刷新到站时间',
                   onPressed: _loadMetroArrival,
+                ),
+              ],
+            ),
+            SizedBox(height: AppTheme.spacingM),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 0, label: Text('往基隆路')),
+                  ButtonSegment(value: 1, label: Text('反方向')),
+                ],
+                selected: {_selectedMetroDirection},
+                showSelectedIcon: false,
+                onSelectionChanged: (values) {
+                  final value = values.first;
+                  setState(() {
+                    _selectedMetroDirection = value;
+                  });
+                  _loadMetroArrival();
+                },
+              ),
+            ),
+            SizedBox(height: AppTheme.spacingM),
+            if (_isArrivalLoading)
+              Text(
+                '正在连接模拟到站 API...',
+                style: textTheme.bodyMedium,
+              )
+            else if (hasData) ...[
+              Text(
+                '10号线 $_selectedMetroStopName到站',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: AppTheme.spacingS),
+              Text(
+                '最近一班 ${arrival['currentArriveMinutes'] ?? '?'} 分钟后，下一班 ${arrival['nextArriveMinutes'] ?? '?'} 分钟后',
+                style: textTheme.bodyMedium,
+              ),
+              SizedBox(height: AppTheme.spacingS),
+              Text(
+                '列车位置：${arrival['trainLocation'] ?? '未知'} → ${arrival['trainNextStop'] ?? '未知'}',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ] else
+              Text(
+                _metroArrivalError ?? '模拟到站 API 未连接',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.error,
+                ),
+              ),
+            SizedBox(height: AppTheme.spacingM),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.trip_origin),
+                    label: const Text('设为起点'),
+                    onPressed: () {
+                      _startController.text = _selectedMetroStopName;
+                    },
+                  ),
+                ),
+                SizedBox(width: AppTheme.spacingS),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.flag),
+                    label: const Text('设为终点'),
+                    onPressed: () {
+                      _endController.text = _selectedMetroStopName;
+                    },
+                  ),
                 ),
               ],
             ),

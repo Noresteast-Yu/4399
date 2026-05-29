@@ -78,14 +78,14 @@ func GetStation(c *gin.Context) {
 	lines := services.GetStationLineNames(stationID)
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":    true,
-		"id":         station.StationID,
-		"name":       station.StationName,
-		"city":       station.City,
-		"district":   station.District,
-		"type":       station.StationType,
-		"lines":      lines,
-		"facility":   facility,
+		"success":  true,
+		"id":       station.StationID,
+		"name":     station.StationName,
+		"city":     station.City,
+		"district": station.District,
+		"type":     station.StationType,
+		"lines":    lines,
+		"facility": facility,
 	})
 }
 
@@ -110,13 +110,18 @@ func GetStationFacilities(c *gin.Context) {
 func GetAllStationsFacilities(c *gin.Context) {
 	facilities := services.GetAllStationFacilities()
 	c.JSON(http.StatusOK, gin.H{
-		"success":     true,
-		"facilities":  facilities,
-		"totalCount":  len(facilities),
+		"success":    true,
+		"facilities": facilities,
+		"totalCount": len(facilities),
 	})
 }
 
 func GetLines(c *gin.Context) {
+	if database.DB == nil {
+		c.JSON(http.StatusOK, []gin.H{})
+		return
+	}
+
 	rows, err := database.DB.Query("SELECT line_id, line_name, color_hex FROM metro_lines")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -127,11 +132,13 @@ func GetLines(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	var lines []gin.H
+	lines := []gin.H{}
 	for rows.Next() {
 		var lineID, lineName string
 		var colorHex *string
-		rows.Scan(&lineID, &lineName, &colorHex)
+		if err := rows.Scan(&lineID, &lineName, &colorHex); err != nil {
+			continue
+		}
 		lines = append(lines, gin.H{
 			"id":    lineID,
 			"name":  lineName,
@@ -170,33 +177,34 @@ func GetCommonRoutes(c *gin.Context) {
 	_ = userID
 
 	if database.DB == nil {
-		c.JSON(http.StatusOK, gin.H{"success": true, "data": []interface{}{}})
+		c.JSON(http.StatusOK, []gin.H{})
 		return
 	}
 
-	rows, err := database.DB.Query("SELECT id, start, end, title FROM common_routes ORDER BY id DESC")
+	rows, err := database.DB.Query("SELECT id, start, end FROM common_routes ORDER BY id DESC")
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"success": true, "data": []interface{}{}})
+		c.JSON(http.StatusOK, []gin.H{})
 		return
 	}
 	defer rows.Close()
 
-	var routes []gin.H
+	routes := []gin.H{}
 	for rows.Next() {
 		var id int
-		var start, end, title string
-		rows.Scan(&id, &start, &end, &title)
+		var start, end string
+		if err := rows.Scan(&id, &start, &end); err != nil {
+			continue
+		}
 		routes = append(routes, gin.H{
 			"id":    id,
 			"start": start,
 			"end":   end,
-			"title": title,
+			"title": start + " -> " + end,
 		})
 	}
 
 	c.JSON(http.StatusOK, routes)
 }
-
 func AddCommonRoute(c *gin.Context) {
 	var req struct {
 		UserID string `json:"userId"`
@@ -209,9 +217,14 @@ func AddCommonRoute(c *gin.Context) {
 		return
 	}
 
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "数据库未连接"})
+		return
+	}
+
 	result, err := database.DB.Exec(
-		"INSERT INTO common_routes (user_id, start, end, title) VALUES (?, ?, ?, ?)",
-		req.UserID, req.Start, req.End, req.Start+" → "+req.End,
+		"INSERT INTO common_routes (user_id, start, end) VALUES (?, ?, ?)",
+		req.UserID, req.Start, req.End,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "添加失败"})
@@ -221,10 +234,9 @@ func AddCommonRoute(c *gin.Context) {
 	id, _ := result.LastInsertId()
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    gin.H{"id": id, "start": req.Start, "end": req.End},
+		"data":    gin.H{"id": id, "start": req.Start, "end": req.End, "title": req.Start + " -> " + req.End},
 	})
 }
-
 func DeleteCommonRoute(c *gin.Context) {
 	id := c.Param("id")
 
@@ -314,32 +326,48 @@ func GetTransferUpdate(c *gin.Context) {
 
 func GetTravelAlerts(c *gin.Context) {
 	alertType := c.Param("type")
-	_ = alertType
 
-	var alerts []gin.H
-	rows, err := database.DB.Query("SELECT * FROM travel_alerts ORDER BY created_at DESC")
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var id int
-			var alertID, title, content, alertTypeStr, severity string
-			var createdAt string
-			rows.Scan(&id, &alertID, &title, &content, &alertTypeStr, &severity, &createdAt)
-			alerts = append(alerts, gin.H{
-				"id":        id,
-				"alertId":   alertID,
-				"title":     title,
-				"content":   content,
-				"type":      alertTypeStr,
-				"severity":  severity,
-				"createdAt": createdAt,
-			})
+	if database.DB == nil {
+		c.JSON(http.StatusOK, []gin.H{})
+		return
+	}
+
+	query := "SELECT id, type, title, message, created_at FROM travel_alerts"
+	args := []interface{}{}
+	if alertType != "" {
+		query += " WHERE type = ?"
+		args = append(args, alertType)
+	}
+	query += " ORDER BY created_at DESC"
+
+	rows, err := database.DB.Query(query, args...)
+	if err != nil {
+		c.JSON(http.StatusOK, []gin.H{})
+		return
+	}
+	defer rows.Close()
+
+	alerts := []gin.H{}
+	for rows.Next() {
+		var id int
+		var alertTypeStr, title, message string
+		var createdAt string
+		if err := rows.Scan(&id, &alertTypeStr, &title, &message, &createdAt); err != nil {
+			continue
 		}
+		alerts = append(alerts, gin.H{
+			"id":        id,
+			"alertId":   fmt.Sprintf("alert_%d", id),
+			"title":     title,
+			"content":   message,
+			"type":      alertTypeStr,
+			"severity":  "info",
+			"createdAt": createdAt,
+		})
 	}
 
 	c.JSON(http.StatusOK, alerts)
 }
-
 func HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
@@ -363,6 +391,14 @@ func SubmitFeedback(c *gin.Context) {
 	}
 
 	if database.DB != nil {
+		_, _ = database.DB.Exec(`CREATE TABLE IF NOT EXISTS feedbacks (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			type VARCHAR(100) NOT NULL,
+			description TEXT NOT NULL,
+			contact VARCHAR(255) DEFAULT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`)
+
 		_, err := database.DB.Exec(
 			"INSERT INTO feedbacks (type, description, contact) VALUES (?, ?, ?)",
 			req.Type, req.Description, req.Contact,
@@ -376,6 +412,6 @@ func SubmitFeedback(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "感谢您的反馈！我们会尽快处理。",
+		"message": "感谢您的反馈，我们会尽快处理。",
 	})
 }
