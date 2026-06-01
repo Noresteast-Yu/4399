@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
 
@@ -29,11 +27,23 @@ class _TransferStop {
 class Line10InteractiveMetroMap extends StatefulWidget {
   final String selectedStationId;
   final ValueChanged<Line10MapStation> onStationSelected;
+  final VoidCallback? onMapInteraction;
+  final double height;
+  final bool immersive;
+  final bool showControls;
+  final bool showHint;
+  final double controlsBottomOffset;
 
   const Line10InteractiveMetroMap({
     super.key,
     required this.selectedStationId,
     required this.onStationSelected,
+    this.onMapInteraction,
+    this.height = 390,
+    this.immersive = false,
+    this.showControls = true,
+    this.showHint = true,
+    this.controlsBottomOffset = 12,
   });
 
   // Coordinates are based on the user's R-C.jpg reference image pixels.
@@ -264,6 +274,9 @@ class Line10InteractiveMetroMap extends StatefulWidget {
 class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
   late final TransformationController _controller;
   double _scale = 0.42;
+  Size? _lastViewport;
+  Matrix4? _interactionStartMatrix;
+  bool _interactionMoved = false;
 
   @override
   void initState() {
@@ -291,13 +304,29 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
   }
 
   void _fitInitialView() {
-    final width = context.size?.width ?? 360;
-    final scale = math.max(
-      0.16,
-      math.min(0.46, (width - 24) / Line10InteractiveMetroMap.mapSize.width),
-    );
+    final renderSize = context.size;
+    final mediaSize = MediaQuery.sizeOf(context);
+    final width = renderSize != null && renderSize.width > 0
+        ? renderSize.width
+        : mediaSize.width;
+    final height = renderSize != null && renderSize.height > 0
+        ? renderSize.height
+        : mediaSize.height;
+    _fitInitialViewFor(Size(width, height));
+  }
+
+  void _fitInitialViewFor(Size viewport) {
+    if (viewport.width <= 0 || viewport.height <= 0) return;
+    final scale = widget.immersive
+        ? (viewport.width < 380 ? 0.56 : 0.62)
+        : (viewport.width < 380 ? 0.48 : 0.54);
+    final station = _selectedStation;
+    final dx = (viewport.width / 2) - (station.position.dx * scale);
+    final targetY =
+        widget.immersive ? viewport.height * 0.44 : viewport.height / 2;
+    final dy = targetY - (station.position.dy * scale);
     _controller.value = Matrix4.identity()
-      ..translate(12.0, 96.0)
+      ..translate(dx, dy)
       ..scale(scale);
     setState(() {
       _scale = scale;
@@ -341,152 +370,151 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
         ...Line10InteractiveMetroMap.branchStations,
       ];
 
+  Line10MapStation get _selectedStation {
+    return _allStations.firstWhere(
+      (station) => station.id == widget.selectedStationId,
+      orElse: () => Line10InteractiveMetroMap.stations.first,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    final map = LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final viewport = Size(width, widget.height);
+        if (_lastViewport != viewport) {
+          _lastViewport = viewport;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _fitInitialViewFor(viewport);
+          });
+        }
+
+        return SizedBox(
+          height: widget.height,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTapUp: _handleTapUp,
+                  child: InteractiveViewer(
+                    transformationController: _controller,
+                    constrained: false,
+                    panAxis: PanAxis.free,
+                    onInteractionStart: (_) {
+                      _interactionStartMatrix = _controller.value.clone();
+                      _interactionMoved = false;
+                    },
+                    onInteractionUpdate: (_) {
+                      final start = _interactionStartMatrix;
+                      if (start == null) return;
+                      final current = _controller.value;
+                      final moved =
+                          (current.getTranslation() - start.getTranslation())
+                                  .length >
+                              2;
+                      final scaled = (current.getMaxScaleOnAxis() -
+                                  start.getMaxScaleOnAxis())
+                              .abs() >
+                          0.01;
+                      _interactionMoved = _interactionMoved || moved || scaled;
+                    },
+                    onInteractionEnd: (_) {
+                      if (_interactionMoved) {
+                        widget.onMapInteraction?.call();
+                      }
+                    },
+                    minScale: 0.16,
+                    maxScale: 1.65,
+                    boundaryMargin: const EdgeInsets.symmetric(
+                      horizontal: 700,
+                      vertical: 520,
+                    ),
+                    child: CustomPaint(
+                      size: Line10InteractiveMetroMap.mapSize,
+                      painter: _Line10MetroPainter(
+                        selectedStationId: widget.selectedStationId,
+                        scale: _scale,
+                        colorScheme: colorScheme,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (widget.showControls)
+                Positioned(
+                  right: 12,
+                  bottom: widget.controlsBottomOffset,
+                  child: Column(
+                    children: [
+                      _MapIconButton(
+                        icon: Icons.add,
+                        tooltip: '放大',
+                        onPressed: () => _zoomBy(1.22),
+                      ),
+                      const SizedBox(height: 8),
+                      _MapIconButton(
+                        icon: Icons.remove,
+                        tooltip: '缩小',
+                        onPressed: () => _zoomBy(0.82),
+                      ),
+                      const SizedBox(height: 8),
+                      _MapIconButton(
+                        icon: Icons.my_location,
+                        tooltip: '复位',
+                        onPressed: _fitInitialView,
+                      ),
+                    ],
+                  ),
+                ),
+              if (widget.showHint)
+                Positioned(
+                  left: 12,
+                  bottom: 12,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface.withOpacity(0.92),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      child: Text(
+                        _scale < 0.72 ? '放大查看更多站名' : '点击站点查看到站',
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (widget.immersive) {
+      return map;
+    }
 
     return Card(
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusL),
-      child: SizedBox(
-        height: 390,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                onTapUp: _handleTapUp,
-                child: InteractiveViewer(
-                  transformationController: _controller,
-                  constrained: false,
-                  panAxis: PanAxis.free,
-                  minScale: 0.16,
-                  maxScale: 1.65,
-                  boundaryMargin: const EdgeInsets.symmetric(
-                    horizontal: 700,
-                    vertical: 520,
-                  ),
-                  child: CustomPaint(
-                    size: Line10InteractiveMetroMap.mapSize,
-                    painter: _Line10MetroPainter(
-                      selectedStationId: widget.selectedStationId,
-                      scale: _scale,
-                      colorScheme: colorScheme,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 12,
-              top: 12,
-              right: 12,
-              child: _MapSearchBar(
-                selectedStationName: _allStations
-                    .firstWhere(
-                      (station) => station.id == widget.selectedStationId,
-                      orElse: () => Line10InteractiveMetroMap.stations.first,
-                    )
-                    .name,
-              ),
-            ),
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Column(
-                children: [
-                  _MapIconButton(
-                    icon: Icons.add,
-                    tooltip: '放大',
-                    onPressed: () => _zoomBy(1.22),
-                  ),
-                  const SizedBox(height: 8),
-                  _MapIconButton(
-                    icon: Icons.remove,
-                    tooltip: '缩小',
-                    onPressed: () => _zoomBy(0.82),
-                  ),
-                  const SizedBox(height: 8),
-                  _MapIconButton(
-                    icon: Icons.my_location,
-                    tooltip: '复位',
-                    onPressed: _fitInitialView,
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              left: 12,
-              bottom: 12,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colorScheme.surface.withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: colorScheme.outlineVariant),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Text(
-                    _scale < 0.72 ? '放大查看更多站名' : '点击站点查看到站',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: map,
     );
   }
 
   void _zoomBy(double factor) {
+    widget.onMapInteraction?.call();
     final next = _controller.value.clone()..scale(factor);
     _controller.value = next;
-  }
-}
-
-class _MapSearchBar extends StatelessWidget {
-  final String selectedStationName;
-
-  const _MapSearchBar({required this.selectedStationName});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Icon(Icons.search, size: 20, color: colorScheme.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '搜索站点 / 当前：$selectedStationName',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -577,10 +605,10 @@ class _Line10MetroPainter extends CustomPainter {
   }
 
   void _drawTransferHints(Canvas canvas) {
-    _drawShortLine(canvas, line2Color,
-        const [Offset(40, 754), Offset(180, 754)], '2号线');
-    _drawShortLine(canvas, line17Color,
-        const [Offset(40, 700), Offset(150, 700)], '17号线');
+    _drawShortLine(
+        canvas, line2Color, const [Offset(40, 754), Offset(180, 754)], '2号线');
+    _drawShortLine(
+        canvas, line17Color, const [Offset(40, 700), Offset(150, 700)], '17号线');
     _drawShortLine(canvas, const Color(0xFF4B2E83),
         const [Offset(610, 760), Offset(670, 900)], '3/4号线');
     _drawShortLine(canvas, line11Color,

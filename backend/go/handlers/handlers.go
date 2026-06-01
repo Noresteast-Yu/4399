@@ -172,6 +172,14 @@ func GetMetroArrival(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
 }
 
+func GetIndoorGuide(c *gin.Context) {
+	from := c.DefaultQuery("from", "新天地")
+	to := c.DefaultQuery("to", "静安寺")
+
+	plan := services.BuildIndoorGuide(from, to)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": plan})
+}
+
 func GetCommonRoutes(c *gin.Context) {
 	userID := c.Param("userId")
 	_ = userID

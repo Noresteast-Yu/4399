@@ -128,6 +128,26 @@ class ApiService {
     });
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> getIndoorGuide({
+    required String from,
+    required String to,
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.get(
+        '/indoor-guide',
+        queryParameters: {
+          'from': from,
+          'to': to,
+        },
+      );
+      final data = response.data;
+      if (data is Map && data['success'] == true && data['data'] is Map) {
+        return Map<String, dynamic>.from(data['data']);
+      }
+      return Map<String, dynamic>.from(data);
+    });
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> getTrainInfo(String trainNumber) {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response =

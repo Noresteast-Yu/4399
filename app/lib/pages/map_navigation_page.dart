@@ -89,7 +89,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
   }
 
   void _navigateToStation(String stationName) {
-    context.push('/route-plan?start=${Uri.encodeComponent(stationName)}');
+    context.push('/ai-planning?start=${Uri.encodeComponent(stationName)}');
   }
 
   int _getFacilityScore(Map<String, dynamic> station) {

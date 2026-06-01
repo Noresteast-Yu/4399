@@ -230,7 +230,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     context.push(
-      '/route-plan?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}',
+      '/ai-planning?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}',
     );
   }
 
