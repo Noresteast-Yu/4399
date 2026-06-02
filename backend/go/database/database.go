@@ -49,5 +49,8 @@ func CloseDB() {
 }
 
 func IsConnected() bool {
-	return DB != nil && DB.Ping() == nil
+	if DB == nil {
+		return false
+	}
+	return DB.Ping() == nil
 }
