@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"smart-travel-backend/database"
 	"smart-travel-backend/models"
@@ -248,6 +249,11 @@ func AddCommonRoute(c *gin.Context) {
 func DeleteCommonRoute(c *gin.Context) {
 	id := c.Param("id")
 
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "数据库未连接"})
+		return
+	}
+
 	_, err := database.DB.Exec("DELETE FROM common_routes WHERE id = ?", id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "删除失败"})
@@ -377,9 +383,19 @@ func GetTravelAlerts(c *gin.Context) {
 	c.JSON(http.StatusOK, alerts)
 }
 func HealthCheck(c *gin.Context) {
+	dbConnected := database.IsConnected()
+	mode := "mock"
+	if dbConnected {
+		mode = "database"
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-		"mode":   "database",
+		"status":     "ok",
+		"mode":       mode,
+		"database":   dbConnected,
+		"service":    "smart-travel-backend",
+		"checkedAt":  time.Now().Format(time.RFC3339),
+		"apiVersion": "v1",
 	})
 }
 

@@ -1,6 +1,10 @@
 package router
 
 import (
+	"net/http"
+	"strings"
+
+	"smart-travel-backend/config"
 	"smart-travel-backend/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -10,11 +14,15 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := allowedOrigin(c.GetHeader("Origin"))
+		if origin != "" {
+			c.Header("Access-Control-Allow-Origin", origin)
+		}
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Credentials", "true")
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 		c.Next()
@@ -76,4 +84,23 @@ func SetupRouter() *gin.Engine {
 	}
 
 	return r
+}
+
+func allowedOrigin(origin string) string {
+	if config.AppConfig == nil {
+		return "*"
+	}
+
+	for _, allowed := range config.AppConfig.CORSOrigins {
+		if allowed == "*" {
+			if origin != "" {
+				return origin
+			}
+			return "*"
+		}
+		if origin != "" && strings.EqualFold(strings.TrimSpace(allowed), origin) {
+			return origin
+		}
+	}
+	return ""
 }
