@@ -5,6 +5,7 @@ class Line10MapStation {
   final String id;
   final String name;
   final Offset position;
+  final String lineId;
   final List<String> transferLines;
   final bool keyStation;
 
@@ -12,16 +13,94 @@ class Line10MapStation {
     required this.id,
     required this.name,
     required this.position,
+    this.lineId = '10',
     this.transferLines = const [],
     this.keyStation = false,
   });
 }
 
-class _TransferStop {
+class MetroMapLine {
+  final String id;
+  final String name;
+  final Color color;
+  final List<List<Line10MapStation>> stationGroups;
+  final List<MetroLineBadge> badges;
+
+  const MetroMapLine({
+    required this.id,
+    required this.name,
+    required this.color,
+    required this.stationGroups,
+    this.badges = const [],
+  });
+}
+
+class MetroLineBadge {
+  final String text;
+  final Offset center;
+
+  const MetroLineBadge(this.text, this.center);
+}
+
+class MetroMapReferenceLine {
+  final String id;
+  final String name;
+  final Color color;
+  final List<Offset> points;
+  final List<MetroMapReferenceStop> stops;
+  final double labelMinScale;
+
+  const MetroMapReferenceLine({
+    required this.id,
+    required this.name,
+    required this.color,
+    required this.points,
+    this.stops = const [],
+    this.labelMinScale = 0.95,
+  });
+}
+
+class MetroMapReferenceStop {
   final String name;
   final Offset position;
 
-  const _TransferStop(this.name, this.position);
+  const MetroMapReferenceStop(this.name, this.position);
+}
+
+class MetroMapDataset {
+  final Size mapSize;
+  final List<MetroMapLine> lines;
+  final List<MetroMapReferenceLine> referenceLines;
+  final String initialStationId;
+
+  const MetroMapDataset({
+    required this.mapSize,
+    required this.lines,
+    required this.referenceLines,
+    required this.initialStationId,
+  });
+
+  List<Line10MapStation> get allStations {
+    final seen = <String>{};
+    final result = <Line10MapStation>[];
+    for (final line in lines) {
+      for (final group in line.stationGroups) {
+        for (final station in group) {
+          if (seen.add(station.id)) {
+            result.add(station);
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  Line10MapStation get initialStation {
+    return allStations.firstWhere(
+      (station) => station.id == initialStationId,
+      orElse: () => allStations.first,
+    );
+  }
 }
 
 class _MapLabelPlacement {
@@ -40,26 +119,66 @@ class Line10InteractiveMetroMap extends StatefulWidget {
   final String selectedStationId;
   final ValueChanged<Line10MapStation> onStationSelected;
   final VoidCallback? onMapInteraction;
+  final MetroMapDataset? dataset;
   final double height;
   final bool immersive;
   final bool showControls;
   final bool showHint;
   final double controlsBottomOffset;
+  final double labelBottomInset;
 
   const Line10InteractiveMetroMap({
     super.key,
     required this.selectedStationId,
     required this.onStationSelected,
     this.onMapInteraction,
+    this.dataset,
     this.height = 390,
     this.immersive = false,
     this.showControls = true,
     this.showHint = true,
     this.controlsBottomOffset = 12,
+    this.labelBottomInset = 0,
   });
 
+  static List<Line10MapStation> get stations =>
+      ShanghaiMetroMapData.line10MainStations;
+
+  static List<Line10MapStation> get branchStations =>
+      ShanghaiMetroMapData.line10BranchStations;
+
+  static List<MetroMapLine> get metroLines =>
+      ShanghaiMetroMapData.coreLine10.lines;
+
+  static List<MetroMapReferenceLine> get referenceLines =>
+      ShanghaiMetroMapData.coreLine10.referenceLines;
+
+  static List<Line10MapStation> get allStations =>
+      ShanghaiMetroMapData.coreLine10.allStations;
+
+  static Size get mapSize => ShanghaiMetroMapData.coreLine10.mapSize;
+
+  static MetroMapDataset get defaultDataset => ShanghaiMetroMapData.coreLine10;
+
+  @override
+  State<Line10InteractiveMetroMap> createState() =>
+      _Line10InteractiveMetroMapState();
+}
+
+class ShanghaiMetroMapData {
+  static const Color line10Color = Color(0xFFB894F4);
+  static const Color line2Color = Color(0xFF7AC143);
+  static const Color line17Color = Color(0xFFC490C0);
+  static const Color line11Color = Color(0xFF7B3F2A);
+  static const Color line12Color = Color(0xFF00843D);
+  static const Color line13Color = Color(0xFFF49AC1);
+  static const Color line14Color = Color(0xFFA6A01D);
+  static const Color line18Color = Color(0xFF00A3AD);
+  static const Color line6Color = Color(0xFFBE2D79);
+  static const Color line34Color = Color(0xFF4B2E83);
+
   // Coordinates are based on the user's R-C.jpg reference image pixels.
-  static const List<Line10MapStation> stations = [
+  static const List<Line10MapStation> line10MainStations = [
     Line10MapStation(
       id: 'mock-l10-hongqiao-railway',
       name: '虹桥火车站',
@@ -257,7 +376,7 @@ class Line10InteractiveMetroMap extends StatefulWidget {
     ),
   ];
 
-  static const List<Line10MapStation> branchStations = [
+  static const List<Line10MapStation> line10BranchStations = [
     Line10MapStation(
       id: 'mock-l10-hangzhong-road',
       name: '航中路',
@@ -276,17 +395,153 @@ class Line10InteractiveMetroMap extends StatefulWidget {
     ),
   ];
 
-  static const Size mapSize = Size(1800, 1050);
+  static final MetroMapDataset coreLine10 = MetroMapDataset(
+    mapSize: const Size(1800, 1050),
+    initialStationId: 'mock-l10-wujiaochang',
+    lines: metroLines,
+    referenceLines: referenceLines,
+  );
 
-  @override
-  State<Line10InteractiveMetroMap> createState() =>
-      _Line10InteractiveMetroMapState();
+  static final List<MetroMapLine> metroLines = [
+    MetroMapLine(
+      id: '10',
+      name: '10号线',
+      color: line10Color,
+      stationGroups: [
+        line10MainStations,
+        [
+          ...line10BranchStations,
+          line10MainStations[4],
+        ],
+      ],
+      badges: [
+        MetroLineBadge('10', Offset(84, 806)),
+        MetroLineBadge('10', Offset(86, 968)),
+        MetroLineBadge('10', Offset(1740, 202)),
+      ],
+    ),
+  ];
+
+  static const List<MetroMapReferenceLine> referenceLines = [
+    MetroMapReferenceLine(
+      id: '2',
+      name: '2号线',
+      color: line2Color,
+      points: [Offset(40, 754), Offset(180, 754)],
+      stops: [
+        MetroMapReferenceStop('徐泾东', Offset(40, 754)),
+        MetroMapReferenceStop('虹桥火车站', Offset(96, 754)),
+        MetroMapReferenceStop('虹桥2号航站楼', Offset(153, 754)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '17',
+      name: '17号线',
+      color: line17Color,
+      points: [Offset(40, 700), Offset(150, 700)],
+      stops: [
+        MetroMapReferenceStop('诸光路', Offset(40, 700)),
+        MetroMapReferenceStop('虹桥火车站', Offset(96, 700)),
+        MetroMapReferenceStop('虹桥2号航站楼', Offset(153, 700)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '3-4',
+      name: '3/4号线',
+      color: line34Color,
+      points: [Offset(610, 760), Offset(670, 900)],
+      stops: [
+        MetroMapReferenceStop('延安西路', Offset(610, 760)),
+        MetroMapReferenceStop('虹桥路', Offset(637, 830)),
+        MetroMapReferenceStop('宜山路', Offset(670, 900)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '11',
+      name: '11号线',
+      color: line11Color,
+      points: [Offset(753, 760), Offset(753, 900)],
+      stops: [
+        MetroMapReferenceStop('徐家汇', Offset(753, 760)),
+        MetroMapReferenceStop('交通大学', Offset(753, 830)),
+        MetroMapReferenceStop('江苏路', Offset(753, 900)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '1',
+      name: '1号线',
+      color: Color(0xFFE4002B),
+      points: [Offset(928, 760), Offset(928, 900)],
+      stops: [
+        MetroMapReferenceStop('常熟路', Offset(928, 760)),
+        MetroMapReferenceStop('陕西南路', Offset(928, 830)),
+        MetroMapReferenceStop('黄陂南路', Offset(928, 900)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '12',
+      name: '12号线',
+      color: line12Color,
+      points: [Offset(1046, 760), Offset(1046, 900)],
+      stops: [
+        MetroMapReferenceStop('南京西路', Offset(1046, 760)),
+        MetroMapReferenceStop('陕西南路', Offset(1046, 830)),
+        MetroMapReferenceStop('嘉善路', Offset(1046, 900)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '13',
+      name: '13号线',
+      color: line13Color,
+      points: [Offset(1085, 760), Offset(1085, 900)],
+      stops: [
+        MetroMapReferenceStop('淮海中路', Offset(1085, 760)),
+        MetroMapReferenceStop('新天地', Offset(1085, 830)),
+        MetroMapReferenceStop('马当路', Offset(1085, 900)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '14',
+      name: '14号线',
+      color: line14Color,
+      points: [Offset(1080, 665), Offset(1230, 665)],
+      stops: [
+        MetroMapReferenceStop('大世界', Offset(1080, 665)),
+        MetroMapReferenceStop('豫园', Offset(1155, 665)),
+        MetroMapReferenceStop('陆家嘴', Offset(1230, 665)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '18',
+      name: '18号线',
+      color: line18Color,
+      points: [Offset(1218, 230), Offset(1218, 360)],
+      stops: [
+        MetroMapReferenceStop('抚顺路', Offset(1218, 230)),
+        MetroMapReferenceStop('国权路', Offset(1218, 295)),
+        MetroMapReferenceStop('复旦大学', Offset(1218, 360)),
+      ],
+    ),
+    MetroMapReferenceLine(
+      id: '6',
+      name: '6号线',
+      color: line6Color,
+      points: [Offset(1665, 95), Offset(1665, 205)],
+      stops: [
+        MetroMapReferenceStop('外高桥保税区北', Offset(1665, 95)),
+        MetroMapReferenceStop('港城路', Offset(1665, 148)),
+        MetroMapReferenceStop('外高桥保税区南', Offset(1665, 205)),
+      ],
+    ),
+  ];
 }
 
 class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
   late final TransformationController _controller;
   double _scale = 0.42;
   Size? _lastViewport;
+  MetroMapDataset? _cachedDataset;
+  List<Line10MapStation> _cachedStations = const [];
   Matrix4? _interactionStartMatrix;
   bool _interactionMoved = false;
 
@@ -307,10 +562,11 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
   }
 
   void _syncScale() {
-    final scale = _controller.value.getMaxScaleOnAxis();
+    final nextScale = _controller.value.getMaxScaleOnAxis();
     if (!mounted) return;
+    if ((nextScale - _scale).abs() < 0.025) return;
     setState(() {
-      _scale = scale;
+      _scale = nextScale;
     });
   }
 
@@ -351,6 +607,9 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
     super.dispose();
   }
 
+  MetroMapDataset get _dataset =>
+      widget.dataset ?? Line10InteractiveMetroMap.defaultDataset;
+
   void _handleTapUp(TapUpDetails details) {
     final box = context.findRenderObject() as RenderBox?;
     if (box == null) return;
@@ -376,15 +635,19 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
     }
   }
 
-  List<Line10MapStation> get _allStations => [
-        ...Line10InteractiveMetroMap.stations,
-        ...Line10InteractiveMetroMap.branchStations,
-      ];
+  List<Line10MapStation> get _allStations {
+    final dataset = _dataset;
+    if (!identical(_cachedDataset, dataset)) {
+      _cachedDataset = dataset;
+      _cachedStations = dataset.allStations;
+    }
+    return _cachedStations;
+  }
 
   Line10MapStation get _selectedStation {
     return _allStations.firstWhere(
       (station) => station.id == widget.selectedStationId,
-      orElse: () => Line10InteractiveMetroMap.stations.first,
+      orElse: () => _dataset.initialStation,
     );
   }
 
@@ -446,8 +709,10 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
                       vertical: 520,
                     ),
                     child: CustomPaint(
-                      size: Line10InteractiveMetroMap.mapSize,
-                      painter: _Line10MetroPainter(
+                      size: _dataset.mapSize,
+                      painter: _InteractiveMetroMapPainter(
+                        dataset: _dataset,
+                        stations: _allStations,
                         selectedStationId: widget.selectedStationId,
                         scale: _scale,
                         colorScheme: colorScheme,
@@ -458,9 +723,15 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
               ),
               Positioned.fill(
                 child: IgnorePointer(
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: _buildStationLabelOverlay(colorScheme, viewport),
+                  child: AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, _) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children:
+                            _buildStationLabelOverlay(colorScheme, viewport),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -711,7 +982,7 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
     return rect.left >= 8 &&
         rect.right <= viewport.width - 8 &&
         rect.top >= 8 &&
-        rect.bottom <= viewport.height - 8;
+        rect.bottom <= viewport.height - widget.labelBottomInset - 8;
   }
 }
 
@@ -800,45 +1071,29 @@ class _MapIconButton extends StatelessWidget {
   }
 }
 
-class _Line10MetroPainter extends CustomPainter {
+class _InteractiveMetroMapPainter extends CustomPainter {
+  final MetroMapDataset dataset;
+  final List<Line10MapStation> stations;
   final String selectedStationId;
   final double scale;
   final ColorScheme colorScheme;
 
-  _Line10MetroPainter({
+  _InteractiveMetroMapPainter({
+    required this.dataset,
+    required this.stations,
     required this.selectedStationId,
     required this.scale,
     required this.colorScheme,
   });
 
-  static const Color line10Color = Color(0xFFB894F4);
-  static const Color line2Color = Color(0xFF7AC143);
-  static const Color line17Color = Color(0xFFC490C0);
-  static const Color line11Color = Color(0xFF7B3F2A);
-  static const Color line12Color = Color(0xFF00843D);
-  static const Color line13Color = Color(0xFFF49AC1);
-  static const Color line14Color = Color(0xFFA6A01D);
-  static const Color line18Color = Color(0xFF00A3AD);
-
   @override
   void paint(Canvas canvas, Size size) {
-    final allStations = [
-      ...Line10InteractiveMetroMap.branchStations,
-      ...Line10InteractiveMetroMap.stations,
-    ];
-
     _drawRiver(canvas);
-    _drawTransferHints(canvas);
-    _drawLinePath(canvas, Line10InteractiveMetroMap.stations, line10Color);
-    _drawLinePath(
-        canvas,
-        [
-          ...Line10InteractiveMetroMap.branchStations,
-          Line10InteractiveMetroMap.stations[4],
-        ],
-        line10Color);
-    _drawLineLabels(canvas);
-    for (final station in allStations) {
+    _drawReferenceLines(canvas);
+    for (final line in dataset.lines) {
+      _drawMetroLine(canvas, line);
+    }
+    for (final station in stations) {
       _drawStationMarker(canvas, station);
     }
   }
@@ -863,54 +1118,34 @@ class _Line10MetroPainter extends CustomPainter {
     canvas.drawPath(river, paint);
   }
 
-  void _drawTransferHints(Canvas canvas) {
-    _drawShortLine(
-        canvas, line2Color, const [Offset(40, 754), Offset(180, 754)], '2号线');
-    _drawShortLine(
-        canvas, line17Color, const [Offset(40, 700), Offset(150, 700)], '17号线');
-    _drawShortLine(canvas, const Color(0xFF4B2E83),
-        const [Offset(610, 760), Offset(670, 900)], '3/4号线');
-    _drawShortLine(canvas, line11Color,
-        const [Offset(753, 760), Offset(753, 900)], '11号线');
-    _drawShortLine(canvas, const Color(0xFFE4002B),
-        const [Offset(928, 760), Offset(928, 900)], '1号线');
-    _drawShortLine(canvas, line12Color,
-        const [Offset(1046, 760), Offset(1046, 900)], '12号线');
-    _drawShortLine(canvas, line13Color,
-        const [Offset(1085, 760), Offset(1085, 900)], '13号线');
-    _drawShortLine(canvas, line14Color,
-        const [Offset(1080, 665), Offset(1230, 665)], '14号线');
-    _drawShortLine(canvas, line18Color,
-        const [Offset(1218, 230), Offset(1218, 360)], '18号线');
-    _drawShortLine(canvas, const Color(0xFFBE2D79),
-        const [Offset(1665, 95), Offset(1665, 205)], '6号线');
-    _drawTransferStations(canvas);
+  void _drawReferenceLines(Canvas canvas) {
+    for (final line in dataset.referenceLines) {
+      _drawReferenceLine(canvas, line);
+      for (final stop in line.stops) {
+        _drawMiniStation(canvas, stop.position);
+      }
+    }
   }
 
-  void _drawShortLine(
-    Canvas canvas,
-    Color color,
-    List<Offset> points,
-    String label,
-  ) {
+  void _drawReferenceLine(Canvas canvas, MetroMapReferenceLine line) {
     final unit = _screenUnit;
     final paint = Paint()
-      ..color = color.withOpacity(0.78)
+      ..color = line.color.withOpacity(0.78)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 8 * unit
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final point in points.skip(1)) {
+    final path = Path()..moveTo(line.points.first.dx, line.points.first.dy);
+    for (final point in line.points.skip(1)) {
       path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);
 
-    if (scale >= 0.95) {
+    if (scale >= line.labelMinScale) {
       final tp = TextPainter(
         text: TextSpan(
-          text: label,
+          text: line.name,
           style: TextStyle(
             color: Colors.black87,
             fontSize: 15 * unit,
@@ -919,68 +1154,7 @@ class _Line10MetroPainter extends CustomPainter {
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, points.first + Offset(-4 * unit, -24 * unit));
-    }
-  }
-
-  void _drawTransferStations(Canvas canvas) {
-    const previews = [
-      [
-        _TransferStop('徐泾东', Offset(40, 754)),
-        _TransferStop('虹桥火车站', Offset(96, 754)),
-        _TransferStop('虹桥2号航站楼', Offset(153, 754)),
-      ],
-      [
-        _TransferStop('诸光路', Offset(40, 700)),
-        _TransferStop('虹桥火车站', Offset(96, 700)),
-        _TransferStop('虹桥2号航站楼', Offset(153, 700)),
-      ],
-      [
-        _TransferStop('延安西路', Offset(610, 760)),
-        _TransferStop('虹桥路', Offset(637, 830)),
-        _TransferStop('宜山路', Offset(670, 900)),
-      ],
-      [
-        _TransferStop('徐家汇', Offset(753, 760)),
-        _TransferStop('交通大学', Offset(753, 830)),
-        _TransferStop('江苏路', Offset(753, 900)),
-      ],
-      [
-        _TransferStop('常熟路', Offset(928, 760)),
-        _TransferStop('陕西南路', Offset(928, 830)),
-        _TransferStop('黄陂南路', Offset(928, 900)),
-      ],
-      [
-        _TransferStop('南京西路', Offset(1046, 760)),
-        _TransferStop('陕西南路', Offset(1046, 830)),
-        _TransferStop('嘉善路', Offset(1046, 900)),
-      ],
-      [
-        _TransferStop('淮海中路', Offset(1085, 760)),
-        _TransferStop('新天地', Offset(1085, 830)),
-        _TransferStop('马当路', Offset(1085, 900)),
-      ],
-      [
-        _TransferStop('大世界', Offset(1080, 665)),
-        _TransferStop('豫园', Offset(1155, 665)),
-        _TransferStop('陆家嘴', Offset(1230, 665)),
-      ],
-      [
-        _TransferStop('抚顺路', Offset(1218, 230)),
-        _TransferStop('国权路', Offset(1218, 295)),
-        _TransferStop('复旦大学', Offset(1218, 360)),
-      ],
-      [
-        _TransferStop('外高桥保税区北', Offset(1665, 95)),
-        _TransferStop('港城路', Offset(1665, 148)),
-        _TransferStop('外高桥保税区南', Offset(1665, 205)),
-      ],
-    ];
-
-    for (final stops in previews) {
-      for (final stop in stops) {
-        _drawMiniStation(canvas, stop.position);
-      }
+      tp.paint(canvas, line.points.first + Offset(-4 * unit, -24 * unit));
     }
   }
 
@@ -998,11 +1172,20 @@ class _Line10MetroPainter extends CustomPainter {
     );
   }
 
-  void _drawLinePath(
-    Canvas canvas,
-    List<Line10MapStation> stations,
-    Color color,
-  ) {
+  void _drawMetroLine(Canvas canvas, MetroMapLine line) {
+    for (final group in line.stationGroups) {
+      _drawLinePath(
+        canvas,
+        group.map((station) => station.position).toList(),
+        line.color,
+      );
+    }
+    for (final badge in line.badges) {
+      _drawBadge(canvas, badge.text, badge.center, line.color);
+    }
+  }
+
+  void _drawLinePath(Canvas canvas, List<Offset> points, Color color) {
     final unit = _screenUnit;
     final paint = Paint()
       ..color = color
@@ -1011,18 +1194,11 @@ class _Line10MetroPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    final path = Path()
-      ..moveTo(stations.first.position.dx, stations.first.position.dy);
-    for (final station in stations.skip(1)) {
-      path.lineTo(station.position.dx, station.position.dy);
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path, paint);
-  }
-
-  void _drawLineLabels(Canvas canvas) {
-    _drawBadge(canvas, '10', const Offset(84, 806), line10Color);
-    _drawBadge(canvas, '10', const Offset(86, 968), line10Color);
-    _drawBadge(canvas, '10', const Offset(1740, 202), line10Color);
   }
 
   void _drawBadge(Canvas canvas, String text, Offset center, Color color) {
@@ -1078,8 +1254,10 @@ class _Line10MetroPainter extends CustomPainter {
   double get _screenUnit => 1 / scale.clamp(0.75, 4.0);
 
   @override
-  bool shouldRepaint(covariant _Line10MetroPainter oldDelegate) {
-    return oldDelegate.selectedStationId != selectedStationId ||
+  bool shouldRepaint(covariant _InteractiveMetroMapPainter oldDelegate) {
+    return oldDelegate.dataset != dataset ||
+        oldDelegate.stations != stations ||
+        oldDelegate.selectedStationId != selectedStationId ||
         oldDelegate.scale != scale ||
         oldDelegate.colorScheme != colorScheme;
   }

@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"smart-travel-backend/database"
 	"smart-travel-backend/models"
@@ -383,19 +382,16 @@ func GetTravelAlerts(c *gin.Context) {
 	c.JSON(http.StatusOK, alerts)
 }
 func HealthCheck(c *gin.Context) {
-	dbConnected := database.IsConnected()
+	connected := database.IsConnected()
 	mode := "mock"
-	if dbConnected {
+	if connected {
 		mode = "database"
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":     "ok",
-		"mode":       mode,
-		"database":   dbConnected,
-		"service":    "smart-travel-backend",
-		"checkedAt":  time.Now().Format(time.RFC3339),
-		"apiVersion": "v1",
+		"status":   "ok",
+		"mode":     mode,
+		"database": connected,
 	})
 }
 

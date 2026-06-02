@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:smart_travel_app/utils/server_config.dart';
 
 class NetworkManager {
@@ -48,7 +49,9 @@ class NetworkManager {
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          print('Network error: ${e.message}');
+          if (kDebugMode) {
+            debugPrint('Network error: ${e.message}');
+          }
           return handler.next(e);
         },
       ),

@@ -1,9 +1,6 @@
 package router
 
 import (
-	"net/http"
-	"strings"
-
 	"smart-travel-backend/config"
 	"smart-travel-backend/handlers"
 
@@ -14,15 +11,11 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
-		origin := allowedOrigin(c.GetHeader("Origin"))
-		if origin != "" {
-			c.Header("Access-Control-Allow-Origin", origin)
-		}
+		c.Header("Access-Control-Allow-Origin", corsOriginFor(c.GetHeader("Origin")))
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		c.Header("Access-Control-Allow-Credentials", "true")
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
+			c.AbortWithStatus(204)
 			return
 		}
 		c.Next()
@@ -86,21 +79,21 @@ func SetupRouter() *gin.Engine {
 	return r
 }
 
-func allowedOrigin(origin string) string {
-	if config.AppConfig == nil {
-		return "*"
+func corsOriginFor(requestOrigin string) string {
+	origins := []string{"*"}
+	if config.AppConfig != nil && len(config.AppConfig.CORSOrigins) > 0 {
+		origins = config.AppConfig.CORSOrigins
 	}
-
-	for _, allowed := range config.AppConfig.CORSOrigins {
-		if allowed == "*" {
-			if origin != "" {
-				return origin
+	for _, origin := range origins {
+		if origin == "*" {
+			if requestOrigin != "" {
+				return requestOrigin
 			}
 			return "*"
 		}
-		if origin != "" && strings.EqualFold(strings.TrimSpace(allowed), origin) {
-			return origin
+		if origin == requestOrigin {
+			return requestOrigin
 		}
 	}
-	return ""
+	return origins[0]
 }
