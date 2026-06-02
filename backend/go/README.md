@@ -49,25 +49,10 @@ go version
 
 ```powershell
 docker run -d --name mysql-smarttravel `
-  -e MYSQL_ROOT_PASSWORD=smart_travel_dev `
+  -e MYSQL_ROOT_PASSWORD=your_password `
   -e MYSQL_DATABASE=smart_travel `
   -p 3306:3306 `
   mysql:8.0
-```
-
-或者直接使用仓库里的 Docker Compose，它会在首次启动时自动执行 `schema.sql` 和 `seed.sql`：
-
-```powershell
-cd backend
-docker compose up -d
-```
-
-如果你之前已经启动过旧数据库，想重新导入最新种子数据：
-
-```powershell
-cd backend
-docker compose down -v
-docker compose up -d
 ```
 
 ### 3. 初始化数据库
@@ -96,7 +81,7 @@ PORT=3000
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
-DB_PASSWORD=smart_travel_dev
+DB_PASSWORD=你的MySQL密码
 DB_NAME=smart_travel
 CORS_ORIGINS=*
 ```
@@ -126,20 +111,6 @@ go run main.go
 
 ```bash
 curl http://localhost:3000/health
-```
-
-**验证数据库数据量：**
-
-```powershell
-cd backend
-.\scripts\init-db.ps1 -CheckOnly
-```
-
-如果你使用的是本地 MySQL，也可以用同一个脚本初始化并检查：
-
-```powershell
-cd backend
-.\scripts\init-db.ps1
 ```
 
 ### 7. 编译为可执行文件（可选）
