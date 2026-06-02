@@ -33,7 +33,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   int _stepIndex = 0;
   Map<String, dynamic>? _arrival;
   Map<String, dynamic>? _arrivalQuery;
-  _RouteSummary? _summary;
   List<_NavStep> _guideSteps = [];
 
   @override
@@ -48,37 +47,19 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   }
 
   Future<void> _refreshArrival() async {
-    final query = _currentArrivalQuery();
-    final stopId = query['stopId']?.toString() ?? '';
-    final stopName = query['stopName']?.toString() ?? '';
-    if (stopId.isEmpty && stopName.isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _arrival = null;
-      });
-      return;
-    }
-
+    final query = _arrivalQuery ?? const <String, dynamic>{};
     final response = await _apiService.getMetroArrival(
-      stopId: stopId,
-      stopName: stopName.isNotEmpty ? stopName : _startStation,
-      lineId: query['lineId']?.toString() ?? '',
-      lineName: query['lineName']?.toString() ?? '',
+      stopId: query['stopId']?.toString() ?? _stopIdFor(_startStation),
+      stopName: query['stopName']?.toString() ?? _startStation,
+      lineId: query['lineId']?.toString() ?? 'mock-line-10',
+      lineName: query['lineName']?.toString() ?? '10号线',
       direction: _intFromJson(query['direction'], 0),
-      cityCode: query['cityCode']?.toString() ?? '',
+      cityCode: query['cityCode']?.toString() ?? 'mock-shanghai',
     );
     if (!mounted) return;
     setState(() {
       _arrival = response.success ? response.data : null;
     });
-  }
-
-  Map<String, dynamic> _currentArrivalQuery() {
-    if (_guideSteps.isNotEmpty && _stepIndex < _guideSteps.length) {
-      final query = _guideSteps[_stepIndex].arrivalQuery;
-      if (query.isNotEmpty) return query;
-    }
-    return _arrivalQuery ?? const <String, dynamic>{};
   }
 
   Future<void> _loadIndoorGuide() async {
@@ -107,15 +88,10 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     }
 
     final rawArrivalQuery = response.data?['arrivalQuery'];
-    final rawSummary = response.data?['summary'];
 
     setState(() {
       if (rawArrivalQuery is Map) {
         _arrivalQuery = Map<String, dynamic>.from(rawArrivalQuery);
-      }
-      if (rawSummary is Map) {
-        _summary =
-            _RouteSummary.fromJson(Map<String, dynamic>.from(rawSummary));
       }
       _guideSteps = steps;
       if (_stepIndex >= _guideSteps.length) {
@@ -146,28 +122,8 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       );
     }
 
-    if (_guideSteps.isEmpty) {
-      return const Scaffold(
-        backgroundColor: _surface,
-        body: Stack(
-          children: [
-            Positioned.fill(child: _GuideBackground()),
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 10, 16, 10),
-                child: _LoadingGuideState(),
-              ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: BottomNavBar(currentIndex: 1),
-      );
-    }
-
-    final steps = _guideSteps;
+    final steps = _guideSteps.isNotEmpty ? _guideSteps : _buildSteps();
     final step = steps[_stepIndex];
-    final showSummary = _summary != null && _stepIndex == 0;
 
     return Scaffold(
       backgroundColor: _surface,
@@ -181,10 +137,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
               child: Column(
                 children: [
                   _ProgressPanel(status: _statusFor(step, steps)),
-                  if (showSummary) ...[
-                    const SizedBox(height: 12),
-                    _RouteSummaryPanel(summary: _summary!),
-                  ],
                   const SizedBox(height: 12),
                   _InstructionPanel(step: step),
                   const SizedBox(height: 12),
@@ -193,14 +145,10 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                   _StepControls(
                     canGoBack: _stepIndex > 0,
                     isLast: _stepIndex == steps.length - 1,
-                    onBack: () {
-                      setState(() => _stepIndex--);
-                      _refreshArrival();
-                    },
+                    onBack: () => setState(() => _stepIndex--),
                     onNext: () {
                       if (_stepIndex < steps.length - 1) {
                         setState(() => _stepIndex++);
-                        _refreshArrival();
                       }
                     },
                   ),
@@ -230,21 +178,15 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
     if (step.stage == _StepStage.transfer ||
         step.stage == _StepStage.transferWait) {
-      final catchPlan = _catchPlanForStages(
-        steps,
-        _stepIndex,
-        {_StepStage.transfer, _StepStage.transferWait},
-        safetyBufferMinutes: 1,
-      );
+      final countdown = _transferTrainMinutes();
+      final walked =
+          _completedMinutesBefore(steps, _stepIndex, _StepStage.transfer);
       return _ProgressStatus(
-        leadText: '${catchPlan.trainMinutes}分钟',
-        title: catchPlan.usesNextTrain
-            ? '${step.lineName}赶不上，改按下一班'
-            : '预计可赶上${step.lineName}当前班',
-        subtitle:
-            '换乘还要约${catchPlan.remainingWalkMinutes}分钟，已推进${catchPlan.completedWalkMinutes}分钟，预计余量${catchPlan.safeBufferMinutes}分钟',
-        progress: catchPlan.progress,
-        color: catchPlan.statusColor(step.lineColor),
+        leadText: '$countdown分钟',
+        title: '预计可赶上${step.lineName}下一班',
+        subtitle: '换乘步行约${_transferWalkMinutes()}分钟，已推进$walked分钟',
+        progress: (walked / countdown.clamp(1, 60)).clamp(0.0, 0.95),
+        color: step.lineColor,
         icon: Icons.transfer_within_a_station_rounded,
       );
     }
@@ -260,82 +202,157 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       );
     }
 
-    final catchPlan = _catchPlanForStages(
-      steps,
-      _stepIndex,
-      {_StepStage.entry, _StepStage.platform},
-      safetyBufferMinutes: 1,
-    );
+    final trainMinutes = _currentTrainMinutes();
+    final walked = _completedEntryMinutes(steps, _stepIndex);
+    final toPlatform = _entryWalkMinutes(steps);
+    final buffer = trainMinutes - toPlatform;
+    final safeText = buffer >= 2
+        ? '来得及，按指引走'
+        : buffer >= 0
+            ? '时间紧，建议加快'
+            : '赶不上这班，等下一班';
 
     return _ProgressStatus(
-      leadText: '${catchPlan.trainMinutes}分钟',
-      title: catchPlan.usesNextTrain
-          ? '${step.lineName}赶不上，改按下一班'
-          : '${step.lineName}当前班来得及',
-      subtitle:
-          '到站台还要约${catchPlan.remainingWalkMinutes}分钟，已推进${catchPlan.completedWalkMinutes}分钟，预计余量${catchPlan.safeBufferMinutes}分钟',
-      progress: catchPlan.progress,
-      color: catchPlan.statusColor(step.lineColor),
+      leadText: '$trainMinutes分钟',
+      title: '10号线下一班',
+      subtitle: '$safeText，到站台约$toPlatform分钟，预计余量${buffer < 0 ? 0 : buffer}分钟',
+      progress: (walked / trainMinutes.clamp(1, 60)).clamp(0.0, 0.95),
+      color: buffer >= 2
+          ? _green
+          : buffer >= 0
+              ? _orange
+              : const Color(0xFFBA1A1A),
       icon: Icons.timer_rounded,
     );
   }
 
-  _CatchPlan _catchPlanForStages(
-    List<_NavStep> steps,
-    int index,
-    Set<_StepStage> stages, {
-    required int safetyBufferMinutes,
-  }) {
-    final currentTrain = _currentTrainMinutes();
-    final nextTrain = _nextTrainMinutes(currentTrain);
-    final remainingWalk = _remainingMinutesForStages(steps, index, stages);
-    final completedWalk = _completedMinutesForStages(steps, index, stages);
-    final requiredMinutes = remainingWalk + safetyBufferMinutes;
-    final usesNextTrain = currentTrain < requiredMinutes;
-    final selectedTrain = usesNextTrain ? nextTrain : currentTrain;
-    final buffer = selectedTrain - remainingWalk;
-    final progress = selectedTrain <= 0
-        ? 0.0
-        : ((selectedTrain - remainingWalk) / selectedTrain).clamp(0.0, 0.95);
+  List<_NavStep> _buildSteps() {
+    final entrance = _entranceFor(_startStation);
+    final transferStation = _transferStationFor(_startStation, _endStation);
+    final exit = _exitFor(_endStation);
 
-    return _CatchPlan(
-      trainMinutes: selectedTrain,
-      remainingWalkMinutes: remainingWalk,
-      completedWalkMinutes: completedWalk,
-      safeBufferMinutes: buffer < 0 ? 0 : buffer,
-      usesNextTrain: usesNextTrain,
-      progress: progress,
-    );
-  }
-
-  int _remainingMinutesForStages(
-    List<_NavStep> steps,
-    int index,
-    Set<_StepStage> stages,
-  ) {
-    var minutes = 0;
-    for (var i = index; i < steps.length; i++) {
-      if (!stages.contains(steps[i].stage)) {
-        if (minutes > 0) break;
-        continue;
-      }
-      minutes += steps[i].minutes;
-    }
-    return minutes <= 0 ? 1 : minutes;
-  }
-
-  int _completedMinutesForStages(
-    List<_NavStep> steps,
-    int index,
-    Set<_StepStage> stages,
-  ) {
-    var minutes = 0;
-    for (var i = 0; i < index; i++) {
-      if (stages.contains(steps[i].stage)) {
-        minutes += steps[i].minutes;
-      }
-    }
-    return minutes;
+    return [
+      _NavStep(
+        stage: _StepStage.entry,
+        lineName: '10号线',
+        lineColor: _line10,
+        title: '从$entrance进入',
+        detail: '面向地铁入口向前走，优先选择人少的一侧进站。',
+        imageTitle: '$entrance 实景确认',
+        imageSubtitle: '看见紫色10号线标识后继续直行',
+        minutes: 1,
+        icon: Icons.login_rounded,
+      ),
+      const _NavStep(
+        stage: _StepStage.entry,
+        lineName: '10号线',
+        lineColor: _line10,
+        title: '下扶梯到站厅',
+        detail: '扶梯到底后保持直行，不要先跟随出站人流转弯。',
+        imageTitle: '站厅扶梯口',
+        imageSubtitle: '确认前方有10号线站台指示牌',
+        minutes: 1,
+        icon: Icons.escalator_rounded,
+      ),
+      const _NavStep(
+        stage: _StepStage.entry,
+        lineName: '10号线',
+        lineColor: _line10,
+        title: '刷码后右转',
+        detail: '过闸机后右转，跟随“10号线 往基隆路方向”标识。',
+        imageTitle: '闸机后右转通道',
+        imageSubtitle: '右侧通道前往10号线站台',
+        minutes: 1,
+        icon: Icons.turn_right_rounded,
+      ),
+      _NavStep(
+        stage: _StepStage.platform,
+        lineName: '10号线',
+        lineColor: _line10,
+        title: '站到4车2门候车',
+        detail: '这个位置下车后更靠近$transferStation换乘通道。',
+        imageTitle: '10号线站台中部',
+        imageSubtitle: '寻找4车2门地贴或屏蔽门编号',
+        minutes: 1,
+        icon: Icons.door_sliding_rounded,
+        doorHint: '4车2门',
+      ),
+      _NavStep(
+        stage: _StepStage.ride,
+        lineName: '10号线',
+        lineColor: _line10,
+        title: '上车后坐到$transferStation',
+        detail: '还有3站下车，到站前提前向4车2门车门附近移动。',
+        imageTitle: '车厢内提示',
+        imageSubtitle: '注意报站，到$transferStation准备下车',
+        minutes: 6,
+        icon: Icons.train_rounded,
+        targetStation: transferStation,
+        remainingStops: 3,
+        totalStops: 3,
+        doorHint: '4车2门',
+      ),
+      _NavStep(
+        stage: _StepStage.transfer,
+        lineName: '2号线',
+        lineColor: _line2,
+        title: '下车后向车头方向走',
+        detail: '不要先上出站扶梯，沿站台向前走到换乘扶梯。',
+        imageTitle: '$transferStation 10号线站台',
+        imageSubtitle: '车头方向可见换乘扶梯',
+        minutes: 1,
+        icon: Icons.straight_rounded,
+      ),
+      _NavStep(
+        stage: _StepStage.transfer,
+        lineName: '2号线',
+        lineColor: _line2,
+        title: '上扶梯后左转',
+        detail: '扶梯到站厅后左转，进入2号线换乘通道。',
+        imageTitle: '换乘扶梯出口',
+        imageSubtitle: '左侧为2号线换乘通道',
+        minutes: 1,
+        icon: Icons.turn_left_rounded,
+      ),
+      const _NavStep(
+        stage: _StepStage.transferWait,
+        lineName: '2号线',
+        lineColor: _line2,
+        title: '到2号线站台候车',
+        detail: '确认方向为“徐泾东/静安寺方向”，站到中部车门附近。',
+        imageTitle: '2号线候车区',
+        imageSubtitle: '确认绿色2号线方向牌',
+        minutes: 1,
+        icon: Icons.signpost_rounded,
+      ),
+      _NavStep(
+        stage: _StepStage.ride,
+        lineName: '2号线',
+        lineColor: _line2,
+        title: '乘2号线到$_endStation',
+        detail: '还有2站下车，到站前提前靠近车门。',
+        imageTitle: '2号线车厢内',
+        imageSubtitle: '听到$_endStation报站后准备下车',
+        minutes: 4,
+        icon: Icons.train_rounded,
+        targetStation: _endStation,
+        remainingStops: 2,
+        totalStops: 2,
+        doorHint: '中部车门',
+      ),
+      _NavStep(
+        stage: _StepStage.exit,
+        lineName: '出站',
+        lineColor: _green,
+        title: '从$exit出站',
+        detail: '跟随出口编号走，出闸后靠右侧通道出站。',
+        imageTitle: '$exit 出口实景',
+        imageSubtitle: '确认出口编号后再上行',
+        minutes: 3,
+        icon: Icons.output_rounded,
+        targetStation: exit,
+      ),
+    ];
   }
 
   int _currentTrainMinutes() {
@@ -344,20 +361,72 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     return int.tryParse(value?.toString() ?? '') ?? 5;
   }
 
-  int _nextTrainMinutes(int currentTrainMinutes) {
-    final value = _arrival?['nextArriveMinutes'] ??
-        _arrival?['nextArrivalMinutes'] ??
-        _arrival?['nextArriveSeconds'];
-    if (value is num) {
-      if (value > 60) return (value / 60).ceil().clamp(1, 90);
-      return value.round().clamp(1, 90);
+  int _transferTrainMinutes() {
+    final firstTrain = _currentTrainMinutes();
+    return (firstTrain + 3).clamp(4, 14);
+  }
+
+  int _completedEntryMinutes(List<_NavStep> steps, int index) {
+    var minutes = 0;
+    for (var i = 0; i < index; i++) {
+      if (steps[i].stage == _StepStage.entry ||
+          steps[i].stage == _StepStage.platform) {
+        minutes += steps[i].minutes;
+      }
     }
-    final parsed = int.tryParse(value?.toString() ?? '');
-    if (parsed != null) {
-      if (parsed > 60) return (parsed / 60).ceil().clamp(1, 90);
-      return parsed.clamp(1, 90);
+    return minutes;
+  }
+
+  int _completedMinutesBefore(
+    List<_NavStep> steps,
+    int index,
+    _StepStage stage,
+  ) {
+    var minutes = 0;
+    for (var i = 0; i < index; i++) {
+      if (steps[i].stage == stage) minutes += steps[i].minutes;
     }
-    return (currentTrainMinutes + 7).clamp(2, 90);
+    return minutes;
+  }
+
+  int _entryWalkMinutes(List<_NavStep> steps) {
+    return steps
+        .where((step) =>
+            step.stage == _StepStage.entry || step.stage == _StepStage.platform)
+        .fold<int>(0, (total, step) => total + step.minutes);
+  }
+
+  int _transferWalkMinutes() => 3;
+
+  String _stopIdFor(String station) {
+    if (station.contains('五角场')) return 'mock-l10-wujiaochang';
+    if (station.contains('同济')) return 'mock-l10-tongji-university';
+    if (station.contains('陕西南路')) return 'mock-l10-shaanxi-south-road';
+    if (station.contains('虹桥')) return 'mock-l10-hongqiao-railway-station';
+    if (station.contains('南京东路')) return 'mock-l10-nanjing-east-road';
+    return 'mock-l10-xintiandi';
+  }
+
+  String _entranceFor(String station) {
+    if (station.contains('陕西南路')) return '2号口';
+    if (station.contains('虹桥')) return 'B1到达层入口';
+    if (station.contains('五角场')) return '5号口';
+    return '6号口';
+  }
+
+  String _transferStationFor(String start, String end) {
+    if (end.contains('静安寺') || end.contains('浦东')) return '南京东路';
+    if (end.contains('虹桥')) return '虹桥路';
+    if (end.contains('交通大学')) return '交通大学';
+    return '南京东路';
+  }
+
+  String _exitFor(String station) {
+    if (station.contains('静安寺')) return '3号口';
+    if (station.contains('虹桥')) return 'B出口';
+    if (station.contains('五角场')) return '5号口';
+    if (station.contains('陕西南路')) return '2号口';
+    return '1号口';
   }
 }
 
@@ -399,61 +468,6 @@ class _WaitingRouteState extends StatelessWidget {
                     SizedBox(height: 6),
                     Text(
                       '请先在首页选择起点和终点，再开始站内指引。',
-                      style: TextStyle(
-                        color: _AIPlanningPageState._muted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
-      ],
-    );
-  }
-}
-
-class _LoadingGuideState extends StatelessWidget {
-  const _LoadingGuideState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: _softPanel(),
-          child: const Row(
-            children: [
-              SizedBox(
-                width: 48,
-                height: 48,
-                child: CircularProgressIndicator(
-                  strokeWidth: 4,
-                  color: _AIPlanningPageState._line10,
-                ),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '正在生成站内指引',
-                      style: TextStyle(
-                        color: _AIPlanningPageState._ink,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      '正在读取后端路线、换乘和到站信息。',
                       style: TextStyle(
                         color: _AIPlanningPageState._muted,
                         fontSize: 13,
@@ -520,12 +534,11 @@ class _ProgressPanel extends StatelessWidget {
                     Expanded(
                       child: Text(
                         status.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.visible,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: _AIPlanningPageState._ink,
-                          fontSize: 15,
-                          height: 1.15,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -554,160 +567,6 @@ class _ProgressPanel extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RouteSummaryPanel extends StatelessWidget {
-  final _RouteSummary summary;
-
-  const _RouteSummaryPanel({required this.summary});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: _softPanel(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  summary.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _AIPlanningPageState._ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '${summary.durationMinutes}分钟',
-                style: const TextStyle(
-                  color: _AIPlanningPageState._line10,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              for (final line in summary.lines)
-                _LineChip(
-                  label: line,
-                  color: _lineColorForName(line),
-                ),
-              _InfoChip(
-                icon: Icons.transfer_within_a_station_rounded,
-                label: summary.transferText,
-              ),
-              _InfoChip(
-                icon: Icons.door_sliding_rounded,
-                label: summary.doorHint,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(
-                Icons.navigation_rounded,
-                color: _AIPlanningPageState._muted,
-                size: 17,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  summary.nextAction,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _AIPlanningPageState._muted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LineChip extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _LineChip({
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F0F7),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: _AIPlanningPageState._line10, size: 15),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: _AIPlanningPageState._ink,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -1079,7 +938,6 @@ class _NavStep {
   final int remainingStops;
   final int totalStops;
   final String doorHint;
-  final Map<String, dynamic> arrivalQuery;
 
   const _NavStep({
     required this.stage,
@@ -1094,12 +952,10 @@ class _NavStep {
     this.targetStation = '',
     this.remainingStops = 0,
     this.totalStops = 0,
-    this.arrivalQuery = const <String, dynamic>{},
     this.doorHint = '车门',
   });
 
   factory _NavStep.fromJson(Map<String, dynamic> json) {
-    final rawArrivalQuery = json['arrivalQuery'];
     return _NavStep(
       stage: _stageFromJson(json['stage']),
       lineName: json['lineName']?.toString() ?? '10号线',
@@ -1116,45 +972,7 @@ class _NavStep {
       targetStation: json['targetStation']?.toString() ?? '',
       remainingStops: _intFromJson(json['remainingStops'], 0),
       totalStops: _intFromJson(json['totalStops'], 0),
-      arrivalQuery: rawArrivalQuery is Map
-          ? Map<String, dynamic>.from(rawArrivalQuery)
-          : const <String, dynamic>{},
       doorHint: json['doorHint']?.toString() ?? '车门',
-    );
-  }
-}
-
-class _RouteSummary {
-  final String title;
-  final int durationMinutes;
-  final int transferCount;
-  final String transferText;
-  final String doorHint;
-  final List<String> lines;
-  final String nextAction;
-
-  const _RouteSummary({
-    required this.title,
-    required this.durationMinutes,
-    required this.transferCount,
-    required this.transferText,
-    required this.doorHint,
-    required this.lines,
-    required this.nextAction,
-  });
-
-  factory _RouteSummary.fromJson(Map<String, dynamic> json) {
-    final rawLines = json['lines'];
-    return _RouteSummary(
-      title: json['title']?.toString() ?? '',
-      durationMinutes: _intFromJson(json['durationMinutes'], 0),
-      transferCount: _intFromJson(json['transferCount'], 0),
-      transferText: json['transferText']?.toString() ?? '无需换乘',
-      doorHint: json['doorHint']?.toString() ?? '中部车门',
-      lines: rawLines is List
-          ? rawLines.map((item) => item.toString()).toList()
-          : const <String>[],
-      nextAction: json['nextAction']?.toString() ?? '',
     );
   }
 }
@@ -1184,13 +1002,6 @@ Color _colorFromJson(String? value, Color fallback) {
   final parsed = int.tryParse(cleaned, radix: 16);
   if (parsed == null) return fallback;
   return Color(0xFF000000 | parsed);
-}
-
-Color _lineColorForName(String lineName) {
-  if (lineName.contains('2')) return _AIPlanningPageState._line2;
-  if (lineName.contains('17')) return const Color(0xFFB58A00);
-  if (lineName.contains('出站')) return _AIPlanningPageState._green;
-  return _AIPlanningPageState._line10;
 }
 
 IconData _iconFromJson(String? value) {
@@ -1240,32 +1051,4 @@ class _ProgressStatus {
     required this.color,
     required this.icon,
   });
-}
-
-class _CatchPlan {
-  final int trainMinutes;
-  final int remainingWalkMinutes;
-  final int completedWalkMinutes;
-  final int safeBufferMinutes;
-  final bool usesNextTrain;
-  final double progress;
-
-  const _CatchPlan({
-    required this.trainMinutes,
-    required this.remainingWalkMinutes,
-    required this.completedWalkMinutes,
-    required this.safeBufferMinutes,
-    required this.usesNextTrain,
-    required this.progress,
-  });
-
-  Color statusColor(Color lineColor) {
-    if (usesNextTrain && safeBufferMinutes <= 0) {
-      return const Color(0xFFBA1A1A);
-    }
-    if (usesNextTrain || safeBufferMinutes < 2) {
-      return _AIPlanningPageState._orange;
-    }
-    return lineColor;
-  }
 }
