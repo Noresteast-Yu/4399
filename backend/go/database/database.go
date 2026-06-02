@@ -44,5 +44,10 @@ func InitDB() error {
 func CloseDB() {
 	if DB != nil {
 		DB.Close()
+		DB = nil
 	}
+}
+
+func IsConnected() bool {
+	return DB != nil && DB.Ping() == nil
 }

@@ -83,9 +83,11 @@ DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=你的MySQL密码
 DB_NAME=smart_travel
+CORS_ORIGINS=*
 ```
 
 > 如果数据库连接失败，服务仍会以模拟模式启动，但数据将是空的。
+> `CORS_ORIGINS` 支持英文逗号分隔多个来源，例如 `http://localhost:5173,http://127.0.0.1:5173`。本地开发可使用 `*`。
 
 ### 5. 安装依赖并启动
 
@@ -123,7 +125,7 @@ go build -o smart-travel-server.exe
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/health` | 健康检查 |
+| GET | `/health` | 健康检查（包含数据库连接状态和运行模式） |
 | POST | `/api/route-plan/plan` | AI 路线规划 |
 | GET | `/api/subway-service/station/:id` | 获取站点信息 |
 | GET | `/api/subway-service/station/:id/facilities` | 获取站点设施 |
