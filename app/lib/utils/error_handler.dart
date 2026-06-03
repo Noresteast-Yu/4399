@@ -16,9 +16,11 @@ class ErrorHandler {
   }
 
   static void _handleError(Object error, StackTrace? stackTrace) {
-    print('Error: $error');
-    if (stackTrace != null) {
-      print('Stack trace: $stackTrace');
+    if (kDebugMode) {
+      debugPrint('Error: $error');
+      if (stackTrace != null) {
+        debugPrint('Stack trace: $stackTrace');
+      }
     }
   }
 }

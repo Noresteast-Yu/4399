@@ -48,7 +48,10 @@ func GetStation(c *gin.Context) {
 
 	if database.DB != nil {
 		err = database.DB.QueryRow(
-			"SELECT * FROM stations WHERE station_id = ? LIMIT 1",
+			`SELECT id, station_id, station_name, station_alias, city, district, station_type, description
+			FROM stations
+			WHERE station_id = ?
+			LIMIT 1`,
 			stationID,
 		).Scan(
 			&station.ID, &station.StationID, &station.StationName,
@@ -248,6 +251,11 @@ func AddCommonRoute(c *gin.Context) {
 func DeleteCommonRoute(c *gin.Context) {
 	id := c.Param("id")
 
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "数据库未连接"})
+		return
+	}
+
 	_, err := database.DB.Exec("DELETE FROM common_routes WHERE id = ?", id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "删除失败"})
@@ -259,12 +267,90 @@ func DeleteCommonRoute(c *gin.Context) {
 
 func GetTrainInfo(c *gin.Context) {
 	trainNumber := c.Param("trainNumber")
-	_ = trainNumber
+
+	if database.DB != nil {
+		train, err := getTrainInfoFromDB(trainNumber)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "车次不存在"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": train})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    gin.H{"trainNumber": trainNumber, "info": "高铁信息查询功能待实现"},
+		"data":    gin.H{"trainNumber": trainNumber, "info": "高铁信息查询功能待实现", "source": "mock"},
 	})
+}
+
+func getTrainInfoFromDB(trainNumber string) (gin.H, error) {
+	var id int
+	var number, start, end, departure, arrival, platform, doorDirection string
+	err := database.DB.QueryRow(
+		`SELECT id, number, start, end, departure, arrival, platform, door_direction
+		FROM trains
+		WHERE number = ?
+		LIMIT 1`,
+		trainNumber,
+	).Scan(&id, &number, &start, &end, &departure, &arrival, &platform, &doorDirection)
+	if err != nil {
+		return nil, err
+	}
+
+	stations := []gin.H{}
+	stationRows, err := database.DB.Query(
+		`SELECT station_name, station_order
+		FROM train_stations
+		WHERE train_id = ?
+		ORDER BY station_order`,
+		id,
+	)
+	if err == nil {
+		defer stationRows.Close()
+		for stationRows.Next() {
+			var stationName string
+			var stationOrder int
+			if scanErr := stationRows.Scan(&stationName, &stationOrder); scanErr == nil {
+				stations = append(stations, gin.H{"name": stationName, "order": stationOrder})
+			}
+		}
+	}
+
+	carriages := []gin.H{}
+	carriageRows, err := database.DB.Query(
+		`SELECT carriage_number, COALESCE(carriage_type, ''), COALESCE(distance, '')
+		FROM train_carriages
+		WHERE train_id = ?
+		ORDER BY carriage_number`,
+		id,
+	)
+	if err == nil {
+		defer carriageRows.Close()
+		for carriageRows.Next() {
+			var carriageNumber, carriageType, distance string
+			if scanErr := carriageRows.Scan(&carriageNumber, &carriageType, &distance); scanErr == nil {
+				carriages = append(carriages, gin.H{
+					"number":   carriageNumber,
+					"type":     carriageType,
+					"distance": distance,
+				})
+			}
+		}
+	}
+
+	return gin.H{
+		"trainNumber":   number,
+		"start":         start,
+		"end":           end,
+		"departure":     departure,
+		"arrival":       arrival,
+		"platform":      platform,
+		"doorDirection": doorDirection,
+		"stations":      stations,
+		"carriages":     carriages,
+		"source":        "database",
+	}, nil
 }
 
 func GetTrainGuide(c *gin.Context) {
@@ -377,9 +463,16 @@ func GetTravelAlerts(c *gin.Context) {
 	c.JSON(http.StatusOK, alerts)
 }
 func HealthCheck(c *gin.Context) {
+	connected := database.IsConnected()
+	mode := "mock"
+	if connected {
+		mode = "database"
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-		"mode":   "database",
+		"status":   "ok",
+		"mode":     mode,
+		"database": connected,
 	})
 }
 

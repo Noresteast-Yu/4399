@@ -1,6 +1,7 @@
 package router
 
 import (
+	"smart-travel-backend/config"
 	"smart-travel-backend/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +11,7 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Origin", corsOriginFor(c.GetHeader("Origin")))
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if c.Request.Method == "OPTIONS" {
@@ -76,4 +77,23 @@ func SetupRouter() *gin.Engine {
 	}
 
 	return r
+}
+
+func corsOriginFor(requestOrigin string) string {
+	origins := []string{"*"}
+	if config.AppConfig != nil && len(config.AppConfig.CORSOrigins) > 0 {
+		origins = config.AppConfig.CORSOrigins
+	}
+	for _, origin := range origins {
+		if origin == "*" {
+			if requestOrigin != "" {
+				return requestOrigin
+			}
+			return "*"
+		}
+		if origin == requestOrigin {
+			return requestOrigin
+		}
+	}
+	return origins[0]
 }

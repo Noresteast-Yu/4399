@@ -33,36 +33,21 @@ class ApiService {
     String end, {
     Map<String, dynamic>? preferences,
   }) async {
-    print('[DEBUG] getRoutePlans called with start=$start, end=$end');
-    print('[DEBUG] Preferences: $preferences');
-
     try {
       final response = await _networkManager.post('/route-plan/plan', data: {
         'start': start,
         'end': end,
         if (preferences != null) 'preferences': preferences,
       });
-      print('[DEBUG] Response status: ${response.statusCode}');
-      print('[DEBUG] Response data type: ${response.data.runtimeType}');
-      print('[DEBUG] Response data: ${response.data}');
       if (response.data is Map && response.data['success'] == true) {
         final routes = response.data['routes'];
-        print('[DEBUG] Routes extracted: $routes');
-        print('[DEBUG] Routes type: ${routes.runtimeType}');
         return ApiResponse<List<dynamic>>(
           success: true,
           data: routes is List ? routes : [],
         );
       }
-      print('[DEBUG] Response format invalid, trying offline mode');
-    } on DioException catch (e) {
-      print(
-          '[DEBUG] Network error: ${e.message}, falling back to offline mode');
-    } catch (e) {
-      print('[DEBUG] Unexpected error: $e, falling back to offline mode');
-    }
+    } catch (_) {}
 
-    print('[DEBUG] Backend unavailable');
     return ApiResponse<List<dynamic>>(
       success: false,
       error: '后端服务不可用，请使用AI智能规划功能',

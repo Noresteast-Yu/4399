@@ -7,43 +7,55 @@ import (
 )
 
 type StationFacilityInfo struct {
-	StationID             string `json:"stationId"`
-	StationName           string `json:"stationName"`
+	StationID             string   `json:"stationId"`
+	StationName           string   `json:"stationName"`
 	LineIDs               []string `json:"lineIds"`
-	HasElevator           bool   `json:"hasElevator"`
-	ElevatorCount         int    `json:"elevatorCount"`
-	ElevatorLocation      string `json:"elevatorLocation"`
-	HasEscalator          bool   `json:"hasEscalator"`
-	HasAccessibleRestroom bool   `json:"hasAccessibleRestroom"`
-	RestroomLocation      string `json:"restroomLocation"`
-	HasRestroomInPaid     bool   `json:"hasRestroomInPaid"`
-	HasRestroomOutside     bool   `json:"hasRestroomOutside"`
-	HasMotherBabyRoom     bool   `json:"hasMotherBabyRoom"`
-	HasThirdBathroom      bool   `json:"hasThirdBathroom"`
-	HasWheelchairRamp     bool   `json:"hasWheelchairRamp"`
-	HasWideGate           bool   `json:"hasWideGate"`
-	HasBlindPath          bool   `json:"hasBlindPath"`
-	HasAED                bool   `json:"hasAED"`
-	HasServiceCenter      bool   `json:"hasServiceCenter"`
-	FacilityNote          string `json:"facilityNote"`
+	HasElevator           bool     `json:"hasElevator"`
+	ElevatorCount         int      `json:"elevatorCount"`
+	ElevatorLocation      string   `json:"elevatorLocation"`
+	HasEscalator          bool     `json:"hasEscalator"`
+	HasAccessibleRestroom bool     `json:"hasAccessibleRestroom"`
+	RestroomLocation      string   `json:"restroomLocation"`
+	HasRestroomInPaid     bool     `json:"hasRestroomInPaid"`
+	HasRestroomOutside    bool     `json:"hasRestroomOutside"`
+	HasMotherBabyRoom     bool     `json:"hasMotherBabyRoom"`
+	HasThirdBathroom      bool     `json:"hasThirdBathroom"`
+	HasWheelchairRamp     bool     `json:"hasWheelchairRamp"`
+	HasWideGate           bool     `json:"hasWideGate"`
+	HasBlindPath          bool     `json:"hasBlindPath"`
+	HasAED                bool     `json:"hasAED"`
+	HasServiceCenter      bool     `json:"hasServiceCenter"`
+	FacilityNote          string   `json:"facilityNote"`
 }
 
 func GetStationFacilityInfo(stationID string) (*StationFacilityInfo, error) {
 	if database.DB != nil {
 		var facility models.StationFacility
+		var stationName string
 		err := database.DB.QueryRow(
-			"SELECT station_id, has_elevator, has_escalator, has_wheelchair_ramp, has_wide_gate, has_accessible_restroom, has_blind_path, elevator_count, escalator_count, facility_note FROM station_facilities WHERE station_id = ? LIMIT 1",
+			`SELECT sf.station_id, sf.has_elevator, sf.has_escalator, sf.has_wheelchair_ramp,
+				sf.has_wide_gate, sf.has_accessible_restroom, sf.has_blind_path,
+				sf.elevator_count, COALESCE(sf.elevator_location, ''), sf.escalator_count,
+				COALESCE(sf.restroom_location, ''), sf.has_restroom_in_paid, sf.has_restroom_outside,
+				sf.has_mother_baby_room, sf.has_third_bathroom, sf.has_aed, sf.has_service_center,
+				sf.facility_note, COALESCE(s.station_name, '')
+			FROM station_facilities sf
+			LEFT JOIN stations s ON s.station_id = sf.station_id
+			WHERE sf.station_id = ?
+			LIMIT 1`,
 			stationID,
 		).Scan(
 			&facility.StationID, &facility.HasElevator, &facility.HasEscalator,
 			&facility.HasWheelchairRamp, &facility.HasWideGate, &facility.HasAccessibleRestroom,
-			&facility.HasBlindPath, &facility.ElevatorCount, &facility.EscalatorCount,
-			&facility.FacilityNote,
+			&facility.HasBlindPath, &facility.ElevatorCount, &facility.ElevatorLocation,
+			&facility.EscalatorCount, &facility.RestroomLocation, &facility.HasRestroomInPaid,
+			&facility.HasRestroomOutside, &facility.HasMotherBabyRoom, &facility.HasThirdBathroom,
+			&facility.HasAED, &facility.HasServiceCenter, &facility.FacilityNote, &stationName,
 		)
 		if err != nil {
 			return nil, err
 		}
-		return convertFacility(&facility, ""), nil
+		return convertFacility(&facility, stationName), nil
 	}
 
 	info := getFacilityByID(stationID)
@@ -57,13 +69,22 @@ func convertFacility(f *models.StationFacility, name string) *StationFacilityInf
 	return &StationFacilityInfo{
 		StationID:             f.StationID,
 		StationName:           name,
+		LineIDs:               GetStationLineNames(f.StationID),
 		HasElevator:           f.HasElevator,
 		ElevatorCount:         f.ElevatorCount,
+		ElevatorLocation:      f.ElevatorLocation,
 		HasEscalator:          f.HasEscalator,
 		HasAccessibleRestroom: f.HasAccessibleRestroom,
+		RestroomLocation:      f.RestroomLocation,
+		HasRestroomInPaid:     f.HasRestroomInPaid,
+		HasRestroomOutside:    f.HasRestroomOutside,
+		HasMotherBabyRoom:     f.HasMotherBabyRoom,
+		HasThirdBathroom:      f.HasThirdBathroom,
 		HasWheelchairRamp:     f.HasWheelchairRamp,
 		HasWideGate:           f.HasWideGate,
 		HasBlindPath:          f.HasBlindPath,
+		HasAED:                f.HasAED,
+		HasServiceCenter:      f.HasServiceCenter,
 		FacilityNote:          f.FacilityNote,
 	}
 }
@@ -901,95 +922,95 @@ func getFacilityByID(stationID string) *StationFacilityInfo {
 
 func FindStationByID(stationID string) (models.Station, error) {
 	stations := map[string]models.Station{
-		"pudong_airport":              {ID: 1, StationID: "pudong_airport", StationName: "浦东国际机场", City: "上海", StationType: "地铁站"},
-		"yuanshen":                    {ID: 2, StationID: "yuanshen", StationName: "远东大道", City: "上海", StationType: "地铁站"},
-		"lingkong":                    {ID: 3, StationID: "lingkong", StationName: "凌空路", City: "上海", StationType: "地铁站"},
-		"huaxia":                      {ID: 4, StationID: "huaxia", StationName: "华夏东路", City: "上海", StationType: "地铁站"},
-		"chuansha":                    {ID: 5, StationID: "chuansha", StationName: "川沙", City: "上海", StationType: "地铁站"},
-		"shenjiang":                   {ID: 6, StationID: "shenjiang", StationName: "华夏镇", City: "上海", StationType: "地铁站"},
-		"shanghai_race_track":         {ID: 7, StationID: "shanghai_race_track", StationName: "创新中路", City: "上海", StationType: "地铁站"},
-		"guanglan_road":               {ID: 8, StationID: "guanglan_road", StationName: "广兰路", City: "上海", StationType: "地铁站"},
-		"tianzhu_road":                {ID: 9, StationID: "tianzhu_road", StationName: "唐镇", City: "上海", StationType: "地铁站"},
-		"jinqiao_road":                {ID: 10, StationID: "jinqiao_road", StationName: "创新路", City: "上海", StationType: "地铁站"},
-		"jinyang_road":                {ID: 11, StationID: "jinyang_road", StationName: "金科路", City: "上海", StationType: "地铁站"},
-		"zhangjiang_high_tech":        {ID: 12, StationID: "zhangjiang_high_tech", StationName: "张江高科", City: "上海", StationType: "地铁站"},
-		"longyang_road_2":             {ID: 13, StationID: "longyang_road_2", StationName: "龙阳路", City: "上海", StationType: "地铁站"},
-		"shanghai_science_tech":       {ID: 14, StationID: "shanghai_science_tech", StationName: "上海科技馆", City: "上海", StationType: "地铁站"},
-		"Century_Avenue":              {ID: 15, StationID: "Century_Avenue", StationName: "世纪大道", City: "上海", StationType: "地铁站"},
-		"dongchang_road":              {ID: 16, StationID: "dongchang_road", StationName: "东昌路", City: "上海", StationType: "地铁站"},
-		"lujiazui":                    {ID: 17, StationID: "lujiazui", StationName: "陆家嘴", City: "上海", StationType: "地铁站"},
-		"dongbei_road":                {ID: 18, StationID: "dongbei_road", StationName: "东门路", City: "上海", StationType: "地铁站"},
-		"nanjing_east_road":           {ID: 19, StationID: "nanjing_east_road", StationName: "南京东路", City: "上海", StationType: "地铁站"},
-		"renmin_square":               {ID: 20, StationID: "renmin_square", StationName: "人民广场", City: "上海", StationType: "地铁站"},
-		"shimen_road":                 {ID: 21, StationID: "shimen_road", StationName: "石门一路", City: "上海", StationType: "地铁站"},
-		"jingan_temple":               {ID: 22, StationID: "jingan_temple", StationName: "静安寺", City: "上海", StationType: "地铁站"},
-		"west_nan_jing_road":          {ID: 23, StationID: "west_nan_jing_road", StationName: "南京西路", City: "上海", StationType: "地铁站"},
-		"jiangsu_road":                {ID: 25, StationID: "jiangsu_road", StationName: "江苏路", City: "上海", StationType: "地铁站"},
-		"zhongshan_park":              {ID: 26, StationID: "zhongshan_park", StationName: "中山公园", City: "上海", StationType: "地铁站"},
-		"longxu_road":                 {ID: 27, StationID: "longxu_road", StationName: "龙漕路", City: "上海", StationType: "地铁站"},
-		"caobao_road":                 {ID: 28, StationID: "caobao_road", StationName: "漕宝路", City: "上海", StationType: "地铁站"},
-		"xujingdong":                  {ID: 29, StationID: "xujingdong", StationName: "徐泾东", City: "上海", StationType: "地铁站"},
-		"hongqiao_railway_2":          {ID: 30, StationID: "hongqiao_railway_2", StationName: "虹桥火车站", City: "上海", StationType: "地铁站"},
-		"hongqiao_t2_2":               {ID: 31, StationID: "hongqiao_t2_2", StationName: "虹桥2号航站楼", City: "上海", StationType: "地铁站"},
-		"songhong_road":               {ID: 32, StationID: "songhong_road", StationName: "淞虹路", City: "上海", StationType: "地铁站"},
-		"beixinjing":                  {ID: 33, StationID: "beixinjing", StationName: "北新泾", City: "上海", StationType: "地铁站"},
-		"weining_road":                {ID: 34, StationID: "weining_road", StationName: "威宁路", City: "上海", StationType: "地铁站"},
-		"loushanguan_road":            {ID: 35, StationID: "loushanguan_road", StationName: "娄山关路", City: "上海", StationType: "地铁站"},
-		"hongqiao_railway_10":         {ID: 36, StationID: "hongqiao_railway_10", StationName: "上海虹桥火车站", City: "上海", StationType: "地铁站"},
-		"hongqiao_t1_10":              {ID: 37, StationID: "hongqiao_t1_10", StationName: "虹桥1号航站楼", City: "上海", StationType: "地铁站"},
-		"shanghai_zoo":                {ID: 38, StationID: "shanghai_zoo", StationName: "上海动物园", City: "上海", StationType: "地铁站"},
-		"longxi_road":                 {ID: 39, StationID: "longxi_road", StationName: "龙溪路", City: "上海", StationType: "地铁站"},
-		"shuicheng_road":              {ID: 40, StationID: "shuicheng_road", StationName: "水城路", City: "上海", StationType: "地铁站"},
-		"yili_road":                   {ID: 41, StationID: "yili_road", StationName: "伊犁路", City: "上海", StationType: "地铁站"},
-		"songyuan_road":               {ID: 42, StationID: "songyuan_road", StationName: "宋园路", City: "上海", StationType: "地铁站"},
-		"hongqiao_road":               {ID: 43, StationID: "hongqiao_road", StationName: "虹桥路", City: "上海", StationType: "地铁站"},
-		"jiaotong_university":         {ID: 44, StationID: "jiaotong_university", StationName: "交通大学", City: "上海", StationType: "地铁站"},
-		"shanghai_library":            {ID: 45, StationID: "shanghai_library", StationName: "上海图书馆", City: "上海", StationType: "地铁站"},
-		"shaanxi_south_road":          {ID: 46, StationID: "shaanxi_south_road", StationName: "陕西南路", City: "上海", StationType: "地铁站"},
-		"xin_tian_di":                 {ID: 47, StationID: "xin_tian_di", StationName: "一大会址·新天地", City: "上海", StationType: "地铁站"},
-		"lao_xi_men":                  {ID: 48, StationID: "lao_xi_men", StationName: "老西门", City: "上海", StationType: "地铁站"},
-		"yu_yuan":                     {ID: 49, StationID: "yu_yuan", StationName: "豫园", City: "上海", StationType: "地铁站"},
-		"tian_tong_road":              {ID: 50, StationID: "tian_tong_road", StationName: "天潼路", City: "上海", StationType: "地铁站"},
-		"north_sichuan_road":          {ID: 51, StationID: "north_sichuan_road", StationName: "四川北路", City: "上海", StationType: "地铁站"},
-		"hai_lun_road":                {ID: 52, StationID: "hai_lun_road", StationName: "海伦路", City: "上海", StationType: "地铁站"},
-		"si_ping_road":                {ID: 53, StationID: "si_ping_road", StationName: "四平路", City: "上海", StationType: "地铁站"},
-		"tong_ji_university":          {ID: 54, StationID: "tong_ji_university", StationName: "同济大学", City: "上海", StationType: "地铁站"},
-		"jiang_wan_new_town":          {ID: 55, StationID: "jiang_wan_new_town", StationName: "江湾新城", City: "上海", StationType: "地铁站"},
-		"weng_jing":                   {ID: 56, StationID: "weng_jing", StationName: "殷高东路", City: "上海", StationType: "地铁站"},
-		"xin_jiang_wan_city":          {ID: 57, StationID: "xin_jiang_wan_city", StationName: "新江湾城", City: "上海", StationType: "地铁站"},
-		"shuang_jiang_road":           {ID: 58, StationID: "shuang_jiang_road", StationName: "三门路", City: "上海", StationType: "地铁站"},
-		"hang_hai_road":               {ID: 59, StationID: "hang_hai_road", StationName: "殷行路", City: "上海", StationType: "地铁站"},
-		"xinquan_road":                {ID: 60, StationID: "xinquan_road", StationName: "新园路", City: "上海", StationType: "地铁站"},
+		"pudong_airport":                 {ID: 1, StationID: "pudong_airport", StationName: "浦东国际机场", City: "上海", StationType: "地铁站"},
+		"yuanshen":                       {ID: 2, StationID: "yuanshen", StationName: "远东大道", City: "上海", StationType: "地铁站"},
+		"lingkong":                       {ID: 3, StationID: "lingkong", StationName: "凌空路", City: "上海", StationType: "地铁站"},
+		"huaxia":                         {ID: 4, StationID: "huaxia", StationName: "华夏东路", City: "上海", StationType: "地铁站"},
+		"chuansha":                       {ID: 5, StationID: "chuansha", StationName: "川沙", City: "上海", StationType: "地铁站"},
+		"shenjiang":                      {ID: 6, StationID: "shenjiang", StationName: "华夏镇", City: "上海", StationType: "地铁站"},
+		"shanghai_race_track":            {ID: 7, StationID: "shanghai_race_track", StationName: "创新中路", City: "上海", StationType: "地铁站"},
+		"guanglan_road":                  {ID: 8, StationID: "guanglan_road", StationName: "广兰路", City: "上海", StationType: "地铁站"},
+		"tianzhu_road":                   {ID: 9, StationID: "tianzhu_road", StationName: "唐镇", City: "上海", StationType: "地铁站"},
+		"jinqiao_road":                   {ID: 10, StationID: "jinqiao_road", StationName: "创新路", City: "上海", StationType: "地铁站"},
+		"jinyang_road":                   {ID: 11, StationID: "jinyang_road", StationName: "金科路", City: "上海", StationType: "地铁站"},
+		"zhangjiang_high_tech":           {ID: 12, StationID: "zhangjiang_high_tech", StationName: "张江高科", City: "上海", StationType: "地铁站"},
+		"longyang_road_2":                {ID: 13, StationID: "longyang_road_2", StationName: "龙阳路", City: "上海", StationType: "地铁站"},
+		"shanghai_science_tech":          {ID: 14, StationID: "shanghai_science_tech", StationName: "上海科技馆", City: "上海", StationType: "地铁站"},
+		"Century_Avenue":                 {ID: 15, StationID: "Century_Avenue", StationName: "世纪大道", City: "上海", StationType: "地铁站"},
+		"dongchang_road":                 {ID: 16, StationID: "dongchang_road", StationName: "东昌路", City: "上海", StationType: "地铁站"},
+		"lujiazui":                       {ID: 17, StationID: "lujiazui", StationName: "陆家嘴", City: "上海", StationType: "地铁站"},
+		"dongbei_road":                   {ID: 18, StationID: "dongbei_road", StationName: "东门路", City: "上海", StationType: "地铁站"},
+		"nanjing_east_road":              {ID: 19, StationID: "nanjing_east_road", StationName: "南京东路", City: "上海", StationType: "地铁站"},
+		"renmin_square":                  {ID: 20, StationID: "renmin_square", StationName: "人民广场", City: "上海", StationType: "地铁站"},
+		"shimen_road":                    {ID: 21, StationID: "shimen_road", StationName: "石门一路", City: "上海", StationType: "地铁站"},
+		"jingan_temple":                  {ID: 22, StationID: "jingan_temple", StationName: "静安寺", City: "上海", StationType: "地铁站"},
+		"west_nan_jing_road":             {ID: 23, StationID: "west_nan_jing_road", StationName: "南京西路", City: "上海", StationType: "地铁站"},
+		"jiangsu_road":                   {ID: 25, StationID: "jiangsu_road", StationName: "江苏路", City: "上海", StationType: "地铁站"},
+		"zhongshan_park":                 {ID: 26, StationID: "zhongshan_park", StationName: "中山公园", City: "上海", StationType: "地铁站"},
+		"longxu_road":                    {ID: 27, StationID: "longxu_road", StationName: "龙漕路", City: "上海", StationType: "地铁站"},
+		"caobao_road":                    {ID: 28, StationID: "caobao_road", StationName: "漕宝路", City: "上海", StationType: "地铁站"},
+		"xujingdong":                     {ID: 29, StationID: "xujingdong", StationName: "徐泾东", City: "上海", StationType: "地铁站"},
+		"hongqiao_railway_2":             {ID: 30, StationID: "hongqiao_railway_2", StationName: "虹桥火车站", City: "上海", StationType: "地铁站"},
+		"hongqiao_t2_2":                  {ID: 31, StationID: "hongqiao_t2_2", StationName: "虹桥2号航站楼", City: "上海", StationType: "地铁站"},
+		"songhong_road":                  {ID: 32, StationID: "songhong_road", StationName: "淞虹路", City: "上海", StationType: "地铁站"},
+		"beixinjing":                     {ID: 33, StationID: "beixinjing", StationName: "北新泾", City: "上海", StationType: "地铁站"},
+		"weining_road":                   {ID: 34, StationID: "weining_road", StationName: "威宁路", City: "上海", StationType: "地铁站"},
+		"loushanguan_road":               {ID: 35, StationID: "loushanguan_road", StationName: "娄山关路", City: "上海", StationType: "地铁站"},
+		"hongqiao_railway_10":            {ID: 36, StationID: "hongqiao_railway_10", StationName: "上海虹桥火车站", City: "上海", StationType: "地铁站"},
+		"hongqiao_t1_10":                 {ID: 37, StationID: "hongqiao_t1_10", StationName: "虹桥1号航站楼", City: "上海", StationType: "地铁站"},
+		"shanghai_zoo":                   {ID: 38, StationID: "shanghai_zoo", StationName: "上海动物园", City: "上海", StationType: "地铁站"},
+		"longxi_road":                    {ID: 39, StationID: "longxi_road", StationName: "龙溪路", City: "上海", StationType: "地铁站"},
+		"shuicheng_road":                 {ID: 40, StationID: "shuicheng_road", StationName: "水城路", City: "上海", StationType: "地铁站"},
+		"yili_road":                      {ID: 41, StationID: "yili_road", StationName: "伊犁路", City: "上海", StationType: "地铁站"},
+		"songyuan_road":                  {ID: 42, StationID: "songyuan_road", StationName: "宋园路", City: "上海", StationType: "地铁站"},
+		"hongqiao_road":                  {ID: 43, StationID: "hongqiao_road", StationName: "虹桥路", City: "上海", StationType: "地铁站"},
+		"jiaotong_university":            {ID: 44, StationID: "jiaotong_university", StationName: "交通大学", City: "上海", StationType: "地铁站"},
+		"shanghai_library":               {ID: 45, StationID: "shanghai_library", StationName: "上海图书馆", City: "上海", StationType: "地铁站"},
+		"shaanxi_south_road":             {ID: 46, StationID: "shaanxi_south_road", StationName: "陕西南路", City: "上海", StationType: "地铁站"},
+		"xin_tian_di":                    {ID: 47, StationID: "xin_tian_di", StationName: "一大会址·新天地", City: "上海", StationType: "地铁站"},
+		"lao_xi_men":                     {ID: 48, StationID: "lao_xi_men", StationName: "老西门", City: "上海", StationType: "地铁站"},
+		"yu_yuan":                        {ID: 49, StationID: "yu_yuan", StationName: "豫园", City: "上海", StationType: "地铁站"},
+		"tian_tong_road":                 {ID: 50, StationID: "tian_tong_road", StationName: "天潼路", City: "上海", StationType: "地铁站"},
+		"north_sichuan_road":             {ID: 51, StationID: "north_sichuan_road", StationName: "四川北路", City: "上海", StationType: "地铁站"},
+		"hai_lun_road":                   {ID: 52, StationID: "hai_lun_road", StationName: "海伦路", City: "上海", StationType: "地铁站"},
+		"si_ping_road":                   {ID: 53, StationID: "si_ping_road", StationName: "四平路", City: "上海", StationType: "地铁站"},
+		"tong_ji_university":             {ID: 54, StationID: "tong_ji_university", StationName: "同济大学", City: "上海", StationType: "地铁站"},
+		"jiang_wan_new_town":             {ID: 55, StationID: "jiang_wan_new_town", StationName: "江湾新城", City: "上海", StationType: "地铁站"},
+		"weng_jing":                      {ID: 56, StationID: "weng_jing", StationName: "殷高东路", City: "上海", StationType: "地铁站"},
+		"xin_jiang_wan_city":             {ID: 57, StationID: "xin_jiang_wan_city", StationName: "新江湾城", City: "上海", StationType: "地铁站"},
+		"shuang_jiang_road":              {ID: 58, StationID: "shuang_jiang_road", StationName: "三门路", City: "上海", StationType: "地铁站"},
+		"hang_hai_road":                  {ID: 59, StationID: "hang_hai_road", StationName: "殷行路", City: "上海", StationType: "地铁站"},
+		"xinquan_road":                   {ID: 60, StationID: "xinquan_road", StationName: "新园路", City: "上海", StationType: "地铁站"},
 		"shanghai_north_railway_station": {ID: 61, StationID: "shanghai_north_railway_station", StationName: "江湾镇", City: "上海", StationType: "地铁站"},
-		"hua_qiao":                    {ID: 62, StationID: "hua_qiao", StationName: "花桥", City: "上海", StationType: "地铁站"},
-		"jiading_new_town":            {ID: 63, StationID: "jiading_new_town", StationName: "光明路", City: "上海", StationType: "地铁站"},
-		"bao_an_road":                 {ID: 64, StationID: "bao_an_road", StationName: "兆丰路", City: "上海", StationType: "地铁站"},
-		"anting":                      {ID: 65, StationID: "anting", StationName: "安亭", City: "上海", StationType: "地铁站"},
-		"che_ding_zhen":               {ID: 66, StationID: "che_ding_zhen", StationName: "上海赛车场", City: "上海", StationType: "地铁站"},
-		"jiading_new_city":            {ID: 67, StationID: "jiading_new_city", StationName: "嘉定新城", City: "上海", StationType: "地铁站"},
-		"jiading_old_town":            {ID: 68, StationID: "jiading_old_town", StationName: "白银路", City: "上海", StationType: "地铁站"},
-		"jiading_beilu":               {ID: 69, StationID: "jiading_beilu", StationName: "嘉定北", City: "上海", StationType: "地铁站"},
-		"nan_xiang":                   {ID: 70, StationID: "nan_xiang", StationName: "南翔", City: "上海", StationType: "地铁站"},
-		"ma_lu":                       {ID: 71, StationID: "ma_lu", StationName: "马陆", City: "上海", StationType: "地铁站"},
-		"jiang_su_road_11":            {ID: 72, StationID: "jiang_su_road_11", StationName: "桃浦新村", City: "上海", StationType: "地铁站"},
-		"wan_li_road":                 {ID: 73, StationID: "wan_li_road", StationName: "武威路", City: "上海", StationType: "地铁站"},
-		"qilian_mountain_road":        {ID: 74, StationID: "qilian_mountain_road", StationName: "祁连山路", City: "上海", StationType: "地铁站"},
-		"caoyang_road":                {ID: 75, StationID: "caoyang_road", StationName: "曹杨路", City: "上海", StationType: "地铁站"},
-		"long_de_road":                {ID: 76, StationID: "long_de_road", StationName: "隆德路", City: "上海", StationType: "地铁站"},
-		"xu_jia_hui":                  {ID: 77, StationID: "xu_jia_hui", StationName: "徐家汇", City: "上海", StationType: "地铁站"},
-		"shang_hai_sports":            {ID: 78, StationID: "shang_hai_sports", StationName: "上海游泳馆", City: "上海", StationType: "地铁站"},
-		"zhi_pu_road":                 {ID: 79, StationID: "zhi_pu_road", StationName: "肇嘉浜路", City: "上海", StationType: "地铁站"},
-		"yuyao_road":                  {ID: 80, StationID: "yuyao_road", StationName: "宜山路", City: "上海", StationType: "地铁站"},
-		"long_hua":                    {ID: 81, StationID: "long_hua", StationName: "龙华", City: "上海", StationType: "地铁站"},
-		"long_hua_middle":             {ID: 82, StationID: "long_hua_middle", StationName: "龙华中路", City: "上海", StationType: "地铁站"},
-		"lu_jia_bang_road":            {ID: 83, StationID: "lu_jia_bang_road", StationName: "龙耀路", City: "上海", StationType: "地铁站"},
-		"huating_road":                {ID: 84, StationID: "huating_road", StationName: "云锦路", City: "上海", StationType: "地铁站"},
-		"long_arcs":                   {ID: 85, StationID: "long_arcs", StationName: "龙腾大道", City: "上海", StationType: "地铁站"},
-		"pujiang_zhen":                {ID: 86, StationID: "pujiang_zhen", StationName: "东方体育中心", City: "上海", StationType: "地铁站"},
-		"huaihai_mid_road":            {ID: 87, StationID: "huaihai_mid_road", StationName: "淮海中路", City: "上海", StationType: "地铁站"},
+		"hua_qiao":                       {ID: 62, StationID: "hua_qiao", StationName: "花桥", City: "上海", StationType: "地铁站"},
+		"jiading_new_town":               {ID: 63, StationID: "jiading_new_town", StationName: "光明路", City: "上海", StationType: "地铁站"},
+		"bao_an_road":                    {ID: 64, StationID: "bao_an_road", StationName: "兆丰路", City: "上海", StationType: "地铁站"},
+		"anting":                         {ID: 65, StationID: "anting", StationName: "安亭", City: "上海", StationType: "地铁站"},
+		"che_ding_zhen":                  {ID: 66, StationID: "che_ding_zhen", StationName: "上海赛车场", City: "上海", StationType: "地铁站"},
+		"jiading_new_city":               {ID: 67, StationID: "jiading_new_city", StationName: "嘉定新城", City: "上海", StationType: "地铁站"},
+		"jiading_old_town":               {ID: 68, StationID: "jiading_old_town", StationName: "白银路", City: "上海", StationType: "地铁站"},
+		"jiading_beilu":                  {ID: 69, StationID: "jiading_beilu", StationName: "嘉定北", City: "上海", StationType: "地铁站"},
+		"nan_xiang":                      {ID: 70, StationID: "nan_xiang", StationName: "南翔", City: "上海", StationType: "地铁站"},
+		"ma_lu":                          {ID: 71, StationID: "ma_lu", StationName: "马陆", City: "上海", StationType: "地铁站"},
+		"jiang_su_road_11":               {ID: 72, StationID: "jiang_su_road_11", StationName: "桃浦新村", City: "上海", StationType: "地铁站"},
+		"wan_li_road":                    {ID: 73, StationID: "wan_li_road", StationName: "武威路", City: "上海", StationType: "地铁站"},
+		"qilian_mountain_road":           {ID: 74, StationID: "qilian_mountain_road", StationName: "祁连山路", City: "上海", StationType: "地铁站"},
+		"caoyang_road":                   {ID: 75, StationID: "caoyang_road", StationName: "曹杨路", City: "上海", StationType: "地铁站"},
+		"long_de_road":                   {ID: 76, StationID: "long_de_road", StationName: "隆德路", City: "上海", StationType: "地铁站"},
+		"xu_jia_hui":                     {ID: 77, StationID: "xu_jia_hui", StationName: "徐家汇", City: "上海", StationType: "地铁站"},
+		"shang_hai_sports":               {ID: 78, StationID: "shang_hai_sports", StationName: "上海游泳馆", City: "上海", StationType: "地铁站"},
+		"zhi_pu_road":                    {ID: 79, StationID: "zhi_pu_road", StationName: "肇嘉浜路", City: "上海", StationType: "地铁站"},
+		"yuyao_road":                     {ID: 80, StationID: "yuyao_road", StationName: "宜山路", City: "上海", StationType: "地铁站"},
+		"long_hua":                       {ID: 81, StationID: "long_hua", StationName: "龙华", City: "上海", StationType: "地铁站"},
+		"long_hua_middle":                {ID: 82, StationID: "long_hua_middle", StationName: "龙华中路", City: "上海", StationType: "地铁站"},
+		"lu_jia_bang_road":               {ID: 83, StationID: "lu_jia_bang_road", StationName: "龙耀路", City: "上海", StationType: "地铁站"},
+		"huating_road":                   {ID: 84, StationID: "huating_road", StationName: "云锦路", City: "上海", StationType: "地铁站"},
+		"long_arcs":                      {ID: 85, StationID: "long_arcs", StationName: "龙腾大道", City: "上海", StationType: "地铁站"},
+		"pujiang_zhen":                   {ID: 86, StationID: "pujiang_zhen", StationName: "东方体育中心", City: "上海", StationType: "地铁站"},
+		"huaihai_mid_road":               {ID: 87, StationID: "huaihai_mid_road", StationName: "淮海中路", City: "上海", StationType: "地铁站"},
 		"shanghai_south_railway_station": {ID: 88, StationID: "shanghai_south_railway_station", StationName: "上海南站", City: "上海", StationType: "地铁站"},
-		"shanghai_railway_station":    {ID: 89, StationID: "shanghai_railway_station", StationName: "上海火车站", City: "上海", StationType: "地铁站"},
-		"caohexi_kfq":                 {ID: 90, StationID: "caohexi_kfq", StationName: "漕河泾开发区", City: "上海", StationType: "地铁站"},
+		"shanghai_railway_station":       {ID: 89, StationID: "shanghai_railway_station", StationName: "上海火车站", City: "上海", StationType: "地铁站"},
+		"caohexi_kfq":                    {ID: 90, StationID: "caohexi_kfq", StationName: "漕河泾开发区", City: "上海", StationType: "地铁站"},
 	}
 	if s, ok := stations[stationID]; ok {
 		return s, nil
@@ -998,6 +1019,30 @@ func FindStationByID(stationID string) (models.Station, error) {
 }
 
 func GetStationLineNames(stationID string) []string {
+	if database.DB != nil {
+		rows, err := database.DB.Query(
+			`SELECT DISTINCT ml.line_id
+			FROM line_stations ls
+			JOIN metro_lines ml ON ml.line_id = ls.line_id
+			WHERE ls.station_id = ?
+			ORDER BY ml.line_id`,
+			stationID,
+		)
+		if err == nil {
+			defer rows.Close()
+			lines := []string{}
+			for rows.Next() {
+				var lineID string
+				if scanErr := rows.Scan(&lineID); scanErr == nil {
+					lines = append(lines, lineID)
+				}
+			}
+			if len(lines) > 0 {
+				return lines
+			}
+		}
+	}
+
 	info := getFacilityByID(stationID)
 	if info == nil {
 		return nil

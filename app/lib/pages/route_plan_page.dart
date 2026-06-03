@@ -56,13 +56,15 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         endStation: end,
       );
 
-      final steps = result.steps.map((s) => {
-            'line': s.line,
-            'type': s.type,
-            'description': s.description,
-            'time': '${s.timeMinutes}分钟',
-            'distance': s.stops != null ? '${s.stops}站' : '',
-          }).toList();
+      final steps = result.steps
+          .map((s) => {
+                'line': s.line,
+                'type': s.type,
+                'description': s.description,
+                'time': '${s.timeMinutes}分钟',
+                'distance': s.stops != null ? '${s.stops}站' : '',
+              })
+          .toList();
 
       setState(() {
         _routePlans = [
@@ -106,10 +108,6 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     final start = _startController.text.trim();
     final end = _endController.text.trim();
 
-    // #region debug-point 5
-    print('[DEBUG] _planRoute called: start=$start, end=$end');
-    // #endregion
-
     try {
       setState(() {
         _isLoading = true;
@@ -124,19 +122,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
           Provider.of<UserPreferencesProvider>(context, listen: false);
       final preferencesJson = preferences.toJson();
 
-      // #region debug-point 6
-      print('[DEBUG] User preferences: $preferencesJson');
-      print('[DEBUG] Calling ApiService.getRoutePlans with preferences...');
-      // #endregion
       final response = await _apiService.getRoutePlans(
         start,
         end,
         preferences: preferencesJson,
       );
-      // #region debug-point 7
-      print(
-          '[DEBUG] ApiService response: success=${response.success}, data=${response.data}, error=${response.error}');
-      // #endregion
 
       if (response.success && response.data != null) {
         final routeData = response.data!;
@@ -157,9 +147,6 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       setState(() {
         _isLoading = false;
       });
-      // #region debug-point 12
-      print('[DEBUG] Loading finished, _isLoading=false');
-      // #endregion
     }
   }
 

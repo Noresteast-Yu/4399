@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -18,6 +19,7 @@ type Config struct {
 	ShmaasMerchantID string
 	ShmaasSalt       string
 	ShmaasCityCode   string
+	CORSOrigins      []string
 }
 
 var AppConfig *Config
@@ -39,6 +41,7 @@ func LoadConfig() {
 		ShmaasMerchantID: getEnv("SHMAAS_MERCHANT_ID", "mock-merchant"),
 		ShmaasSalt:       getEnv("SHMAAS_SALT", "mock-salt"),
 		ShmaasCityCode:   getEnv("SHMAAS_CITY_CODE", "mock-shanghai"),
+		CORSOrigins:      getEnvList("CORS_ORIGINS", []string{"*"}),
 	}
 }
 
@@ -54,4 +57,23 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvList(key string, defaultValue []string) []string {
+	value, exists := os.LookupEnv(key)
+	if !exists || strings.TrimSpace(value) == "" {
+		return defaultValue
+	}
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		item := strings.TrimSpace(part)
+		if item != "" {
+			result = append(result, item)
+		}
+	}
+	if len(result) == 0 {
+		return defaultValue
+	}
+	return result
 }

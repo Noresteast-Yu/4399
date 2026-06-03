@@ -286,6 +286,7 @@ class _HomePageState extends State<HomePage> {
               showControls: true,
               showHint: false,
               controlsBottomOffset: _resolvedDockHeight(size) + 28,
+              labelBottomInset: _resolvedDockHeight(size) + 48,
             ),
           ),
           const Positioned.fill(
@@ -914,32 +915,11 @@ class _HomePageState extends State<HomePage> {
 
   Widget _miniAction(IconData icon, String label, VoidCallback onTap) {
     return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+      child: _MiniActionButton(
+        icon: icon,
+        label: label,
+        color: _line10,
         onTap: onTap,
-        child: Container(
-          height: 42,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.62),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.7)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: _line10, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -957,6 +937,101 @@ class _HomePageState extends State<HomePage> {
           color: textColor,
           fontSize: 12,
           fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniActionButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _MiniActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  State<_MiniActionButton> createState() => _MiniActionButtonState();
+}
+
+class _MiniActionButtonState extends State<_MiniActionButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) return;
+    setState(() {
+      _pressed = pressed;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: _pressed ? 0.94 : 1,
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutCubic,
+        height: 42,
+        decoration: BoxDecoration(
+          color: _pressed
+              ? widget.color.withOpacity(0.16)
+              : Colors.white.withOpacity(0.62),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _pressed
+                ? widget.color.withOpacity(0.42)
+                : Colors.white.withOpacity(0.7),
+          ),
+          boxShadow: [
+            if (!_pressed)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.025),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            splashColor: widget.color.withOpacity(0.16),
+            highlightColor: widget.color.withOpacity(0.08),
+            onTap: widget.onTap,
+            onTapDown: (_) => _setPressed(true),
+            onTapUp: (_) => _setPressed(false),
+            onTapCancel: () => _setPressed(false),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedScale(
+                  scale: _pressed ? 1.08 : 1,
+                  duration: const Duration(milliseconds: 120),
+                  curve: Curves.easeOutCubic,
+                  child: Icon(widget.icon, color: widget.color, size: 18),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: _HomePageState._ink,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

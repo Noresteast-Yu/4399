@@ -124,6 +124,33 @@ CREATE TABLE station_exits (
     INDEX idx_station (station_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 站点设施表
+CREATE TABLE station_facilities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    station_id VARCHAR(100) NOT NULL UNIQUE,
+    has_elevator TINYINT(1) NOT NULL DEFAULT 0,
+    has_escalator TINYINT(1) NOT NULL DEFAULT 0,
+    has_wheelchair_ramp TINYINT(1) NOT NULL DEFAULT 0,
+    has_wide_gate TINYINT(1) NOT NULL DEFAULT 0,
+    has_accessible_restroom TINYINT(1) NOT NULL DEFAULT 0,
+    has_blind_path TINYINT(1) NOT NULL DEFAULT 0,
+    elevator_count INT NOT NULL DEFAULT 0,
+    elevator_location VARCHAR(255) DEFAULT '',
+    escalator_count INT NOT NULL DEFAULT 0,
+    restroom_location VARCHAR(255) DEFAULT '',
+    has_restroom_in_paid TINYINT(1) NOT NULL DEFAULT 0,
+    has_restroom_outside TINYINT(1) NOT NULL DEFAULT 0,
+    has_mother_baby_room TINYINT(1) NOT NULL DEFAULT 0,
+    has_third_bathroom TINYINT(1) NOT NULL DEFAULT 0,
+    has_aed TINYINT(1) NOT NULL DEFAULT 0,
+    has_service_center TINYINT(1) NOT NULL DEFAULT 0,
+    facility_note TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (station_id) REFERENCES stations(station_id) ON DELETE CASCADE,
+    INDEX idx_station_facilities_station (station_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 出行提醒表
 CREATE TABLE travel_alerts (
     id INT AUTO_INCREMENT PRIMARY KEY,
