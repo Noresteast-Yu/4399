@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"smart-travel-backend/database"
 	"smart-travel-backend/models"
@@ -181,6 +182,15 @@ func GetIndoorGuide(c *gin.Context) {
 
 	plan := services.BuildIndoorGuide(from, to)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": plan})
+}
+
+func GetIndoorGuideProgress(c *gin.Context) {
+	from := c.DefaultQuery("from", "新天地")
+	to := c.DefaultQuery("to", "静安寺")
+	stepIndex, _ := strconv.Atoi(c.DefaultQuery("stepIndex", "0"))
+
+	progress := services.BuildIndoorGuideProgress(from, to, stepIndex)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": progress})
 }
 
 func GetCommonRoutes(c *gin.Context) {

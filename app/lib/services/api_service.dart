@@ -133,6 +133,28 @@ class ApiService {
     });
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> getIndoorGuideProgress({
+    required String from,
+    required String to,
+    required int stepIndex,
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.get(
+        '/indoor-guide/progress',
+        queryParameters: {
+          'from': from,
+          'to': to,
+          'stepIndex': stepIndex,
+        },
+      );
+      final data = response.data;
+      if (data is Map && data['success'] == true && data['data'] is Map) {
+        return Map<String, dynamic>.from(data['data']);
+      }
+      return Map<String, dynamic>.from(data);
+    });
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> getTrainInfo(String trainNumber) {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response =

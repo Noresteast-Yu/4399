@@ -44,6 +44,7 @@ func SetupRouter() *gin.Engine {
 		}
 
 		api.GET("/indoor-guide", handlers.GetIndoorGuide)
+		api.GET("/indoor-guide/progress", handlers.GetIndoorGuideProgress)
 
 		highSpeedRail := api.Group("/high-speed-rail")
 		{

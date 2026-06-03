@@ -23,7 +23,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   static const Color _muted = Color(0xFF667085);
   static const Color _surface = Color(0xFFEAF1FF);
   static const Color _green = Color(0xFF008C4A);
-  static const Color _orange = Color(0xFFE57900);
 
   final ApiService _apiService = ApiService();
 
@@ -31,8 +30,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   late final String _endStation;
   late final bool _hasRoute;
   int _stepIndex = 0;
-  Map<String, dynamic>? _arrival;
-  Map<String, dynamic>? _arrivalQuery;
+  _ProgressStatus? _stepStatus;
   _RouteSummary? _summary;
   List<_NavStep> _guideSteps = [];
 
@@ -47,38 +45,20 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     }
   }
 
-  Future<void> _refreshArrival() async {
-    final query = _currentArrivalQuery();
-    final stopId = query['stopId']?.toString() ?? '';
-    final stopName = query['stopName']?.toString() ?? '';
-    if (stopId.isEmpty && stopName.isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _arrival = null;
-      });
-      return;
-    }
-
-    final response = await _apiService.getMetroArrival(
-      stopId: stopId,
-      stopName: stopName.isNotEmpty ? stopName : _startStation,
-      lineId: query['lineId']?.toString() ?? '',
-      lineName: query['lineName']?.toString() ?? '',
-      direction: _intFromJson(query['direction'], 0),
-      cityCode: query['cityCode']?.toString() ?? '',
+  Future<void> _refreshStepStatus() async {
+    if (!_hasRoute || _guideSteps.isEmpty) return;
+    final response = await _apiService.getIndoorGuideProgress(
+      from: _startStation,
+      to: _endStation,
+      stepIndex: _stepIndex,
     );
     if (!mounted) return;
+    final rawStatus = response.data?['status'];
     setState(() {
-      _arrival = response.success ? response.data : null;
+      _stepStatus = response.success && rawStatus is Map
+          ? _ProgressStatus.fromJson(Map<String, dynamic>.from(rawStatus))
+          : null;
     });
-  }
-
-  Map<String, dynamic> _currentArrivalQuery() {
-    if (_guideSteps.isNotEmpty && _stepIndex < _guideSteps.length) {
-      final query = _guideSteps[_stepIndex].arrivalQuery;
-      if (query.isNotEmpty) return query;
-    }
-    return _arrivalQuery ?? const <String, dynamic>{};
   }
 
   Future<void> _loadIndoorGuide() async {
@@ -87,13 +67,11 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       to: _endStation,
     );
     if (!mounted || !response.success) {
-      await _refreshArrival();
       return;
     }
 
     final rawSteps = response.data?['steps'];
     if (rawSteps is! List) {
-      await _refreshArrival();
       return;
     }
 
@@ -102,17 +80,12 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         .map((item) => _NavStep.fromJson(Map<String, dynamic>.from(item)))
         .toList();
     if (steps.isEmpty) {
-      await _refreshArrival();
       return;
     }
 
-    final rawArrivalQuery = response.data?['arrivalQuery'];
     final rawSummary = response.data?['summary'];
 
     setState(() {
-      if (rawArrivalQuery is Map) {
-        _arrivalQuery = Map<String, dynamic>.from(rawArrivalQuery);
-      }
       if (rawSummary is Map) {
         _summary =
             _RouteSummary.fromJson(Map<String, dynamic>.from(rawSummary));
@@ -122,7 +95,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         _stepIndex = _guideSteps.length - 1;
       }
     });
-    await _refreshArrival();
+    await _refreshStepStatus();
   }
 
   @override
@@ -180,7 +153,9 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Column(
                 children: [
-                  _ProgressPanel(status: _statusFor(step, steps)),
+                  _ProgressPanel(
+                    status: _stepStatus ?? _fallbackStatusFor(step, steps),
+                  ),
                   if (showSummary) ...[
                     const SizedBox(height: 12),
                     _RouteSummaryPanel(summary: _summary!),
@@ -194,13 +169,19 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                     canGoBack: _stepIndex > 0,
                     isLast: _stepIndex == steps.length - 1,
                     onBack: () {
-                      setState(() => _stepIndex--);
-                      _refreshArrival();
+                      setState(() {
+                        _stepIndex--;
+                        _stepStatus = null;
+                      });
+                      _refreshStepStatus();
                     },
                     onNext: () {
                       if (_stepIndex < steps.length - 1) {
-                        setState(() => _stepIndex++);
-                        _refreshArrival();
+                        setState(() {
+                          _stepIndex++;
+                          _stepStatus = null;
+                        });
+                        _refreshStepStatus();
                       }
                     },
                   ),
@@ -214,150 +195,17 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     );
   }
 
-  _ProgressStatus _statusFor(_NavStep step, List<_NavStep> steps) {
-    if (step.stage == _StepStage.ride) {
-      final total = step.totalStops <= 0 ? 1 : step.totalStops;
-      final done = (total - step.remainingStops).clamp(0, total);
-      return _ProgressStatus(
-        leadText: '${step.remainingStops}站',
-        title: '乘车中',
-        subtitle: '到${step.targetStation}下车，提前靠近${step.doorHint}',
-        progress: done / total,
-        color: step.lineColor,
-        icon: Icons.train_rounded,
-      );
-    }
-
-    if (step.stage == _StepStage.transfer ||
-        step.stage == _StepStage.transferWait) {
-      final catchPlan = _catchPlanForStages(
-        steps,
-        _stepIndex,
-        {_StepStage.transfer, _StepStage.transferWait},
-        safetyBufferMinutes: 1,
-      );
-      return _ProgressStatus(
-        leadText: '${catchPlan.trainMinutes}分钟',
-        title: catchPlan.usesNextTrain
-            ? '${step.lineName}赶不上，改按下一班'
-            : '预计可赶上${step.lineName}当前班',
-        subtitle:
-            '换乘还要约${catchPlan.remainingWalkMinutes}分钟，已推进${catchPlan.completedWalkMinutes}分钟，预计余量${catchPlan.safeBufferMinutes}分钟',
-        progress: catchPlan.progress,
-        color: catchPlan.statusColor(step.lineColor),
-        icon: Icons.transfer_within_a_station_rounded,
-      );
-    }
-
-    if (step.stage == _StepStage.exit) {
-      return _ProgressStatus(
-        leadText: '到达',
-        title: '按出口指引出站',
-        subtitle: '推荐走${step.targetStation}',
-        progress: 1,
-        color: _green,
-        icon: Icons.output_rounded,
-      );
-    }
-
-    final catchPlan = _catchPlanForStages(
-      steps,
-      _stepIndex,
-      {_StepStage.entry, _StepStage.platform},
-      safetyBufferMinutes: 1,
-    );
-
+  _ProgressStatus _fallbackStatusFor(_NavStep step, List<_NavStep> steps) {
     return _ProgressStatus(
-      leadText: '${catchPlan.trainMinutes}分钟',
-      title: catchPlan.usesNextTrain
-          ? '${step.lineName}赶不上，改按下一班'
-          : '${step.lineName}当前班来得及',
-      subtitle:
-          '到站台还要约${catchPlan.remainingWalkMinutes}分钟，已推进${catchPlan.completedWalkMinutes}分钟，预计余量${catchPlan.safeBufferMinutes}分钟',
-      progress: catchPlan.progress,
-      color: catchPlan.statusColor(step.lineColor),
-      icon: Icons.timer_rounded,
+      leadText: step.stage == _StepStage.ride
+          ? '${step.remainingStops}站'
+          : '${step.minutes}分钟',
+      title: step.title,
+      subtitle: step.detail,
+      progress: ((_stepIndex + 1) / steps.length).clamp(0.05, 1),
+      color: step.lineColor,
+      icon: step.icon,
     );
-  }
-
-  _CatchPlan _catchPlanForStages(
-    List<_NavStep> steps,
-    int index,
-    Set<_StepStage> stages, {
-    required int safetyBufferMinutes,
-  }) {
-    final currentTrain = _currentTrainMinutes();
-    final nextTrain = _nextTrainMinutes(currentTrain);
-    final remainingWalk = _remainingMinutesForStages(steps, index, stages);
-    final completedWalk = _completedMinutesForStages(steps, index, stages);
-    final requiredMinutes = remainingWalk + safetyBufferMinutes;
-    final usesNextTrain = currentTrain < requiredMinutes;
-    final selectedTrain = usesNextTrain ? nextTrain : currentTrain;
-    final buffer = selectedTrain - remainingWalk;
-    final progress = selectedTrain <= 0
-        ? 0.0
-        : ((selectedTrain - remainingWalk) / selectedTrain).clamp(0.0, 0.95);
-
-    return _CatchPlan(
-      trainMinutes: selectedTrain,
-      remainingWalkMinutes: remainingWalk,
-      completedWalkMinutes: completedWalk,
-      safeBufferMinutes: buffer < 0 ? 0 : buffer,
-      usesNextTrain: usesNextTrain,
-      progress: progress,
-    );
-  }
-
-  int _remainingMinutesForStages(
-    List<_NavStep> steps,
-    int index,
-    Set<_StepStage> stages,
-  ) {
-    var minutes = 0;
-    for (var i = index; i < steps.length; i++) {
-      if (!stages.contains(steps[i].stage)) {
-        if (minutes > 0) break;
-        continue;
-      }
-      minutes += steps[i].minutes;
-    }
-    return minutes <= 0 ? 1 : minutes;
-  }
-
-  int _completedMinutesForStages(
-    List<_NavStep> steps,
-    int index,
-    Set<_StepStage> stages,
-  ) {
-    var minutes = 0;
-    for (var i = 0; i < index; i++) {
-      if (stages.contains(steps[i].stage)) {
-        minutes += steps[i].minutes;
-      }
-    }
-    return minutes;
-  }
-
-  int _currentTrainMinutes() {
-    final value = _arrival?['currentArriveMinutes'];
-    if (value is num) return value.round().clamp(1, 60);
-    return int.tryParse(value?.toString() ?? '') ?? 5;
-  }
-
-  int _nextTrainMinutes(int currentTrainMinutes) {
-    final value = _arrival?['nextArriveMinutes'] ??
-        _arrival?['nextArrivalMinutes'] ??
-        _arrival?['nextArriveSeconds'];
-    if (value is num) {
-      if (value > 60) return (value / 60).ceil().clamp(1, 90);
-      return value.round().clamp(1, 90);
-    }
-    final parsed = int.tryParse(value?.toString() ?? '');
-    if (parsed != null) {
-      if (parsed > 60) return (parsed / 60).ceil().clamp(1, 90);
-      return parsed.clamp(1, 90);
-    }
-    return (currentTrainMinutes + 7).clamp(2, 90);
   }
 }
 
@@ -1209,6 +1057,10 @@ IconData _iconFromJson(String? value) {
       return Icons.door_sliding_rounded;
     case 'train':
       return Icons.train_rounded;
+    case 'timer':
+      return Icons.timer_rounded;
+    case 'transfer':
+      return Icons.transfer_within_a_station_rounded;
     case 'signpost':
       return Icons.signpost_rounded;
     case 'output':
@@ -1240,32 +1092,25 @@ class _ProgressStatus {
     required this.color,
     required this.icon,
   });
+
+  factory _ProgressStatus.fromJson(Map<String, dynamic> json) {
+    return _ProgressStatus(
+      leadText: json['leadText']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      subtitle: json['subtitle']?.toString() ?? '',
+      progress: _doubleFromJson(json['progress'], 0),
+      color: _colorFromJson(
+        json['color']?.toString(),
+        _AIPlanningPageState._line10,
+      ),
+      icon: _iconFromJson(json['iconKey']?.toString()),
+    );
+  }
 }
 
-class _CatchPlan {
-  final int trainMinutes;
-  final int remainingWalkMinutes;
-  final int completedWalkMinutes;
-  final int safeBufferMinutes;
-  final bool usesNextTrain;
-  final double progress;
-
-  const _CatchPlan({
-    required this.trainMinutes,
-    required this.remainingWalkMinutes,
-    required this.completedWalkMinutes,
-    required this.safeBufferMinutes,
-    required this.usesNextTrain,
-    required this.progress,
-  });
-
-  Color statusColor(Color lineColor) {
-    if (usesNextTrain && safeBufferMinutes <= 0) {
-      return const Color(0xFFBA1A1A);
-    }
-    if (usesNextTrain || safeBufferMinutes < 2) {
-      return _AIPlanningPageState._orange;
-    }
-    return lineColor;
-  }
+double _doubleFromJson(dynamic value, double fallback) {
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '') ?? fallback;
 }
