@@ -44,3 +44,38 @@ func TestDeleteCommonRouteWithoutDatabaseReturnsServiceUnavailable(t *testing.T)
 		t.Fatalf("expected status %d, got %d with body %s", http.StatusServiceUnavailable, rec.Code, rec.Body.String())
 	}
 }
+
+func TestAddCommonRouteRejectsMissingUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.POST("/api/common-routes/add", AddCommonRoute)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/common-routes/add", bytes.NewBufferString(`{"start":"虹桥火车站","end":"人民广场"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+}
+
+func TestDeleteCommonRouteRejectsInvalidID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.DELETE("/api/common-routes/:id", DeleteCommonRoute)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/common-routes/not-a-number", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+}

@@ -195,15 +195,21 @@ func GetIndoorGuideProgress(c *gin.Context) {
 }
 
 func GetCommonRoutes(c *gin.Context) {
-	userID := c.Param("userId")
-	_ = userID
+	userID := strings.TrimSpace(c.Param("userId"))
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID"})
+		return
+	}
 
 	if database.DB == nil {
 		c.JSON(http.StatusOK, []gin.H{})
 		return
 	}
 
-	rows, err := database.DB.Query("SELECT id, start, end FROM common_routes ORDER BY id DESC")
+	rows, err := database.DB.Query(
+		"SELECT id, user_id, start, end FROM common_routes WHERE user_id = ? ORDER BY id DESC",
+		userID,
+	)
 	if err != nil {
 		c.JSON(http.StatusOK, []gin.H{})
 		return
@@ -213,15 +219,17 @@ func GetCommonRoutes(c *gin.Context) {
 	routes := []gin.H{}
 	for rows.Next() {
 		var id int
+		var routeUserID string
 		var start, end string
-		if err := rows.Scan(&id, &start, &end); err != nil {
+		if err := rows.Scan(&id, &routeUserID, &start, &end); err != nil {
 			continue
 		}
 		routes = append(routes, gin.H{
-			"id":    id,
-			"start": start,
-			"end":   end,
-			"title": start + " -> " + end,
+			"id":     id,
+			"userId": routeUserID,
+			"start":  start,
+			"end":    end,
+			"title":  start + " -> " + end,
 		})
 	}
 
@@ -235,7 +243,15 @@ func AddCommonRoute(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供起点和终点"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID、起点和终点"})
+		return
+	}
+
+	req.UserID = strings.TrimSpace(req.UserID)
+	req.Start = strings.TrimSpace(req.Start)
+	req.End = strings.TrimSpace(req.End)
+	if req.UserID == "" || req.Start == "" || req.End == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID、起点和终点"})
 		return
 	}
 
@@ -261,15 +277,34 @@ func AddCommonRoute(c *gin.Context) {
 }
 func DeleteCommonRoute(c *gin.Context) {
 	id := c.Param("id")
+	routeID, err := strconv.Atoi(id)
+	if err != nil || routeID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "路线ID无效"})
+		return
+	}
 
 	if database.DB == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "数据库未连接"})
 		return
 	}
 
-	_, err := database.DB.Exec("DELETE FROM common_routes WHERE id = ?", id)
+	userID := strings.TrimSpace(c.Query("userId"))
+	var result interface {
+		RowsAffected() (int64, error)
+	}
+	if userID != "" {
+		result, err = database.DB.Exec("DELETE FROM common_routes WHERE id = ? AND user_id = ?", routeID, userID)
+	} else {
+		result, err = database.DB.Exec("DELETE FROM common_routes WHERE id = ?", routeID)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "删除失败"})
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err == nil && rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "路线不存在"})
 		return
 	}
 
