@@ -62,6 +62,13 @@ class ApiService {
     });
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> getBackendHealth() {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.health();
+      return Map<String, dynamic>.from(response.data);
+    });
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> getStationFacilities(
       String stationId) {
     return _handleApiCall<Map<String, dynamic>>(() async {
