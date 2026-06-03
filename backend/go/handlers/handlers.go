@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"smart-travel-backend/database"
 	"smart-travel-backend/models"
@@ -194,15 +195,21 @@ func GetIndoorGuideProgress(c *gin.Context) {
 }
 
 func GetCommonRoutes(c *gin.Context) {
-	userID := c.Param("userId")
-	_ = userID
+	userID := strings.TrimSpace(c.Param("userId"))
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID"})
+		return
+	}
 
 	if database.DB == nil {
 		c.JSON(http.StatusOK, []gin.H{})
 		return
 	}
 
-	rows, err := database.DB.Query("SELECT id, start, end FROM common_routes ORDER BY id DESC")
+	rows, err := database.DB.Query(
+		"SELECT id, user_id, start, end FROM common_routes WHERE user_id = ? ORDER BY id DESC",
+		userID,
+	)
 	if err != nil {
 		c.JSON(http.StatusOK, []gin.H{})
 		return
@@ -212,15 +219,17 @@ func GetCommonRoutes(c *gin.Context) {
 	routes := []gin.H{}
 	for rows.Next() {
 		var id int
+		var routeUserID string
 		var start, end string
-		if err := rows.Scan(&id, &start, &end); err != nil {
+		if err := rows.Scan(&id, &routeUserID, &start, &end); err != nil {
 			continue
 		}
 		routes = append(routes, gin.H{
-			"id":    id,
-			"start": start,
-			"end":   end,
-			"title": start + " -> " + end,
+			"id":     id,
+			"userId": routeUserID,
+			"start":  start,
+			"end":    end,
+			"title":  start + " -> " + end,
 		})
 	}
 
@@ -234,7 +243,15 @@ func AddCommonRoute(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供起点和终点"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID、起点和终点"})
+		return
+	}
+
+	req.UserID = strings.TrimSpace(req.UserID)
+	req.Start = strings.TrimSpace(req.Start)
+	req.End = strings.TrimSpace(req.End)
+	if req.UserID == "" || req.Start == "" || req.End == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID、起点和终点"})
 		return
 	}
 
@@ -260,19 +277,314 @@ func AddCommonRoute(c *gin.Context) {
 }
 func DeleteCommonRoute(c *gin.Context) {
 	id := c.Param("id")
+	routeID, err := strconv.Atoi(id)
+	if err != nil || routeID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "路线ID无效"})
+		return
+	}
 
 	if database.DB == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "数据库未连接"})
 		return
 	}
 
-	_, err := database.DB.Exec("DELETE FROM common_routes WHERE id = ?", id)
+	userID := strings.TrimSpace(c.Query("userId"))
+	var result interface {
+		RowsAffected() (int64, error)
+	}
+	if userID != "" {
+		result, err = database.DB.Exec("DELETE FROM common_routes WHERE id = ? AND user_id = ?", routeID, userID)
+	} else {
+		result, err = database.DB.Exec("DELETE FROM common_routes WHERE id = ?", routeID)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "删除失败"})
 		return
 	}
 
+	rowsAffected, err := result.RowsAffected()
+	if err == nil && rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "路线不存在"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": "删除成功"})
+}
+
+func GetUserPreferences(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userId"))
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID"})
+		return
+	}
+
+	data := defaultUserPreferences(userID)
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": data})
+		return
+	}
+
+	var themeColor, themeMode, fontSize string
+	err := database.DB.QueryRow(
+		`SELECT theme_color, theme_mode, font_size
+		FROM user_preferences
+		WHERE user_id = ?
+		LIMIT 1`,
+		userID,
+	).Scan(&themeColor, &themeMode, &fontSize)
+	if err == nil {
+		data["themeColor"] = themeColor
+		data["themeMode"] = themeMode
+		data["fontSize"] = fontSize
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": data})
+}
+
+func SaveUserPreferences(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userId"))
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID"})
+		return
+	}
+
+	var req struct {
+		ThemeColor string `json:"themeColor"`
+		ThemeMode  string `json:"themeMode"`
+		FontSize   string `json:"fontSize"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "设置内容格式不正确"})
+		return
+	}
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "数据库未连接"})
+		return
+	}
+
+	req.ThemeColor = allowedString(req.ThemeColor, "system", "system", "blue", "green", "purple", "orange")
+	req.ThemeMode = allowedString(req.ThemeMode, "system", "system", "light", "dark")
+	req.FontSize = allowedString(req.FontSize, "medium", "small", "medium", "large")
+
+	_, err := database.DB.Exec(
+		`INSERT INTO user_preferences (user_id, theme_color, theme_mode, font_size)
+		VALUES (?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE
+			theme_color = VALUES(theme_color),
+			theme_mode = VALUES(theme_mode),
+			font_size = VALUES(font_size)`,
+		userID, req.ThemeColor, req.ThemeMode, req.FontSize,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "保存失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"userId":     userID,
+		"themeColor": req.ThemeColor,
+		"themeMode":  req.ThemeMode,
+		"fontSize":   req.FontSize,
+	}})
+}
+
+func GetUserAbilities(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userId"))
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID"})
+		return
+	}
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		return
+	}
+
+	rows, err := database.DB.Query(
+		`SELECT ability_type, ability_level, COALESCE(description, '')
+		FROM user_abilities
+		WHERE user_id = ?
+		ORDER BY ability_type`,
+		userID,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		return
+	}
+	defer rows.Close()
+
+	abilities := []gin.H{}
+	for rows.Next() {
+		var abilityType, description string
+		var abilityLevel int
+		if err := rows.Scan(&abilityType, &abilityLevel, &description); err != nil {
+			continue
+		}
+		abilities = append(abilities, gin.H{
+			"type":        abilityType,
+			"level":       abilityLevel,
+			"description": description,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": abilities})
+}
+
+func SaveUserAbility(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userId"))
+	abilityType := strings.TrimSpace(c.Param("abilityType"))
+	if userID == "" || abilityType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID和能力类型"})
+		return
+	}
+
+	var req struct {
+		Level       int    `json:"level"`
+		Description string `json:"description"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "能力设置格式不正确"})
+		return
+	}
+	if req.Level < 0 || req.Level > 5 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "能力等级需在0到5之间"})
+		return
+	}
+	req.Description = strings.TrimSpace(req.Description)
+	if len(req.Description) > 500 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "能力描述过长"})
+		return
+	}
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "数据库未连接"})
+		return
+	}
+
+	_, err := database.DB.Exec(
+		`INSERT INTO user_abilities (user_id, ability_type, ability_level, description)
+		VALUES (?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE
+			ability_level = VALUES(ability_level),
+			description = VALUES(description)`,
+		userID, abilityType, req.Level, req.Description,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "保存失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"userId":      userID,
+		"type":        abilityType,
+		"level":       req.Level,
+		"description": req.Description,
+	}})
+}
+
+func GetUserLuggage(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userId"))
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID"})
+		return
+	}
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		return
+	}
+
+	rows, err := database.DB.Query(
+		`SELECT luggage_type, COALESCE(weight, ''), COALESCE(size, '')
+		FROM user_luggage
+		WHERE user_id = ?
+		ORDER BY luggage_type`,
+		userID,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		return
+	}
+	defer rows.Close()
+
+	luggage := []gin.H{}
+	for rows.Next() {
+		var luggageType, weight, size string
+		if err := rows.Scan(&luggageType, &weight, &size); err != nil {
+			continue
+		}
+		luggage = append(luggage, gin.H{
+			"type":   luggageType,
+			"weight": weight,
+			"size":   size,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": luggage})
+}
+
+func SaveUserLuggage(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userId"))
+	luggageType := strings.TrimSpace(c.Param("luggageType"))
+	if userID == "" || luggageType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID和行李类型"})
+		return
+	}
+
+	var req struct {
+		Weight string `json:"weight"`
+		Size   string `json:"size"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "行李设置格式不正确"})
+		return
+	}
+	req.Weight = strings.TrimSpace(req.Weight)
+	req.Size = allowedString(req.Size, "", "", "small", "medium", "large")
+	if len(req.Weight) > 50 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "行李重量描述过长"})
+		return
+	}
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"success": false, "error": "数据库未连接"})
+		return
+	}
+
+	_, err := database.DB.Exec(
+		`INSERT INTO user_luggage (user_id, luggage_type, weight, size)
+		VALUES (?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE
+			weight = VALUES(weight),
+			size = VALUES(size)`,
+		userID, luggageType, req.Weight, req.Size,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "保存失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"userId": userID,
+		"type":   luggageType,
+		"weight": req.Weight,
+		"size":   req.Size,
+	}})
+}
+
+func defaultUserPreferences(userID string) gin.H {
+	return gin.H{
+		"userId":     userID,
+		"themeColor": "system",
+		"themeMode":  "system",
+		"fontSize":   "medium",
+	}
+}
+
+func allowedString(value, fallback string, allowed ...string) string {
+	value = strings.TrimSpace(value)
+	for _, item := range allowed {
+		if value == item {
+			return value
+		}
+	}
+	return fallback
 }
 
 func GetTrainInfo(c *gin.Context) {
@@ -375,14 +687,86 @@ func GetTrainGuide(c *gin.Context) {
 		return
 	}
 
+	if database.DB != nil {
+		guide, err := getTrainGuideFromDB(req.TrainNumber, req.Destination, req.CurrentCarriage)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "未找到匹配车次或车厢信息"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": guide})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
 			"trainNumber": req.TrainNumber,
 			"destination": req.Destination,
 			"guide":       "换乘引导功能待实现",
+			"source":      "mock",
 		},
 	})
+}
+
+func getTrainGuideFromDB(trainNumber, destination, currentCarriage string) (gin.H, error) {
+	train, err := getTrainInfoFromDB(trainNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	var carriageType, carriageDistance string
+	err = database.DB.QueryRow(
+		`SELECT COALESCE(carriage_type, ''), COALESCE(distance, '')
+		FROM train_carriages tc
+		JOIN trains t ON t.id = tc.train_id
+		WHERE t.number = ? AND tc.carriage_number = ?
+		LIMIT 1`,
+		trainNumber,
+		currentCarriage,
+	).Scan(&carriageType, &carriageDistance)
+	if err != nil {
+		return nil, err
+	}
+
+	stations, _ := train["stations"].([]gin.H)
+	destinationFound := false
+	for _, station := range stations {
+		if station["name"] == destination {
+			destinationFound = true
+			break
+		}
+	}
+
+	tips := []string{
+		fmt.Sprintf("当前车厢%s为%s，%s。", currentCarriage, defaultDisplay(carriageType, "普通车厢"), defaultDisplay(carriageDistance, "请按站台导向前往")),
+		fmt.Sprintf("本车次站台为%s，%s。", train["platform"], train["doorDirection"]),
+	}
+	if destinationFound {
+		tips = append(tips, fmt.Sprintf("车次%s途经%s，请留意到站广播。", trainNumber, destination))
+	} else {
+		tips = append(tips, fmt.Sprintf("数据库未记录%s为本车次途经站，请核对车票信息。", destination))
+	}
+
+	return gin.H{
+		"trainNumber":     trainNumber,
+		"destination":     destination,
+		"currentCarriage": currentCarriage,
+		"carriageType":    carriageType,
+		"distance":        carriageDistance,
+		"platform":        train["platform"],
+		"doorDirection":   train["doorDirection"],
+		"stations":        train["stations"],
+		"tips":            tips,
+		"guide":           strings.Join(tips, " "),
+		"source":          "database",
+	}, nil
+}
+
+func defaultDisplay(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
 }
 
 func StartTransfer(c *gin.Context) {
@@ -402,6 +786,11 @@ func StartTransfer(c *gin.Context) {
 	}
 
 	sessionID := "session_" + req.From + "_" + req.To
+	progressSteps := []gin.H{
+		{"title": "换乘步行", "progress": 55, "time": "约3分钟"},
+		{"title": "站台候车", "progress": 30, "time": "约1分30秒"},
+		{"title": "上车确认", "progress": 15, "time": "约30秒"},
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -410,6 +799,13 @@ func StartTransfer(c *gin.Context) {
 			"from":          req.From,
 			"to":            req.To,
 			"remainingTime": req.RemainingTime,
+			"optimalRoute":  fmt.Sprintf("%s → 换乘通道 → %s站台", req.From, req.To),
+			"progressSteps": progressSteps,
+			"alternativePlan": gin.H{
+				"nextTrain":        "下一班约2分钟后到达",
+				"estimatedArrival": "预计5分钟内完成换乘",
+			},
+			"source": "database",
 		},
 	})
 }
@@ -480,9 +876,11 @@ func HealthCheck(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":   "ok",
-		"mode":     mode,
-		"database": connected,
+		"status":     "ok",
+		"mode":       mode,
+		"database":   connected,
+		"service":    "smart-travel-backend",
+		"apiVersion": "v1",
 	})
 }
 

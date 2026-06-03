@@ -42,6 +42,13 @@ class NetworkManager {
 
   String get baseUrl => _dio.options.baseUrl;
 
+  Future<Response> health() async {
+    await ensureConfigReady();
+    final baseUri = Uri.parse(_dio.options.baseUrl);
+    final healthUri = baseUri.replace(path: '/health', query: '');
+    return await _dio.getUri(healthUri);
+  }
+
   Dio _createDio(String baseUrl) {
     final dio = Dio(
       BaseOptions(

@@ -112,7 +112,7 @@ class AIPlanningService {
       return _buildOfflinePlan(startStation, endStation, preferences);
     }
 
-    final endpoint = await getApiEndpoint();
+    final endpoint = _normalizeApiEndpoint(await getApiEndpoint());
     final model = await getModel();
 
     try {
@@ -211,6 +211,19 @@ ${jsonEncode(allStations.values.where((s) => s['isTransfer'] == true).toList())}
       return content.substring(startIdx, endIdx + 1);
     }
     return content;
+  }
+
+  static String _normalizeApiEndpoint(String endpoint) {
+    var normalized = endpoint.trim();
+    while (normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    const chatCompletionsPath = '/chat/completions';
+    if (normalized.endsWith(chatCompletionsPath)) {
+      normalized =
+          normalized.substring(0, normalized.length - chatCompletionsPath.length);
+    }
+    return normalized;
   }
 
   static AIPlanResult _buildOfflinePlan(

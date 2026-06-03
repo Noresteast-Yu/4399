@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/ai_planning_service.dart';
 import 'package:smart_travel_app/utils/server_config.dart';
 import 'package:smart_travel_app/utils/network_manager.dart';
@@ -19,6 +20,11 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _serverHostController = TextEditingController();
   final TextEditingController _serverPortController = TextEditingController();
+  final ApiService _apiService = ApiService();
+
+  bool _isTestingBackend = false;
+  String? _backendStatusText;
+  bool? _backendHealthy;
 
   @override
   void initState() {
@@ -69,6 +75,31 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
         const SnackBar(content: Text('配置已保存')),
       );
     }
+  }
+
+  Future<void> _testBackendConnection() async {
+    setState(() {
+      _isTestingBackend = true;
+      _backendStatusText = null;
+      _backendHealthy = null;
+    });
+
+    await _saveSettings();
+    final response = await _apiService.getBackendHealth();
+
+    if (!mounted) return;
+    setState(() {
+      _isTestingBackend = false;
+      _backendHealthy = response.success;
+      if (response.success && response.data != null) {
+        final mode = response.data!['mode']?.toString() ?? 'unknown';
+        final database = response.data!['database'] == true;
+        _backendStatusText =
+            database ? '连接成功，数据库模式运行中' : '连接成功，当前为$mode模式';
+      } else {
+        _backendStatusText = response.error ?? '连接失败';
+      }
+    });
   }
 
   @override
@@ -221,6 +252,52 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                         ),
                       ),
                     ),
+                    SizedBox(height: AppTheme.spacingM),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            _isTestingBackend ? null : _testBackendConnection,
+                        icon: _isTestingBackend
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              )
+                            : const Icon(Icons.wifi_tethering_rounded),
+                        label: Text(_isTestingBackend ? '测试中...' : '测试后端连接'),
+                      ),
+                    ),
+                    if (_backendStatusText != null) ...[
+                      SizedBox(height: AppTheme.spacingS),
+                      Row(
+                        children: [
+                          Icon(
+                            _backendHealthy == true
+                                ? Icons.check_circle_rounded
+                                : Icons.error_rounded,
+                            size: 18,
+                            color: _backendHealthy == true
+                                ? Colors.green
+                                : colorScheme.error,
+                          ),
+                          SizedBox(width: AppTheme.spacingS),
+                          Expanded(
+                            child: Text(
+                              _backendStatusText!,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: _backendHealthy == true
+                                    ? Colors.green.shade700
+                                    : colorScheme.error,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
