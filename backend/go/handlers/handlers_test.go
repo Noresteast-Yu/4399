@@ -79,3 +79,43 @@ func TestDeleteCommonRouteRejectsInvalidID(t *testing.T) {
 		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
 	}
 }
+
+func TestSaveUserAbilityRejectsInvalidLevel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.PUT("/api/users/:userId/abilities/:abilityType", SaveUserAbility)
+
+	req := httptest.NewRequest(http.MethodPut, "/api/users/demo/abilities/mobility", bytes.NewBufferString(`{"level":9}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+}
+
+func TestSaveUserLuggageRejectsLongWeight(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.PUT("/api/users/:userId/luggage/:luggageType", SaveUserLuggage)
+
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/api/users/demo/luggage/suitcase",
+		bytes.NewBufferString(`{"weight":"123456789012345678901234567890123456789012345678901","size":"large"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+}

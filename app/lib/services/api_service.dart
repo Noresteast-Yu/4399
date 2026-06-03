@@ -264,6 +264,93 @@ class ApiService {
     });
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> getUserPreferences(String userId) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final encodedUserId = Uri.encodeComponent(userId);
+      final response =
+          await _networkManager.get('/users/$encodedUserId/preferences');
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> saveUserPreferences({
+    required String userId,
+    String themeColor = 'system',
+    String themeMode = 'system',
+    String fontSize = 'medium',
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final encodedUserId = Uri.encodeComponent(userId);
+      final response = await _networkManager.put(
+        '/users/$encodedUserId/preferences',
+        data: {
+          'themeColor': themeColor,
+          'themeMode': themeMode,
+          'fontSize': fontSize,
+        },
+      );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<List<dynamic>>> getUserAbilities(String userId) {
+    return _handleApiCall<List<dynamic>>(() async {
+      final encodedUserId = Uri.encodeComponent(userId);
+      final response =
+          await _networkManager.get('/users/$encodedUserId/abilities');
+      return _unwrapDataList(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> saveUserAbility({
+    required String userId,
+    required String abilityType,
+    required int level,
+    String description = '',
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final encodedUserId = Uri.encodeComponent(userId);
+      final encodedAbilityType = Uri.encodeComponent(abilityType);
+      final response = await _networkManager.put(
+        '/users/$encodedUserId/abilities/$encodedAbilityType',
+        data: {
+          'level': level,
+          'description': description,
+        },
+      );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<List<dynamic>>> getUserLuggage(String userId) {
+    return _handleApiCall<List<dynamic>>(() async {
+      final encodedUserId = Uri.encodeComponent(userId);
+      final response =
+          await _networkManager.get('/users/$encodedUserId/luggage');
+      return _unwrapDataList(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> saveUserLuggage({
+    required String userId,
+    required String luggageType,
+    String weight = '',
+    String size = '',
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final encodedUserId = Uri.encodeComponent(userId);
+      final encodedLuggageType = Uri.encodeComponent(luggageType);
+      final response = await _networkManager.put(
+        '/users/$encodedUserId/luggage/$encodedLuggageType',
+        data: {
+          'weight': weight,
+          'size': size,
+        },
+      );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
   Future<ApiResponse<List<dynamic>>> getTravelAlerts({String? type}) {
     return _handleApiCall<List<dynamic>>(() async {
       final path = type != null ? '/travel-alerts/$type' : '/travel-alerts';
