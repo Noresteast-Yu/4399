@@ -11,6 +11,30 @@ class ApiService {
 
   ApiService._internal();
 
+  Map<String, dynamic> _mapFromResponseData(dynamic data) {
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+    return <String, dynamic>{};
+  }
+
+  Map<String, dynamic> _unwrapDataMap(dynamic data) {
+    if (data is Map && data['success'] == true && data['data'] is Map) {
+      return Map<String, dynamic>.from(data['data']);
+    }
+    return _mapFromResponseData(data);
+  }
+
+  List<dynamic> _unwrapDataList(dynamic data) {
+    if (data is Map && data['success'] == true && data['data'] is List) {
+      return List<dynamic>.from(data['data']);
+    }
+    if (data is List) {
+      return List<dynamic>.from(data);
+    }
+    return <dynamic>[];
+  }
+
   Future<ApiResponse<T>> _handleApiCall<T>(Future<T> Function() call) async {
     try {
       final result = await call();
@@ -88,7 +112,7 @@ class ApiService {
   Future<ApiResponse<List<dynamic>>> getSubwayLines() {
     return _handleApiCall<List<dynamic>>(() async {
       final response = await _networkManager.get('/subway-service/lines');
-      return response.data is List ? response.data : [];
+      return _unwrapDataList(response.data);
     });
   }
 
@@ -166,7 +190,7 @@ class ApiService {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response =
           await _networkManager.get('/high-speed-rail/train/$trainNumber');
-      return Map<String, dynamic>.from(response.data);
+      return _unwrapDataMap(response.data);
     });
   }
 
@@ -182,7 +206,7 @@ class ApiService {
         'destination': destination,
         'currentCarriage': currentCarriage,
       });
-      return Map<String, dynamic>.from(response.data);
+      return _unwrapDataMap(response.data);
     });
   }
 
@@ -198,7 +222,7 @@ class ApiService {
         'to': to,
         'remainingTime': remainingTime,
       });
-      return Map<String, dynamic>.from(response.data);
+      return _unwrapDataMap(response.data);
     });
   }
 
@@ -207,14 +231,14 @@ class ApiService {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response =
           await _networkManager.get('/transfer-time/update/$sessionId');
-      return Map<String, dynamic>.from(response.data);
+      return _unwrapDataMap(response.data);
     });
   }
 
   Future<ApiResponse<List<dynamic>>> getCommonRoutes(String userId) {
     return _handleApiCall<List<dynamic>>(() async {
       final response = await _networkManager.get('/common-routes/user/$userId');
-      return response.data is List ? response.data : [];
+      return _unwrapDataList(response.data);
     });
   }
 
@@ -229,7 +253,7 @@ class ApiService {
         'start': start,
         'end': end,
       });
-      return Map<String, dynamic>.from(response.data);
+      return _unwrapDataMap(response.data);
     });
   }
 
@@ -244,7 +268,7 @@ class ApiService {
     return _handleApiCall<List<dynamic>>(() async {
       final path = type != null ? '/travel-alerts/$type' : '/travel-alerts';
       final response = await _networkManager.get(path);
-      return response.data is List ? response.data : [];
+      return _unwrapDataList(response.data);
     });
   }
 
@@ -259,7 +283,7 @@ class ApiService {
         'description': description,
         'contact': contact ?? '',
       });
-      return Map<String, dynamic>.from(response.data);
+      return _unwrapDataMap(response.data);
     });
   }
 }
