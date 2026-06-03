@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"smart-travel-backend/database"
 	"smart-travel-backend/models"
@@ -365,14 +366,86 @@ func GetTrainGuide(c *gin.Context) {
 		return
 	}
 
+	if database.DB != nil {
+		guide, err := getTrainGuideFromDB(req.TrainNumber, req.Destination, req.CurrentCarriage)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "未找到匹配车次或车厢信息"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": guide})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
 			"trainNumber": req.TrainNumber,
 			"destination": req.Destination,
 			"guide":       "换乘引导功能待实现",
+			"source":      "mock",
 		},
 	})
+}
+
+func getTrainGuideFromDB(trainNumber, destination, currentCarriage string) (gin.H, error) {
+	train, err := getTrainInfoFromDB(trainNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	var carriageType, carriageDistance string
+	err = database.DB.QueryRow(
+		`SELECT COALESCE(carriage_type, ''), COALESCE(distance, '')
+		FROM train_carriages tc
+		JOIN trains t ON t.id = tc.train_id
+		WHERE t.number = ? AND tc.carriage_number = ?
+		LIMIT 1`,
+		trainNumber,
+		currentCarriage,
+	).Scan(&carriageType, &carriageDistance)
+	if err != nil {
+		return nil, err
+	}
+
+	stations, _ := train["stations"].([]gin.H)
+	destinationFound := false
+	for _, station := range stations {
+		if station["name"] == destination {
+			destinationFound = true
+			break
+		}
+	}
+
+	tips := []string{
+		fmt.Sprintf("当前车厢%s为%s，%s。", currentCarriage, defaultDisplay(carriageType, "普通车厢"), defaultDisplay(carriageDistance, "请按站台导向前往")),
+		fmt.Sprintf("本车次站台为%s，%s。", train["platform"], train["doorDirection"]),
+	}
+	if destinationFound {
+		tips = append(tips, fmt.Sprintf("车次%s途经%s，请留意到站广播。", trainNumber, destination))
+	} else {
+		tips = append(tips, fmt.Sprintf("数据库未记录%s为本车次途经站，请核对车票信息。", destination))
+	}
+
+	return gin.H{
+		"trainNumber":     trainNumber,
+		"destination":     destination,
+		"currentCarriage": currentCarriage,
+		"carriageType":    carriageType,
+		"distance":        carriageDistance,
+		"platform":        train["platform"],
+		"doorDirection":   train["doorDirection"],
+		"stations":        train["stations"],
+		"tips":            tips,
+		"guide":           strings.Join(tips, " "),
+		"source":          "database",
+	}, nil
+}
+
+func defaultDisplay(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
 }
 
 func StartTransfer(c *gin.Context) {
