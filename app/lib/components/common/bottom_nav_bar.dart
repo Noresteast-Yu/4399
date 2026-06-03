@@ -21,7 +21,7 @@ class BottomNavBar extends StatelessWidget {
             context.go('/');
             break;
           case 1:
-            context.go('/ai-planning');
+            context.go('/route-plan');
             break;
           case 2:
             context.go('/subway-service');
