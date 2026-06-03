@@ -105,7 +105,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         backgroundColor: _surface,
         body: Stack(
           children: [
-            Positioned.fill(child: _GuideBackground()),
             SafeArea(
               bottom: false,
               child: Padding(
@@ -124,7 +123,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         backgroundColor: _surface,
         body: Stack(
           children: [
-            Positioned.fill(child: _GuideBackground()),
             SafeArea(
               bottom: false,
               child: Padding(
@@ -146,7 +144,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       backgroundColor: _surface,
       body: Stack(
         children: [
-          const Positioned.fill(child: _GuideBackground()),
           SafeArea(
             bottom: false,
             child: Padding(
@@ -795,45 +792,6 @@ class _LineBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-class _GuideBackground extends StatelessWidget {
-  const _GuideBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFEAF1FF), Color(0xFFF8F8FC)],
-        ),
-      ),
-      child: CustomPaint(painter: _GuideBackgroundPainter()),
-    );
-  }
-}
-
-class _GuideBackgroundPainter extends CustomPainter {
-  const _GuideBackgroundPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final grid = Paint()
-      ..color = const Color(0xFFBFCBE2).withOpacity(0.26)
-      ..strokeWidth = 1;
-    const step = 48.0;
-    for (var x = 0.0; x <= size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
-    }
-    for (var y = 0.0; y <= size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ScenePainter extends CustomPainter {

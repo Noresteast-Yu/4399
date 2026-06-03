@@ -153,7 +153,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       ),
       body: Stack(
         children: [
-          const Positioned.fill(child: _GridBackground()),
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else if (_error != null)
@@ -1013,49 +1012,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       _ExitInfo('3', '公交换乘'),
     ];
   }
-}
-
-class _GridBackground extends StatelessWidget {
-  const _GridBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFFEAF1FF),
-            Color(0xFFE5EEFF),
-            Color(0xFFF8F6FB),
-          ],
-        ),
-      ),
-      child: CustomPaint(painter: _GridPainter()),
-    );
-  }
-}
-
-class _GridPainter extends CustomPainter {
-  const _GridPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFBFCBE2).withOpacity(0.34)
-      ..strokeWidth = 1;
-    const step = 44.0;
-    for (var x = 0.0; x <= size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (var y = 0.0; y <= size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ExitRow extends StatelessWidget {
