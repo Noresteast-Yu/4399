@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:smart_travel_app/services/ai_planning_service.dart';
 import 'package:smart_travel_app/utils/server_config.dart';
@@ -57,7 +58,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
     await AIPlanningService.setApiEndpoint(_endpointController.text.trim());
     await AIPlanningService.setModel(_modelController.text.trim());
     await ServerConfig.setHost(_serverHostController.text.trim().isEmpty
-        ? '10.0.2.2'
+        ? ServerConfig.defaultHost
         : _serverHostController.text.trim());
     await ServerConfig.setPort(_serverPortController.text.trim().isEmpty
         ? '3000'
