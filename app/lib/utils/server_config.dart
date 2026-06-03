@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ServerConfig {
@@ -5,12 +6,13 @@ class ServerConfig {
   static const String _portKey = 'server_port';
   static const String _useHttpsKey = 'server_use_https';
 
-  static const String defaultHost = '10.0.2.2';
+  // Platform-aware default: localhost for Web, 10.0.2.2 for Android
+  static String get defaultHost => kIsWeb ? 'localhost' : '10.0.2.2';
   static const String defaultPort = '3000';
 
   static Future<String> getHost() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_hostKey) ?? '10.0.2.2';
+    return prefs.getString(_hostKey) ?? defaultHost;
   }
 
   static Future<void> setHost(String host) async {

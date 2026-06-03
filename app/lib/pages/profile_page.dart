@@ -468,7 +468,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     onTap: () {
                       if (setting['route'] != null) {
-                        context.push(setting['route']);
+                        context.push(setting['route']).then((_) {
+                          // Refresh common routes when returning from settings
+                          _loadCommonRoutes();
+                        });
                       }
                     },
                   );

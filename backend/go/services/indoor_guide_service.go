@@ -1,35 +1,75 @@
 package services
 
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+)
+
 type IndoorGuideStep struct {
-	Stage          string `json:"stage"`
-	LineName       string `json:"lineName"`
-	LineColor      string `json:"lineColor"`
-	Title          string `json:"title"`
-	Detail         string `json:"detail"`
-	ImageTitle     string `json:"imageTitle"`
-	ImageSubtitle  string `json:"imageSubtitle"`
-	Minutes        int    `json:"minutes"`
-	IconKey        string `json:"iconKey"`
-	TargetStation  string `json:"targetStation,omitempty"`
-	RemainingStops int    `json:"remainingStops,omitempty"`
-	TotalStops     int    `json:"totalStops,omitempty"`
-	DoorHint       string `json:"doorHint,omitempty"`
+	Stage          string            `json:"stage"`
+	LineName       string            `json:"lineName"`
+	LineColor      string            `json:"lineColor"`
+	Title          string            `json:"title"`
+	Detail         string            `json:"detail"`
+	ImageTitle     string            `json:"imageTitle"`
+	ImageSubtitle  string            `json:"imageSubtitle"`
+	Minutes        int               `json:"minutes"`
+	IconKey        string            `json:"iconKey"`
+	TargetStation  string            `json:"targetStation,omitempty"`
+	RemainingStops int               `json:"remainingStops,omitempty"`
+	TotalStops     int               `json:"totalStops,omitempty"`
+	DoorHint       string            `json:"doorHint,omitempty"`
+	ArrivalQuery   map[string]string `json:"arrivalQuery,omitempty"`
+}
+
+type IndoorGuideProgressStatus struct {
+	LeadText string  `json:"leadText"`
+	Title    string  `json:"title"`
+	Subtitle string  `json:"subtitle"`
+	Progress float64 `json:"progress"`
+	Color    string  `json:"color"`
+	IconKey  string  `json:"iconKey"`
+}
+
+type IndoorGuideProgress struct {
+	StepIndex    int                       `json:"stepIndex"`
+	Stage        string                    `json:"stage"`
+	ArrivalQuery map[string]string         `json:"arrivalQuery"`
+	Arrival      *MetroArrivalResult       `json:"arrival,omitempty"`
+	Status       IndoorGuideProgressStatus `json:"status"`
 }
 
 type IndoorGuideRouteSegment struct {
-	LineName  string   `json:"lineName"`
-	LineColor string   `json:"lineColor"`
-	From      string   `json:"from"`
-	To        string   `json:"to"`
-	Stops     []string `json:"stops"`
+	LineName      string   `json:"lineName"`
+	LineColor     string   `json:"lineColor"`
+	From          string   `json:"from"`
+	To            string   `json:"to"`
+	Stops         []string `json:"stops"`
+	Direction     int      `json:"direction"`
+	DirectionName string   `json:"directionName"`
+}
+
+type IndoorGuideSummary struct {
+	Title           string   `json:"title"`
+	DurationMinutes int      `json:"durationMinutes"`
+	TransferCount   int      `json:"transferCount"`
+	TransferText    string   `json:"transferText"`
+	DoorHint        string   `json:"doorHint"`
+	Lines           []string `json:"lines"`
+	NextAction      string   `json:"nextAction"`
 }
 
 type IndoorGuidePlan struct {
 	From             string                    `json:"from"`
 	To               string                    `json:"to"`
+	Summary          IndoorGuideSummary        `json:"summary"`
 	TransferStations []string                  `json:"transferStations"`
 	TransferStation  string                    `json:"transferStation"`
 	ArrivalQuery     map[string]string         `json:"arrivalQuery"`
+	ArrivalQueries   []map[string]string       `json:"arrivalQueries"`
 	Route            []IndoorGuideRouteSegment `json:"route"`
 	Steps            []IndoorGuideStep         `json:"steps"`
 }
@@ -47,6 +87,35 @@ type metroEdge struct {
 type metroRoute struct {
 	Segments         []IndoorGuideRouteSegment
 	TransferStations []string
+}
+
+type indoorStepTemplate struct {
+	Title         string
+	Detail        string
+	ImageTitle    string
+	ImageSubtitle string
+	Minutes       int
+	IconKey       string
+}
+
+type indoorStationProfile struct {
+	Entrance string
+	Exit     string
+	Entry    []indoorStepTemplate
+	ExitStep []indoorStepTemplate
+}
+
+type indoorGuideDataConfig struct {
+	MetroLineStations    map[string][]string             `json:"metroLineStations"`
+	MetroLineColors      map[string]string               `json:"metroLineColors"`
+	StationProfiles      map[string]indoorStationProfile `json:"stationProfiles"`
+	TransferStepProfiles map[string][]indoorStepTemplate `json:"transferStepProfiles"`
+	StationStopIDs       map[string]map[string]string    `json:"stationStopIDs"`
+	LineIDs              map[string]string               `json:"lineIDs"`
+	TransferMinutes      map[string]int                  `json:"transferMinutes"`
+	DoorHints            map[string]string               `json:"doorHints"`
+	RideMinutesPerStop   int                             `json:"rideMinutesPerStop"`
+	CityCode             string                          `json:"cityCode"`
 }
 
 var metroLineStations = map[string][]string{
@@ -73,7 +142,181 @@ var metroLineColors = map[string]string{
 	"出站":   "#008C4A",
 }
 
+var stationProfiles = map[string]indoorStationProfile{
+	"default": {
+		Entrance: "6号口",
+		Exit:     "1号口",
+		Entry: []indoorStepTemplate{
+			{Title: "从{entrance}进入", Detail: "面向地铁入口向前走，优先选择人流较少的一侧进站。", ImageTitle: "{entrance} 实景确认", ImageSubtitle: "看见{line}标识后继续直行", Minutes: 1, IconKey: "login"},
+			{Title: "下扶梯到站厅", Detail: "扶梯到底后保持直行，不要先跟随出站人流转弯。", ImageTitle: "站厅扶梯口", ImageSubtitle: "确认前方有{line}站台指示牌", Minutes: 1, IconKey: "escalator"},
+			{Title: "刷码后右转", Detail: "过闸机后右转，跟随目标线路方向标识。", ImageTitle: "闸机后右转通道", ImageSubtitle: "右侧通道前往{line}站台", Minutes: 1, IconKey: "turnRight"},
+		},
+		ExitStep: []indoorStepTemplate{
+			{Title: "从{exit}出站", Detail: "跟随出口编号走，出闸后靠右侧通道出站。", ImageTitle: "{exit} 出口实景", ImageSubtitle: "确认出口编号后再上行", Minutes: 3, IconKey: "output"},
+		},
+	},
+	"五角场": {
+		Entrance: "5号口",
+		Exit:     "5号口",
+	},
+	"同济大学": {
+		Entrance: "2号口",
+		Exit:     "2号口",
+	},
+	"陕西南路": {
+		Entrance: "6号口",
+		Exit:     "2号口",
+	},
+	"静安寺": {
+		Entrance: "3号口",
+		Exit:     "3号口",
+	},
+	"虹桥火车站": {
+		Entrance: "北2入口",
+		Exit:     "B出口",
+		Entry: []indoorStepTemplate{
+			{Title: "从{entrance}进入", Detail: "跟随地铁/Metro标识进入地下通道，避开高铁出站人流正面汇入点。", ImageTitle: "{entrance} 实景确认", ImageSubtitle: "确认前方有地铁进站导向牌", Minutes: 1, IconKey: "login"},
+			{Title: "沿右侧通道直行", Detail: "保持在右侧通道，看到10号线/2号线/17号线分流牌后继续向前。", ImageTitle: "虹桥火车站到达层通道", ImageSubtitle: "右侧通道更靠近地铁入口", Minutes: 2, IconKey: "straight"},
+			{Title: "下扶梯到站厅", Detail: "下行后选择对应线路闸机口，先看清方向再刷码进站。", ImageTitle: "站厅扶梯口", ImageSubtitle: "确认目标线路颜色和方向牌", Minutes: 1, IconKey: "escalator"},
+		},
+	},
+}
+
+var transferStepProfiles = map[string][]indoorStepTemplate{
+	"南京东路|10号线|2号线": {
+		{Title: "下车后向车头方向走", Detail: "不要先上出站扶梯，沿站台向前走到换乘扶梯。", ImageTitle: "{station} {fromLine}站台", ImageSubtitle: "车头方向可见换乘扶梯", Minutes: 1, IconKey: "straight"},
+		{Title: "上扶梯后左转", Detail: "扶梯到站厅后左转，进入2号线换乘通道。", ImageTitle: "换乘扶梯出口", ImageSubtitle: "左侧为2号线换乘通道", Minutes: 1, IconKey: "turnLeft"},
+		{Title: "到2号线站台候车", Detail: "确认方向为“徐泾东/静安寺方向”，站到中部车门附近。", ImageTitle: "2号线候车区", ImageSubtitle: "确认绿色2号线方向牌", Minutes: 1, IconKey: "signpost"},
+	},
+	"虹桥火车站|*|*": {
+		{Title: "跟随换乘大厅指示", Detail: "下车后进入换乘大厅，先看清{toLine}方向牌。", ImageTitle: "{station}换乘大厅", ImageSubtitle: "确认目标线路颜色后继续", Minutes: 2, IconKey: "straight"},
+		{Title: "到{toLine}站台候车", Detail: "虹桥客流较大，优先站到车门侧后方，避免堵在扶梯口。", ImageTitle: "{toLine}候车区", ImageSubtitle: "确认开往目标方向的站台", Minutes: 1, IconKey: "signpost"},
+	},
+	"default": {
+		{Title: "跟随{toLine}换乘标识", Detail: "下车后不要出站，沿站内换乘通道前往{toLine}。", ImageTitle: "{station}换乘通道", ImageSubtitle: "确认{toLine}方向牌", Minutes: 2, IconKey: "straight"},
+		{Title: "到{toLine}站台候车", Detail: "到达站台后确认行车方向，再靠近推荐车门候车。", ImageTitle: "{toLine}候车区", ImageSubtitle: "确认方向牌后候车", Minutes: 1, IconKey: "signpost"},
+	},
+}
+
+var stationStopIDs = map[string]map[string]string{
+	"五角场": {
+		"10号线": "wujiaochang_10",
+	},
+	"同济大学": {
+		"10号线": "tongji_university_10",
+	},
+	"虹桥火车站": {
+		"10号线": "hongqiao_railway_10",
+		"2号线":  "hongqiao_railway_2",
+		"17号线": "hongqiao_railway_17",
+	},
+	"虹桥2号航站楼": {
+		"10号线": "hongqiao_t2_10",
+		"2号线":  "hongqiao_t2_2",
+	},
+	"南京东路": {
+		"10号线": "nanjing_east_road_10",
+		"2号线":  "nanjing_east_road_2",
+	},
+	"静安寺": {
+		"2号线": "jingan_temple_2",
+	},
+	"新天地": {
+		"10号线": "xintiandi_10",
+	},
+}
+
+var lineIDs = map[string]string{
+	"10号线": "mock-line-10",
+	"2号线":  "mock-line-2",
+	"17号线": "mock-line-17",
+}
+
+var transferMinutes = map[string]int{
+	"虹桥火车站": 6,
+	"南京东路":  5,
+	"虹桥路":   4,
+	"交通大学":  4,
+	"陕西南路":  4,
+}
+
+var doorHints = map[string]string{
+	"10号线|南京东路":  "4车2门",
+	"10号线|虹桥火车站": "2车3门",
+	"2号线|*":      "中部车门",
+	"虹桥火车站|*":    "2车3门",
+}
+
+var rideMinutesPerStop = 2
+var indoorGuideCityCode = "mock-shanghai"
+var indoorGuideDataOnce sync.Once
+
+func ensureIndoorGuideDataLoaded() {
+	indoorGuideDataOnce.Do(func() {
+		for _, path := range indoorGuideDataPaths() {
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				continue
+			}
+			var config indoorGuideDataConfig
+			if err := json.Unmarshal(raw, &config); err != nil {
+				continue
+			}
+			applyIndoorGuideData(config)
+			return
+		}
+	})
+}
+
+func indoorGuideDataPaths() []string {
+	paths := []string{
+		filepath.Join("data", "indoor_guide_data.json"),
+		filepath.Join("backend", "go", "data", "indoor_guide_data.json"),
+	}
+	if wd, err := os.Getwd(); err == nil {
+		paths = append(paths,
+			filepath.Join(wd, "data", "indoor_guide_data.json"),
+			filepath.Join(wd, "backend", "go", "data", "indoor_guide_data.json"),
+		)
+	}
+	return paths
+}
+
+func applyIndoorGuideData(config indoorGuideDataConfig) {
+	if len(config.MetroLineStations) > 0 {
+		metroLineStations = config.MetroLineStations
+	}
+	if len(config.MetroLineColors) > 0 {
+		metroLineColors = config.MetroLineColors
+	}
+	if len(config.StationProfiles) > 0 {
+		stationProfiles = config.StationProfiles
+	}
+	if len(config.TransferStepProfiles) > 0 {
+		transferStepProfiles = config.TransferStepProfiles
+	}
+	if len(config.StationStopIDs) > 0 {
+		stationStopIDs = config.StationStopIDs
+	}
+	if len(config.LineIDs) > 0 {
+		lineIDs = config.LineIDs
+	}
+	if len(config.TransferMinutes) > 0 {
+		transferMinutes = config.TransferMinutes
+	}
+	if len(config.DoorHints) > 0 {
+		doorHints = config.DoorHints
+	}
+	if config.RideMinutesPerStop > 0 {
+		rideMinutesPerStop = config.RideMinutesPerStop
+	}
+	if config.CityCode != "" {
+		indoorGuideCityCode = config.CityCode
+	}
+}
+
 func BuildIndoorGuide(from string, to string) IndoorGuidePlan {
+	ensureIndoorGuideDataLoaded()
 	from = normalizeIndoorStation(from, "新天地")
 	to = normalizeIndoorStation(to, "静安寺")
 
@@ -89,21 +332,52 @@ func BuildIndoorGuide(from string, to string) IndoorGuidePlan {
 	}
 
 	firstSegment := route.Segments[0]
+	arrivalQueries := arrivalQueriesForRoute(route)
 	return IndoorGuidePlan{
 		From:             from,
 		To:               to,
+		Summary:          buildRouteSummary(route, steps, from, to),
 		TransferStations: route.TransferStations,
 		TransferStation:  transferStation,
-		ArrivalQuery: map[string]string{
-			"lineId":    lineIDForIndoorGuide(firstSegment.LineName),
-			"lineName":  firstSegment.LineName,
-			"stopId":    stopIDForIndoorGuide(from, firstSegment.LineName),
-			"stopName":  from,
-			"direction": "0",
-			"cityCode":  "mock-shanghai",
-		},
-		Route: route.Segments,
-		Steps: steps,
+		ArrivalQuery:     arrivalQueryForSegment(firstSegment, firstSegment.From),
+		ArrivalQueries:   arrivalQueries,
+		Route:            route.Segments,
+		Steps:            steps,
+	}
+}
+
+func BuildIndoorGuideProgress(from string, to string, stepIndex int) IndoorGuideProgress {
+	plan := BuildIndoorGuide(from, to)
+	if len(plan.Steps) == 0 {
+		return IndoorGuideProgress{
+			StepIndex: 0,
+			Status: IndoorGuideProgressStatus{
+				LeadText: "等待",
+				Title:    "等待选择路线",
+				Subtitle: "请先选择起点和终点",
+				Progress: 0,
+				Color:    "#B07AB2",
+				IconKey:  "navigation",
+			},
+		}
+	}
+
+	if stepIndex < 0 {
+		stepIndex = 0
+	}
+	if stepIndex >= len(plan.Steps) {
+		stepIndex = len(plan.Steps) - 1
+	}
+
+	step := plan.Steps[stepIndex]
+	arrival := queryArrivalForIndoorStep(step)
+
+	return IndoorGuideProgress{
+		StepIndex:    stepIndex,
+		Stage:        step.Stage,
+		ArrivalQuery: step.ArrivalQuery,
+		Arrival:      arrival,
+		Status:       progressStatusForIndoorStep(step, plan.Steps, stepIndex, arrival),
 	}
 }
 
@@ -261,12 +535,15 @@ func statesToRoute(states []metroState) metroRoute {
 }
 
 func routeSegment(line string, stops []string) IndoorGuideRouteSegment {
+	direction := directionForSegment(line, stops[0], stops[len(stops)-1])
 	return IndoorGuideRouteSegment{
-		LineName:  line,
-		LineColor: metroLineColors[line],
-		From:      stops[0],
-		To:        stops[len(stops)-1],
-		Stops:     append([]string{}, stops...),
+		LineName:      line,
+		LineColor:     metroLineColors[line],
+		From:          stops[0],
+		To:            stops[len(stops)-1],
+		Stops:         append([]string{}, stops...),
+		Direction:     direction,
+		DirectionName: directionNameForLine(line, direction),
 	}
 }
 
@@ -290,25 +567,24 @@ func composeIndoorGuideSteps(route metroRoute, from string, to string) []IndoorG
 	}
 
 	steps = append(steps, exitStepsForStation(to)...)
+	assignArrivalQueriesToSteps(steps, route)
 	return steps
 }
 
 func entryStepsForStation(station string, line string) []IndoorGuideStep {
-	entrance := entranceForIndoorGuide(station)
+	profile := profileForStation(station)
+	templates := profile.Entry
+	if len(templates) == 0 {
+		templates = stationProfiles["default"].Entry
+	}
 	lineColor := metroLineColors[line]
-	if station == "虹桥火车站" {
-		return []IndoorGuideStep{
-			guideStep("entry", line, lineColor, "从"+entrance+"进入", "跟随地铁/Metro标识进入地下通道，避开高铁出站人流正面汇入点。", entrance+" 实景确认", "确认前方有地铁进站导向牌", 1, "login"),
-			guideStep("entry", line, lineColor, "沿右侧通道直行", "保持在右侧通道，看到10号线/2号线/17号线分流牌后继续向前。", "虹桥火车站到达层通道", "右侧通道更靠近地铁入口", 2, "straight"),
-			guideStep("entry", line, lineColor, "下扶梯到站厅", "下行后选择对应线路闸机口，先看清方向再刷码进站。", "站厅扶梯口", "确认目标线路颜色和方向牌", 1, "escalator"),
-		}
+	context := map[string]string{
+		"station":  station,
+		"line":     line,
+		"entrance": profile.Entrance,
+		"exit":     profile.Exit,
 	}
-
-	return []IndoorGuideStep{
-		guideStep("entry", line, lineColor, "从"+entrance+"进入", "面向地铁入口向前走，优先选择人流较少的一侧进站。", entrance+" 实景确认", "看见"+line+"标识后继续直行", 1, "login"),
-		guideStep("entry", line, lineColor, "下扶梯到站厅", "扶梯到底后保持直行，不要先跟随出站人流转弯。", "站厅扶梯口", "确认前方有"+line+"站台指示牌", 1, "escalator"),
-		guideStep("entry", line, lineColor, "刷码后右转", "过闸机后右转，跟随目标线路方向标识。", "闸机后右转通道", "右侧通道前往"+line+"站台", 1, "turnRight"),
-	}
+	return stepsFromTemplates("entry", line, lineColor, templates, context)
 }
 
 func platformStepForSegment(segment IndoorGuideRouteSegment, target string) IndoorGuideStep {
@@ -354,30 +630,39 @@ func rideStepForSegment(segment IndoorGuideRouteSegment, target string) IndoorGu
 
 func transferStepsForStation(station string, fromLine string, toLine string) []IndoorGuideStep {
 	lineColor := metroLineColors[toLine]
-	if station == "南京东路" && fromLine == "10号线" && toLine == "2号线" {
-		return []IndoorGuideStep{
-			guideStep("transfer", toLine, lineColor, "下车后向车头方向走", "不要先上出站扶梯，沿站台向前走到换乘扶梯。", station+" "+fromLine+"站台", "车头方向可见换乘扶梯", 1, "straight"),
-			guideStep("transfer", toLine, lineColor, "上扶梯后左转", "扶梯到站厅后左转，进入2号线换乘通道。", "换乘扶梯出口", "左侧为2号线换乘通道", 1, "turnLeft"),
-			guideStep("transferWait", toLine, lineColor, "到2号线站台候车", "确认方向为“徐泾东/静安寺方向”，站到中部车门附近。", "2号线候车区", "确认绿色2号线方向牌", 1, "signpost"),
+	key := station + "|" + fromLine + "|" + toLine
+	templates := transferStepProfiles[key]
+	if len(templates) == 0 {
+		templates = transferStepProfiles[station+"|*|*"]
+	}
+	if len(templates) == 0 {
+		templates = transferStepProfiles["default"]
+	}
+	context := map[string]string{
+		"station":  station,
+		"fromLine": fromLine,
+		"toLine":   toLine,
+	}
+	steps := stepsFromTemplates("transfer", toLine, lineColor, templates, context)
+	for i := range steps {
+		if i == len(steps)-1 {
+			steps[i].Stage = "transferWait"
 		}
 	}
-	if station == "虹桥火车站" {
-		return []IndoorGuideStep{
-			guideStep("transfer", toLine, lineColor, "跟随换乘大厅指示", "下车后进入换乘大厅，先看清"+toLine+"方向牌。", station+"换乘大厅", "确认目标线路颜色后继续", 2, "straight"),
-			guideStep("transferWait", toLine, lineColor, "到"+toLine+"站台候车", "虹桥客流较大，优先站到车门侧后方，避免堵在扶梯口。", toLine+"候车区", "确认开往目标方向的站台", 1, "signpost"),
-		}
-	}
-	return []IndoorGuideStep{
-		guideStep("transfer", toLine, lineColor, "跟随"+toLine+"换乘标识", "下车后不要出站，沿站内换乘通道前往"+toLine+"。", station+"换乘通道", "确认"+toLine+"方向牌", 2, "straight"),
-		guideStep("transferWait", toLine, lineColor, "到"+toLine+"站台候车", "到达站台后确认行车方向，再靠近推荐车门候车。", toLine+"候车区", "确认方向牌后候车", 1, "signpost"),
-	}
+	return steps
 }
 
 func exitStepsForStation(station string) []IndoorGuideStep {
-	exit := exitForIndoorGuide(station)
-	return []IndoorGuideStep{
-		guideStep("exit", "出站", metroLineColors["出站"], "从"+exit+"出站", "跟随出口编号走，出闸后靠右侧通道出站。", exit+" 出口实景", "确认出口编号后再上行", 3, "output"),
+	profile := profileForStation(station)
+	templates := profile.ExitStep
+	if len(templates) == 0 {
+		templates = stationProfiles["default"].ExitStep
 	}
+	context := map[string]string{
+		"station": station,
+		"exit":    profile.Exit,
+	}
+	return stepsFromTemplates("exit", "出站", metroLineColors["出站"], templates, context)
 }
 
 func guideStep(stage string, lineName string, lineColor string, title string, detail string, imageTitle string, imageSubtitle string, minutes int, iconKey string) IndoorGuideStep {
@@ -394,13 +679,344 @@ func guideStep(stage string, lineName string, lineColor string, title string, de
 	}
 }
 
+func stepsFromTemplates(stage string, lineName string, lineColor string, templates []indoorStepTemplate, context map[string]string) []IndoorGuideStep {
+	steps := make([]IndoorGuideStep, 0, len(templates))
+	for _, template := range templates {
+		steps = append(steps, guideStep(
+			stage,
+			lineName,
+			lineColor,
+			renderIndoorText(template.Title, context),
+			renderIndoorText(template.Detail, context),
+			renderIndoorText(template.ImageTitle, context),
+			renderIndoorText(template.ImageSubtitle, context),
+			template.Minutes,
+			template.IconKey,
+		))
+	}
+	return steps
+}
+
+func renderIndoorText(text string, context map[string]string) string {
+	out := text
+	for key, value := range context {
+		out = strings.ReplaceAll(out, "{"+key+"}", value)
+	}
+	return out
+}
+
+func profileForStation(station string) indoorStationProfile {
+	base := stationProfiles["default"]
+	profile, ok := stationProfiles[station]
+	if !ok {
+		return base
+	}
+	if profile.Entrance == "" {
+		profile.Entrance = base.Entrance
+	}
+	if profile.Exit == "" {
+		profile.Exit = base.Exit
+	}
+	if len(profile.Entry) == 0 {
+		profile.Entry = base.Entry
+	}
+	if len(profile.ExitStep) == 0 {
+		profile.ExitStep = base.ExitStep
+	}
+	return profile
+}
+
+func assignArrivalQueriesToSteps(steps []IndoorGuideStep, route metroRoute) {
+	if len(route.Segments) == 0 {
+		return
+	}
+	segmentIndex := 0
+	inTransferBlock := false
+	for i := range steps {
+		isTransferStage := steps[i].Stage == "transfer" || steps[i].Stage == "transferWait"
+		if isTransferStage && !inTransferBlock {
+			if segmentIndex+1 < len(route.Segments) {
+				segmentIndex++
+			}
+		}
+		inTransferBlock = isTransferStage
+		segment := route.Segments[segmentIndex]
+		steps[i].ArrivalQuery = arrivalQueryForSegment(segment, segment.From)
+	}
+}
+
+func queryArrivalForIndoorStep(step IndoorGuideStep) *MetroArrivalResult {
+	query := step.ArrivalQuery
+	if len(query) == 0 {
+		return defaultIndoorArrival(step)
+	}
+	result, err := QueryMetroArrival(MetroArrivalQuery{
+		LineID:    query["lineId"],
+		LineName:  query["lineName"],
+		StopID:    query["stopId"],
+		StopName:  query["stopName"],
+		Direction: query["direction"],
+		CityCode:  query["cityCode"],
+	})
+	if err != nil || result == nil {
+		return defaultIndoorArrival(step)
+	}
+	return result
+}
+
+func defaultIndoorArrival(step IndoorGuideStep) *MetroArrivalResult {
+	return &MetroArrivalResult{
+		StationName:          step.TargetStation,
+		LineName:             step.LineName,
+		Direction:            "0",
+		Interval:             "7",
+		CurrentArriveMinutes: 5,
+		NextArriveMinutes:    12,
+		StopCount:            step.RemainingStops,
+		Source:               "indoor-guide-default",
+	}
+}
+
+func progressStatusForIndoorStep(step IndoorGuideStep, steps []IndoorGuideStep, index int, arrival *MetroArrivalResult) IndoorGuideProgressStatus {
+	switch step.Stage {
+	case "ride":
+		total := step.TotalStops
+		if total <= 0 {
+			total = 1
+		}
+		done := total - step.RemainingStops
+		if done < 0 {
+			done = 0
+		}
+		progress := float64(done) / float64(total)
+		return IndoorGuideProgressStatus{
+			LeadText: itoa(step.RemainingStops) + "站",
+			Title:    "乘车中",
+			Subtitle: "到" + step.TargetStation + "下车，提前靠近" + step.DoorHint,
+			Progress: clampProgress(progress),
+			Color:    step.LineColor,
+			IconKey:  "train",
+		}
+	case "transfer", "transferWait":
+		catchPlan := catchPlanForIndoorStages(steps, index, map[string]bool{"transfer": true, "transferWait": true}, arrival, 1)
+		title := "预计可赶上" + step.LineName + "当前班"
+		if catchPlan.UsesNextTrain {
+			title = step.LineName + "赶不上，改按下一班"
+		}
+		return IndoorGuideProgressStatus{
+			LeadText: itoa(catchPlan.TrainMinutes) + "分钟",
+			Title:    title,
+			Subtitle: "换乘还要约" + itoa(catchPlan.RemainingWalkMinutes) + "分钟，已推进" + itoa(catchPlan.CompletedWalkMinutes) + "分钟，预计余量" + itoa(catchPlan.SafeBufferMinutes) + "分钟",
+			Progress: catchPlan.Progress,
+			Color:    catchPlan.StatusColor(step.LineColor),
+			IconKey:  "transfer",
+		}
+	case "exit":
+		return IndoorGuideProgressStatus{
+			LeadText: "到达",
+			Title:    "按出口指引出站",
+			Subtitle: "推荐走" + step.TargetStation,
+			Progress: 1,
+			Color:    "#008C4A",
+			IconKey:  "output",
+		}
+	default:
+		catchPlan := catchPlanForIndoorStages(steps, index, map[string]bool{"entry": true, "platform": true}, arrival, 1)
+		title := step.LineName + "当前班来得及"
+		if catchPlan.UsesNextTrain {
+			title = step.LineName + "赶不上，改按下一班"
+		}
+		return IndoorGuideProgressStatus{
+			LeadText: itoa(catchPlan.TrainMinutes) + "分钟",
+			Title:    title,
+			Subtitle: "到站台还要约" + itoa(catchPlan.RemainingWalkMinutes) + "分钟，已推进" + itoa(catchPlan.CompletedWalkMinutes) + "分钟，预计余量" + itoa(catchPlan.SafeBufferMinutes) + "分钟",
+			Progress: catchPlan.Progress,
+			Color:    catchPlan.StatusColor(step.LineColor),
+			IconKey:  "timer",
+		}
+	}
+}
+
+type indoorCatchPlan struct {
+	TrainMinutes         int
+	RemainingWalkMinutes int
+	CompletedWalkMinutes int
+	SafeBufferMinutes    int
+	UsesNextTrain        bool
+	Progress             float64
+}
+
+func (plan indoorCatchPlan) StatusColor(lineColor string) string {
+	if plan.UsesNextTrain && plan.SafeBufferMinutes <= 0 {
+		return "#BA1A1A"
+	}
+	if plan.UsesNextTrain || plan.SafeBufferMinutes < 2 {
+		return "#E57900"
+	}
+	return lineColor
+}
+
+func catchPlanForIndoorStages(steps []IndoorGuideStep, index int, stages map[string]bool, arrival *MetroArrivalResult, safetyBufferMinutes int) indoorCatchPlan {
+	currentTrain := currentTrainMinutes(arrival)
+	nextTrain := nextTrainMinutes(arrival, currentTrain)
+	remainingWalk := remainingMinutesForIndoorStages(steps, index, stages)
+	completedWalk := completedMinutesForIndoorStages(steps, index, stages)
+	requiredMinutes := remainingWalk + safetyBufferMinutes
+	usesNextTrain := currentTrain < requiredMinutes
+	selectedTrain := currentTrain
+	if usesNextTrain {
+		selectedTrain = nextTrain
+	}
+	buffer := selectedTrain - remainingWalk
+	if buffer < 0 {
+		buffer = 0
+	}
+	progress := 0.0
+	if selectedTrain > 0 {
+		progress = float64(selectedTrain-remainingWalk) / float64(selectedTrain)
+	}
+
+	return indoorCatchPlan{
+		TrainMinutes:         selectedTrain,
+		RemainingWalkMinutes: remainingWalk,
+		CompletedWalkMinutes: completedWalk,
+		SafeBufferMinutes:    buffer,
+		UsesNextTrain:        usesNextTrain,
+		Progress:             clampProgress(progress),
+	}
+}
+
+func remainingMinutesForIndoorStages(steps []IndoorGuideStep, index int, stages map[string]bool) int {
+	minutes := 0
+	for i := index; i < len(steps); i++ {
+		if !stages[steps[i].Stage] {
+			if minutes > 0 {
+				break
+			}
+			continue
+		}
+		minutes += steps[i].Minutes
+	}
+	if minutes <= 0 {
+		return 1
+	}
+	return minutes
+}
+
+func completedMinutesForIndoorStages(steps []IndoorGuideStep, index int, stages map[string]bool) int {
+	minutes := 0
+	for i := 0; i < index; i++ {
+		if stages[steps[i].Stage] {
+			minutes += steps[i].Minutes
+		}
+	}
+	return minutes
+}
+
+func currentTrainMinutes(arrival *MetroArrivalResult) int {
+	if arrival == nil || arrival.CurrentArriveMinutes <= 0 {
+		return 5
+	}
+	if arrival.CurrentArriveMinutes > 60 {
+		return 60
+	}
+	return arrival.CurrentArriveMinutes
+}
+
+func nextTrainMinutes(arrival *MetroArrivalResult, currentTrainMinutes int) int {
+	if arrival != nil && arrival.NextArriveMinutes > 0 {
+		if arrival.NextArriveMinutes > 90 {
+			return 90
+		}
+		return arrival.NextArriveMinutes
+	}
+	next := currentTrainMinutes + 7
+	if next < 2 {
+		return 2
+	}
+	if next > 90 {
+		return 90
+	}
+	return next
+}
+
+func clampProgress(value float64) float64 {
+	if value < 0 {
+		return 0
+	}
+	if value > 0.95 {
+		return 0.95
+	}
+	return value
+}
+
+func arrivalQueriesForRoute(route metroRoute) []map[string]string {
+	queries := []map[string]string{}
+	for _, segment := range route.Segments {
+		queries = append(queries, arrivalQueryForSegment(segment, segment.From))
+	}
+	return queries
+}
+
+func arrivalQueryForSegment(segment IndoorGuideRouteSegment, station string) map[string]string {
+	return map[string]string{
+		"lineId":        lineIDForIndoorGuide(segment.LineName),
+		"lineName":      segment.LineName,
+		"stopId":        stopIDForIndoorGuide(station, segment.LineName),
+		"stopName":      station,
+		"direction":     itoa(segment.Direction),
+		"directionName": segment.DirectionName,
+		"cityCode":      indoorGuideCityCode,
+	}
+}
+
+func buildRouteSummary(route metroRoute, steps []IndoorGuideStep, from string, to string) IndoorGuideSummary {
+	lines := []string{}
+	for _, segment := range route.Segments {
+		lines = appendUnique(lines, segment.LineName)
+	}
+	duration := 0
+	for _, step := range steps {
+		duration += step.Minutes
+	}
+	doorHint := ""
+	for _, step := range steps {
+		if step.DoorHint != "" {
+			doorHint = step.DoorHint
+			break
+		}
+	}
+	if doorHint == "" {
+		doorHint = "中部车门"
+	}
+	transferText := "无需换乘"
+	if len(route.TransferStations) > 0 {
+		transferText = strings.Join(route.TransferStations, "、") + "换乘"
+	}
+	nextAction := "从" + profileForStation(from).Entrance + "进入"
+	if len(steps) > 0 {
+		nextAction = steps[0].Title
+	}
+	return IndoorGuideSummary{
+		Title:           from + " → " + to,
+		DurationMinutes: duration,
+		TransferCount:   len(route.TransferStations),
+		TransferText:    transferText,
+		DoorHint:        doorHint,
+		Lines:           lines,
+		NextAction:      nextAction,
+	}
+}
+
 func fallbackMetroRoute(from string, to string) metroRoute {
 	segment := IndoorGuideRouteSegment{
-		LineName:  "10号线",
-		LineColor: metroLineColors["10号线"],
-		From:      from,
-		To:        to,
-		Stops:     []string{from, to},
+		LineName:      "10号线",
+		LineColor:     metroLineColors["10号线"],
+		From:          from,
+		To:            to,
+		Stops:         []string{from, to},
+		Direction:     directionForSegment("10号线", from, to),
+		DirectionName: directionNameForLine("10号线", directionForSegment("10号线", from, to)),
 	}
 	return metroRoute{Segments: []IndoorGuideRouteSegment{segment}}
 }
@@ -413,31 +1029,28 @@ func nextTransferTarget(route metroRoute, index int) string {
 }
 
 func rideMinutesBetween(from string, to string) int {
-	return 2
+	return rideMinutesPerStop
 }
 
 func transferMinutesForStation(station string, fromLine string, toLine string) int {
-	switch station {
-	case "虹桥火车站":
-		return 6
-	case "南京东路":
-		return 5
-	case "虹桥路", "交通大学", "陕西南路":
-		return 4
-	default:
-		return 5
+	if value, ok := transferMinutes[station+"|"+fromLine+"|"+toLine]; ok {
+		return value
 	}
+	if value, ok := transferMinutes[station]; ok {
+		return value
+	}
+	return 5
 }
 
 func doorHintForSegment(segment IndoorGuideRouteSegment, target string) string {
-	if segment.LineName == "10号线" && target == "南京东路" {
-		return "4车2门"
+	if value, ok := doorHints[segment.LineName+"|"+target]; ok {
+		return value
 	}
-	if segment.From == "虹桥火车站" {
-		return "2车3门"
+	if value, ok := doorHints[segment.LineName+"|*"]; ok {
+		return value
 	}
-	if segment.LineName == "2号线" {
-		return "中部车门"
+	if value, ok := doorHints[segment.From+"|*"]; ok {
+		return value
 	}
 	return "中部车门"
 }
@@ -485,33 +1098,52 @@ func exitForIndoorGuide(station string) string {
 }
 
 func stopIDForIndoorGuide(station string, line string) string {
-	if station == "虹桥火车站" && line == "2号线" {
-		return "hongqiao_railway_2"
+	if byLine, ok := stationStopIDs[station]; ok {
+		if value, ok := byLine[line]; ok {
+			return value
+		}
 	}
-	if station == "虹桥火车站" && line == "17号线" {
-		return "hongqiao_railway_17"
-	}
-	switch station {
-	case "五角场":
-		return "wujiaochang_10"
-	case "同济大学":
-		return "tongji_university_10"
-	case "虹桥火车站":
-		return "hongqiao_railway_10"
-	default:
-		return "xintiandi_10"
-	}
+	return "xintiandi_10"
 }
 
 func lineIDForIndoorGuide(line string) string {
-	switch line {
-	case "2号线":
-		return "mock-line-2"
-	case "17号线":
-		return "mock-line-17"
-	default:
-		return "mock-line-10"
+	if value, ok := lineIDs[line]; ok {
+		return value
 	}
+	return "mock-line-10"
+}
+
+func directionForSegment(line string, from string, to string) int {
+	stations := metroLineStations[line]
+	fromIndex := stationIndex(stations, from)
+	toIndex := stationIndex(stations, to)
+	if fromIndex < 0 || toIndex < 0 {
+		return 0
+	}
+	if toIndex >= fromIndex {
+		return 0
+	}
+	return 1
+}
+
+func directionNameForLine(line string, direction int) string {
+	stations := metroLineStations[line]
+	if len(stations) == 0 {
+		return ""
+	}
+	if direction == 1 {
+		return "往" + stations[0]
+	}
+	return "往" + stations[len(stations)-1]
+}
+
+func stationIndex(stations []string, station string) int {
+	for i, item := range stations {
+		if item == station {
+			return i
+		}
+	}
+	return -1
 }
 
 func appendUnique(values []string, value string) []string {
