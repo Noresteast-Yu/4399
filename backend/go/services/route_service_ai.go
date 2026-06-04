@@ -32,6 +32,8 @@ func scoreRoutesWithAI(routes []PlannedRoute, preferences map[string]interface{}
 		route := s.Route
 		analysis := generateAIAnalysis(route, s.Reason, preferences)
 		route.Description = "AI 推荐：" + analysis
+		route.AIAdvice = analysis
+		route.Score = s.Score
 		result = append(result, route)
 	}
 
