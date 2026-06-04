@@ -3,21 +3,10 @@
 USE smart_travel;
 
 -- 清空现有数据（按依赖顺序）
-DELETE FROM common_route_segments;
-DELETE FROM common_routes;
-DELETE FROM train_carriages;
-DELETE FROM train_stations;
-DELETE FROM trains;
-DELETE FROM travel_alert_routes;
-DELETE FROM travel_alerts;
-DELETE FROM user_luggage;
-DELETE FROM user_abilities;
-DELETE FROM user_preferences;
 DELETE FROM line_station_transfer_lines;
 DELETE FROM transfer_rule_transfer_lines;
 DELETE FROM transfer_rule_tags;
 DELETE FROM line_stations;
-DELETE FROM station_facilities;
 DELETE FROM station_exits;
 DELETE FROM transfer_rules;
 DELETE FROM line_directions;
@@ -25,21 +14,10 @@ DELETE FROM metro_lines;
 DELETE FROM stations;
 
 -- 重置自增ID
-ALTER TABLE common_route_segments AUTO_INCREMENT = 1;
-ALTER TABLE common_routes AUTO_INCREMENT = 1;
-ALTER TABLE train_carriages AUTO_INCREMENT = 1;
-ALTER TABLE train_stations AUTO_INCREMENT = 1;
-ALTER TABLE trains AUTO_INCREMENT = 1;
-ALTER TABLE travel_alert_routes AUTO_INCREMENT = 1;
-ALTER TABLE travel_alerts AUTO_INCREMENT = 1;
-ALTER TABLE user_luggage AUTO_INCREMENT = 1;
-ALTER TABLE user_abilities AUTO_INCREMENT = 1;
-ALTER TABLE user_preferences AUTO_INCREMENT = 1;
 ALTER TABLE line_station_transfer_lines AUTO_INCREMENT = 1;
 ALTER TABLE transfer_rule_transfer_lines AUTO_INCREMENT = 1;
 ALTER TABLE transfer_rule_tags AUTO_INCREMENT = 1;
 ALTER TABLE line_stations AUTO_INCREMENT = 1;
-ALTER TABLE station_facilities AUTO_INCREMENT = 1;
 ALTER TABLE station_exits AUTO_INCREMENT = 1;
 ALTER TABLE transfer_rules AUTO_INCREMENT = 1;
 ALTER TABLE line_directions AUTO_INCREMENT = 1;
@@ -249,100 +227,3 @@ INSERT INTO station_exits (exit_id, station_id, exit_name, nearby_place, guide_t
 ('exit_east_nanjing_road_center', 'east_nanjing_road', '南京东路方向出口', '南京东路步行街', '前往市中心商圈或换乘2号线时注意客流。', 0),
 ('exit_siping_road_transfer', 'siping_road', '8号线换乘导向', '四平路站换乘通道', '换乘8号线请按站内指示前往对应站台。', 0),
 ('exit_tongji_university_campus', 'tongji_university', '同济大学方向出口', '同济大学四平路校区', '前往同济大学四平路校区可根据站内出口指示出站。', 0);
-
--- 插入站点设施
-INSERT INTO station_facilities (
-    station_id, has_elevator, has_escalator, has_wheelchair_ramp, has_wide_gate,
-    has_accessible_restroom, has_blind_path, elevator_count, elevator_location, escalator_count,
-    restroom_location, has_restroom_in_paid, has_restroom_outside, has_mother_baby_room,
-    has_third_bathroom, has_aed, has_service_center, facility_note
-) VALUES
-('shanghai_hongqiao_railway_station', 1, 1, 1, 1, 1, 1, 6, '到达层、换乘大厅、站台层均有无障碍电梯', 18, '站厅层服务中心旁', 1, 1, 1, 1, 1, 1, '综合交通枢纽站，电梯、无障碍通道和服务台较完善，建议携带行李用户预留进站时间。'),
-('hongqiao_terminal_2', 1, 1, 1, 1, 1, 1, 4, '航站楼连廊和站厅两侧', 12, '站厅层近航站楼通道', 1, 1, 1, 1, 1, 1, '航站楼换乘站，机场客流较大，注意按站内导向前往对应航站楼。'),
-('hongqiao_terminal_1', 1, 1, 1, 1, 0, 1, 2, '站厅至站台各1部', 8, '站厅层费区外', 0, 1, 0, 0, 1, 1, '机场相关站点，基础无障碍设施可用。'),
-('shanghai_zoo', 1, 1, 1, 1, 0, 1, 2, '2号口附近和站台中部', 6, '站厅层费区外', 0, 1, 1, 0, 1, 1, '周末亲子客流较多，建议错峰出行。'),
-('longxi_road', 1, 1, 1, 1, 0, 1, 2, '站厅至站台各1部', 6, '站厅层费区外', 0, 1, 0, 0, 1, 1, '普通地铁站，基础无障碍设施可用。'),
-('shuicheng_road', 1, 1, 1, 1, 0, 1, 2, '站厅至站台各1部', 6, '站厅层费区外', 0, 1, 0, 0, 1, 1, '普通地铁站，基础无障碍设施可用。'),
-('yili_road', 1, 1, 1, 1, 0, 1, 2, '站厅至站台各1部', 6, '站厅层费区外', 0, 1, 0, 0, 1, 1, '普通地铁站，基础无障碍设施可用。'),
-('songyuan_road', 1, 1, 1, 1, 0, 1, 2, '站厅至站台各1部', 6, '站厅层费区外', 0, 1, 0, 0, 1, 1, '普通地铁站，基础无障碍设施可用。'),
-('hongqiao_road', 1, 1, 1, 1, 1, 1, 3, '10号线站台中部及换乘通道附近', 10, '换乘大厅内', 1, 0, 0, 1, 1, 1, '3/4/10号线换乘站，换乘步行距离较长。'),
-('jiaotong_university', 1, 1, 1, 1, 1, 1, 3, '10号线站台中部、11号线换乘侧', 10, '站厅层近服务中心', 1, 0, 0, 1, 1, 1, '10/11号线换乘站，靠近高校和商业区。'),
-('shanghai_library', 1, 1, 1, 1, 0, 1, 2, '站台中部和出入口侧', 6, '站厅层费区外', 0, 1, 0, 0, 1, 1, '靠近上海图书馆，出入口周边步行环境较好。'),
-('south_shaanxi_road', 1, 1, 1, 1, 1, 1, 4, '换乘大厅和各线路站台中部', 14, '换乘大厅内', 1, 0, 1, 1, 1, 1, '1/10/12号线换乘站，晚高峰客流较大。'),
-('site_first_cpc_xintiandi', 1, 1, 1, 1, 1, 1, 3, '站厅东侧及站台中部', 10, '站厅层近新天地出口', 1, 0, 1, 1, 1, 1, '10/13号线换乘站，靠近新天地商圈。'),
-('laoximen', 1, 1, 1, 1, 1, 1, 3, '8号线换乘通道附近', 9, '换乘大厅内', 1, 0, 0, 1, 1, 1, '8/10号线换乘站，站内导向较密集。'),
-('yuyuan', 1, 1, 1, 1, 1, 1, 3, '14号线换乘侧和站台中部', 9, '站厅层近景区出口', 1, 0, 1, 1, 1, 1, '10/14号线换乘站，节假日景区客流明显增加。'),
-('east_nanjing_road', 1, 1, 1, 1, 1, 1, 4, '2号线换乘大厅和10号线站台中部', 16, '换乘大厅内', 1, 0, 1, 1, 1, 1, '2/10号线换乘站，南京东路商圈客流大。'),
-('tiantong_road', 1, 1, 1, 1, 0, 1, 2, '12号线换乘通道附近', 8, '站厅层费区外', 0, 1, 0, 0, 1, 1, '10/12号线换乘站，换乘通道请留意方向。'),
-('north_sichuan_road', 1, 1, 1, 1, 0, 1, 2, '站厅至站台各1部', 6, '站厅层费区外', 0, 1, 0, 0, 1, 1, '普通地铁站，基础无障碍设施可用。'),
-('hailun_road', 1, 1, 1, 1, 1, 1, 3, '4号线换乘侧和10号线站台中部', 9, '换乘大厅内', 1, 0, 0, 1, 1, 1, '4/10号线换乘站，换乘时注意内外圈方向。'),
-('youdian_xincun', 1, 1, 1, 1, 0, 1, 2, '站厅至站台各1部', 6, '站厅层费区外', 0, 1, 0, 0, 1, 1, '普通地铁站，基础无障碍设施可用。'),
-('siping_road', 1, 1, 1, 1, 1, 1, 3, '8号线换乘通道附近', 9, '站厅层近换乘通道', 1, 0, 0, 1, 1, 1, '8/10号线换乘站，靠近同济大学生活区。'),
-('tongji_university', 1, 1, 1, 1, 1, 1, 2, '站厅至站台各1部，近校园方向出口', 8, '站厅层近校园方向出口', 1, 0, 1, 1, 1, 1, '靠近同济大学四平路校区，早晚高峰学生客流较多。');
-
--- 插入出行提醒
-INSERT INTO travel_alerts (type, title, message) VALUES
-('delay', '10号线局部列车间隔延长', '受早高峰客流影响，虹桥火车站至南京东路方向部分列车间隔略有延长，请预留5-8分钟。'),
-('control', '南京东路站节假日客流管控', '节假日南京东路站可能采取临时限流，请按现场工作人员引导进出站。'),
-('other', '同济大学站周边施工提醒', '同济大学站部分出口周边有道路施工，步行前往校园请留意现场导向。');
-
-INSERT INTO travel_alert_routes (alert_id, route)
-SELECT id, route
-FROM travel_alerts
-JOIN (
-    SELECT '10号线局部列车间隔延长' AS title, '上海地铁10号线' AS route UNION ALL
-    SELECT '南京东路站节假日客流管控', '上海地铁2号线' UNION ALL
-    SELECT '南京东路站节假日客流管控', '上海地铁10号线' UNION ALL
-    SELECT '同济大学站周边施工提醒', '上海地铁10号线'
-) AS t USING (title);
-
--- 插入高铁演示数据
-INSERT INTO trains (number, start, end, departure, arrival, platform, door_direction) VALUES
-('G7001', '上海虹桥', '南京南', '08:00', '09:05', '12', '左侧开门'),
-('G7315', '上海虹桥', '杭州东', '09:20', '10:18', '18', '右侧开门');
-
-INSERT INTO train_stations (train_id, station_name, station_order)
-SELECT t.id, s.station_name, s.station_order
-FROM trains t
-JOIN (
-    SELECT 'G7001' AS number, '上海虹桥' AS station_name, 1 AS station_order UNION ALL
-    SELECT 'G7001', '苏州北', 2 UNION ALL
-    SELECT 'G7001', '无锡东', 3 UNION ALL
-    SELECT 'G7001', '南京南', 4 UNION ALL
-    SELECT 'G7315', '上海虹桥', 1 UNION ALL
-    SELECT 'G7315', '嘉兴南', 2 UNION ALL
-    SELECT 'G7315', '杭州东', 3
-) AS s ON t.number = s.number;
-
-INSERT INTO train_carriages (train_id, carriage_number, carriage_type, distance)
-SELECT t.id, c.carriage_number, c.carriage_type, c.distance
-FROM trains t
-JOIN (
-    SELECT 'G7001' AS number, '01' AS carriage_number, '商务/一等座' AS carriage_type, '距检票口约80米' AS distance UNION ALL
-    SELECT 'G7001', '08', '二等座', '距检票口约180米' UNION ALL
-    SELECT 'G7315', '02', '一等座', '距检票口约100米' UNION ALL
-    SELECT 'G7315', '06', '二等座', '距检票口约160米'
-) AS c ON t.number = c.number;
-
--- 插入常用路线和用户偏好演示数据
-INSERT INTO common_routes (user_id, start, end, time, distance) VALUES
-('demo_user', '上海虹桥火车站', '同济大学', '45分钟', '约22站'),
-('demo_user', '上海虹桥火车站', '南京东路', '34分钟', '约15站');
-
-INSERT INTO common_route_segments (route_id, segment_type, distance, time)
-SELECT cr.id, s.segment_type, s.distance, s.time
-FROM common_routes cr
-JOIN (
-    SELECT '上海虹桥火车站' AS start, '同济大学' AS end, 'ride' AS segment_type, '10号线直达21站' AS distance, '45分钟' AS time UNION ALL
-    SELECT '上海虹桥火车站', '南京东路', 'ride', '10号线直达15站', '34分钟'
-) AS s ON cr.start = s.start AND cr.end = s.end;
-
-INSERT INTO user_preferences (user_id, theme_color, theme_mode, font_size) VALUES
-('demo_user', 'system', 'system', 'medium');
-
-INSERT INTO user_abilities (user_id, ability_type, ability_level, description) VALUES
-('demo_user', 'mobility', 1, '轻度行动不便，优先推荐少步行、少换乘路线'),
-('demo_user', 'accessibility', 1, '优先选择电梯和无障碍卫生间信息更完整的站点');
-
-INSERT INTO user_luggage (user_id, luggage_type, weight, size) VALUES
-('demo_user', 'suitcase', '12kg', '24寸');

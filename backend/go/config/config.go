@@ -41,7 +41,7 @@ func LoadConfig() {
 		ShmaasMerchantID: getEnv("SHMAAS_MERCHANT_ID", "mock-merchant"),
 		ShmaasSalt:       getEnv("SHMAAS_SALT", "mock-salt"),
 		ShmaasCityCode:   getEnv("SHMAAS_CITY_CODE", "mock-shanghai"),
-		CORSOrigins:      getEnvList("CORS_ORIGINS", []string{"*"}),
+		CORSOrigins:      splitEnv("CORS_ORIGINS", "*"),
 	}
 }
 
@@ -59,21 +59,18 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-func getEnvList(key string, defaultValue []string) []string {
-	value, exists := os.LookupEnv(key)
-	if !exists || strings.TrimSpace(value) == "" {
-		return defaultValue
-	}
-	parts := strings.Split(value, ",")
-	result := make([]string, 0, len(parts))
+func splitEnv(key, defaultValue string) []string {
+	raw := getEnv(key, defaultValue)
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
 	for _, part := range parts {
-		item := strings.TrimSpace(part)
-		if item != "" {
-			result = append(result, item)
+		value := strings.TrimSpace(part)
+		if value != "" {
+			values = append(values, value)
 		}
 	}
-	if len(result) == 0 {
-		return defaultValue
+	if len(values) == 0 {
+		return []string{defaultValue}
 	}
-	return result
+	return values
 }

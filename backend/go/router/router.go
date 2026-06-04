@@ -11,7 +11,7 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", corsOriginFor(c.GetHeader("Origin")))
+		c.Header("Access-Control-Allow-Origin", corsOrigin(c.Request.Header.Get("Origin")))
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if c.Request.Method == "OPTIONS" {
@@ -43,11 +43,6 @@ func SetupRouter() *gin.Engine {
 			metro.GET("/arrival", handlers.GetMetroArrival)
 		}
 
-		api.GET("/indoor-guide", handlers.GetIndoorGuide)
-		api.GET("/indoor-guide/progress", handlers.GetIndoorGuideProgress)
-		api.GET("/indoor-navigation/topology", handlers.GetIndoorStationTopology)
-		api.GET("/indoor-navigation/path", handlers.GetIndoorNavigationPath)
-
 		highSpeedRail := api.Group("/high-speed-rail")
 		{
 			highSpeedRail.GET("/train/:trainNumber", handlers.GetTrainInfo)
@@ -67,16 +62,6 @@ func SetupRouter() *gin.Engine {
 			commonRoutes.DELETE("/:id", handlers.DeleteCommonRoute)
 		}
 
-		users := api.Group("/users")
-		{
-			users.GET("/:userId/preferences", handlers.GetUserPreferences)
-			users.PUT("/:userId/preferences", handlers.SaveUserPreferences)
-			users.GET("/:userId/abilities", handlers.GetUserAbilities)
-			users.PUT("/:userId/abilities/:abilityType", handlers.SaveUserAbility)
-			users.GET("/:userId/luggage", handlers.GetUserLuggage)
-			users.PUT("/:userId/luggage/:luggageType", handlers.SaveUserLuggage)
-		}
-
 		travelAlerts := api.Group("/travel-alerts")
 		{
 			travelAlerts.GET("", handlers.GetTravelAlerts)
@@ -92,11 +77,12 @@ func SetupRouter() *gin.Engine {
 	return r
 }
 
-func corsOriginFor(requestOrigin string) string {
+func corsOrigin(requestOrigin string) string {
 	origins := []string{"*"}
 	if config.AppConfig != nil && len(config.AppConfig.CORSOrigins) > 0 {
 		origins = config.AppConfig.CORSOrigins
 	}
+
 	for _, origin := range origins {
 		if origin == "*" {
 			if requestOrigin != "" {
@@ -108,5 +94,6 @@ func corsOriginFor(requestOrigin string) string {
 			return requestOrigin
 		}
 	}
+
 	return origins[0]
 }

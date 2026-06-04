@@ -22,13 +22,13 @@ type MetroLine struct {
 }
 
 type LineStation struct {
-	ID           int     `json:"id"`
-	LineID       string  `json:"line_id"`
-	StationID    string  `json:"station_id"`
-	Direction    string  `json:"direction"`
-	StationOrder int     `json:"station_order"`
-	IsTransfer   bool    `json:"is_transfer"`
-	PlatformTip  *string `json:"platform_tip"`
+	ID            int    `json:"id"`
+	LineID        string `json:"line_id"`
+	StationID     string `json:"station_id"`
+	Direction     string `json:"direction"`
+	StationOrder  int    `json:"station_order"`
+	IsTransfer    bool   `json:"is_transfer"`
+	PlatformTip   *string `json:"platform_tip"`
 }
 
 type TransferRule struct {
@@ -55,14 +55,6 @@ type StationFacility struct {
 	HasAccessibleRestroom bool   `json:"has_accessible_restroom"`
 	HasBlindPath          bool   `json:"has_blind_path"`
 	ElevatorCount         int    `json:"elevator_count"`
-	ElevatorLocation      string `json:"elevator_location"`
 	EscalatorCount        int    `json:"escalator_count"`
-	RestroomLocation      string `json:"restroom_location"`
-	HasRestroomInPaid     bool   `json:"has_restroom_in_paid"`
-	HasRestroomOutside    bool   `json:"has_restroom_outside"`
-	HasMotherBabyRoom     bool   `json:"has_mother_baby_room"`
-	HasThirdBathroom      bool   `json:"has_third_bathroom"`
-	HasAED                bool   `json:"has_aed"`
-	HasServiceCenter      bool   `json:"has_service_center"`
 	FacilityNote          string `json:"facility_note"`
 }
