@@ -1,0 +1,15 @@
+﻿本压缩包只包含本次待提交改动文件，不包含 .env、APK、build 产物。
+
+改动主题：收口路线规划主流程，解决前端直连 LLM 与后端规划双链路冲突。
+
+主要内容：
+1. 首页开始规划改为进入 /route-plan。
+2. 路线规划页改为调用后端 /api/route-plan/plan 展示多条路线。
+3. 用户选路线后，通过底部弹窗展示后端站内指引。
+4. 前端 getRoutePlans 支持传入进站口/出站口参数。
+5. 后端 route plan 返回 routeId、score、aiAdvice。
+6. 后端路线规划在数据库空表/未初始化时 fallback 到模拟线路数据。
+
+验证：
+- backend/go: go test ./... 通过
+- app: flutter build apk --debug --no-pub 通过

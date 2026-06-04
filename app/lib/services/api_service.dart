@@ -56,12 +56,23 @@ class ApiService {
     String start,
     String end, {
     Map<String, dynamic>? preferences,
+    String? startEntranceId,
+    String? startEntranceName,
+    String? endExitId,
+    String? endExitName,
   }) async {
     try {
       final response = await _networkManager.post('/route-plan/plan', data: {
         'start': start,
         'end': end,
         if (preferences != null) 'preferences': preferences,
+        if (startEntranceId != null && startEntranceId.isNotEmpty)
+          'startEntranceId': startEntranceId,
+        if (startEntranceName != null && startEntranceName.isNotEmpty)
+          'startEntranceName': startEntranceName,
+        if (endExitId != null && endExitId.isNotEmpty) 'endExitId': endExitId,
+        if (endExitName != null && endExitName.isNotEmpty)
+          'endExitName': endExitName,
       });
       if (response.data is Map && response.data['success'] == true) {
         final routes = response.data['routes'];
@@ -74,7 +85,7 @@ class ApiService {
 
     return ApiResponse<List<dynamic>>(
       success: false,
-      error: '后端服务不可用，请使用AI智能规划功能',
+      error: '后端路线规划服务不可用，请检查后端连接',
     );
   }
 

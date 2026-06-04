@@ -181,7 +181,7 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     context.go(
-      '/ai-planning?start=${Uri.encodeComponent(start)}'
+      '/route-plan?start=${Uri.encodeComponent(start)}'
       '&end=${Uri.encodeComponent(end)}'
       '&startId=${Uri.encodeComponent(_startStationId ?? '')}'
       '&endId=${Uri.encodeComponent(_endStationId ?? '')}'

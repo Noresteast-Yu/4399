@@ -15,9 +15,13 @@ import (
 
 func PlanRoute(c *gin.Context) {
 	var req struct {
-		Start       string                 `json:"start" binding:"required"`
-		End         string                 `json:"end" binding:"required"`
-		Preferences map[string]interface{} `json:"preferences"`
+		Start             string                 `json:"start" binding:"required"`
+		End               string                 `json:"end" binding:"required"`
+		StartEntranceID   string                 `json:"startEntranceId"`
+		StartEntranceName string                 `json:"startEntranceName"`
+		EndExitID         string                 `json:"endExitId"`
+		EndExitName       string                 `json:"endExitName"`
+		Preferences       map[string]interface{} `json:"preferences"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
