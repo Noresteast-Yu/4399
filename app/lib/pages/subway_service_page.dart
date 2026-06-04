@@ -28,6 +28,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   List<Map<String, dynamic>> _allFacilities = [];
   List<_StationReview> _reviews = [];
   bool _isLoading = true;
+  bool _isPathLoading = false;
   String? _error;
   String _stationId = 'shaanxi_south_road';
   int _expandedPanel = -1;
@@ -183,7 +184,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
             borderRadius: BorderRadius.circular(32),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -203,6 +204,10 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
               _buildSearchBox(),
               const SizedBox(height: 12),
               _buildPlanFromStationButton(),
+              if (_supportsTopology) ...[
+                const SizedBox(height: 12),
+                _buildTopologyNavigationSection(),
+              ],
               const SizedBox(height: 22),
               _facilityPanel(
                 index: 0,
@@ -214,6 +219,14 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                       (exit) => _ExitRow(
                         number: exit.number,
                         text: exit.text,
+                        onTap: _supportsTopology
+                            ? () => _openTopologyPath(
+                                  label: '${exit.number}号口',
+                                  fromNodeId: '20',
+                                  targetType: 'exit',
+                                  targetId: exit.number,
+                                )
+                            : null,
                       ),
                     )
                     .toList(),
@@ -232,6 +245,14 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                         : '暂无无障碍电梯',
                     subtitle: _text('elevatorLocation') ?? '以站内实际导向为准',
                     enabled: _has('hasElevator'),
+                    onTap: _supportsTopology && _has('hasElevator')
+                        ? () => _openTopologyPath(
+                              label: '无障碍电梯',
+                              fromNodeId: '20',
+                              targetType: 'facility',
+                              targetId: 'accessible_elevator_1',
+                            )
+                        : null,
                   ),
                   _InfoRow(
                     icon: Icons.escalator_rounded,
@@ -253,6 +274,14 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                     title: '无障碍卫生间',
                     subtitle: _text('restroomLocation') ?? '暂无位置说明',
                     enabled: _has('hasAccessibleRestroom'),
+                    onTap: _supportsTopology && _has('hasAccessibleRestroom')
+                        ? () => _openTopologyPath(
+                              label: '公共厕所',
+                              fromNodeId: '20',
+                              targetType: 'facility',
+                              targetId: 'toilet_1',
+                            )
+                        : null,
                   ),
                   _InfoRow(
                     icon: Icons.meeting_room_rounded,
@@ -280,6 +309,14 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                     title: '服务中心',
                     subtitle: _has('hasServiceCenter') ? '票务处理与咨询' : '暂无标注',
                     enabled: _has('hasServiceCenter'),
+                    onTap: _supportsTopology && _has('hasServiceCenter')
+                        ? () => _openTopologyPath(
+                              label: '服务中心',
+                              fromNodeId: '20',
+                              targetType: 'facility',
+                              targetId: 'service_center_1',
+                            )
+                        : null,
                   ),
                   _InfoRow(
                     icon: Icons.medical_services_rounded,
@@ -311,7 +348,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
           border: Border.all(color: const Color(0xFFE1DCE8)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -366,6 +403,219 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     );
   }
 
+  Widget _buildTopologyNavigationSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F1FA),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8D9EA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.alt_route_rounded, color: _line10, size: 22),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  '同济大学站内导航',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (_isPathLoading)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _TopologyQuickButton(
+                icon: Icons.train_rounded,
+                label: '5号口进站',
+                onTap: () => _openTopologyPath(
+                  label: '5号口到站台',
+                  fromNodeId: '1',
+                  toNodeId: '20',
+                ),
+              ),
+              _TopologyQuickButton(
+                icon: Icons.wc_rounded,
+                label: '站台去厕所',
+                onTap: () => _openTopologyPath(
+                  label: '公共厕所',
+                  fromNodeId: '20',
+                  targetType: 'facility',
+                  targetId: 'toilet_1',
+                ),
+              ),
+              _TopologyQuickButton(
+                icon: Icons.support_agent_rounded,
+                label: '站台去服务中心',
+                onTap: () => _openTopologyPath(
+                  label: '服务中心',
+                  fromNodeId: '20',
+                  targetType: 'facility',
+                  targetId: 'service_center_1',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openTopologyPath({
+    required String label,
+    required String fromNodeId,
+    String? toNodeId,
+    String? targetType,
+    String? targetId,
+  }) async {
+    if (!_supportsTopology || _isPathLoading) return;
+
+    setState(() => _isPathLoading = true);
+    final response = await _apiService.getIndoorNavigationPath(
+      stationId: _topologyStationId,
+      fromNodeId: fromNodeId,
+      toNodeId: toNodeId,
+      targetType: targetType,
+      targetId: targetId,
+    );
+    if (!mounted) return;
+    setState(() => _isPathLoading = false);
+
+    if (!response.success || response.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response.error ?? '暂时无法生成站内路径')),
+      );
+      return;
+    }
+
+    _showTopologyPathSheet(label, response.data!);
+  }
+
+  void _showTopologyPathSheet(String label, Map<String, dynamic> path) {
+    final steps = ((path['steps'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final totalSeconds = (path['totalSeconds'] as num?)?.toInt() ?? 0;
+    final targetName =
+        (path['targetName'] ?? path['toNodeName'] ?? label).toString();
+    final minutes = (totalSeconds / 60).ceil().clamp(1, 999);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.72,
+          minChildSize: 0.42,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: _sheet,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 46,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6DDE8),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFECE3F1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.navigation_rounded,
+                            color: _line10,
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                targetName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _ink,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                '预计 $minutes 分钟 · ${steps.length} 步',
+                                style: const TextStyle(
+                                  color: _muted,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      itemCount: steps.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        return _TopologyStepCard(
+                          step: steps[index],
+                          index: index,
+                          isLast: index == steps.length - 1,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _facilityPanel({
     required int index,
     required IconData icon,
@@ -382,7 +632,9 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
         color: expanded ? Colors.white : const Color(0xFFF7F7FB),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: expanded ? _line10.withOpacity(0.58) : const Color(0xFFE8E5EC),
+          color: expanded
+              ? _line10.withValues(alpha: 0.58)
+              : const Color(0xFFE8E5EC),
           width: expanded ? 1.2 : 1,
         ),
       ),
@@ -943,6 +1195,11 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     return name == null || name.isEmpty ? '地铁设施' : name;
   }
 
+  bool get _supportsTopology =>
+      _stationId == _topologyStationId || _stationName.contains('同济大学');
+
+  String get _topologyStationId => 'tongji_university';
+
   List<String> _lineIdsOf(Map<String, dynamic> facility) {
     final raw = facility['lineIds'];
     if (raw is List) {
@@ -1014,54 +1271,254 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   }
 }
 
-class _ExitRow extends StatelessWidget {
-  final String number;
-  final String text;
+class _TopologyQuickButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
-  const _ExitRow({
-    required this.number,
-    required this.text,
+  const _TopologyQuickButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _SubwayServicePageState._chipBlue,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              number,
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8D9EA)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: _SubwayServicePageState._line10, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              label,
               style: const TextStyle(
                 color: _SubwayServicePageState._ink,
-                fontSize: 20,
+                fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: _SubwayServicePageState._ink,
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopologyStepCard extends StatelessWidget {
+  final Map<String, dynamic> step;
+  final int index;
+  final bool isLast;
+
+  const _TopologyStepCard({
+    required this.step,
+    required this.index,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final title = step['title']?.toString().trim();
+    final instruction = step['instruction']?.toString().trim();
+    final seconds = (step['seconds'] as num?)?.toInt() ?? 0;
+    final photoFile = step['photoFile']?.toString().trim();
+    final timeText = seconds <= 0 ? '' : '约 ${(seconds / 60).ceil()} 分钟';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE8E5EC)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFECE3F1),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    color: _SubwayServicePageState._line10,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 48,
+                  color: const Color(0xFFE1DCE8),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title == null || title.isEmpty ? '站内指引' : title,
+                        style: const TextStyle(
+                          color: _SubwayServicePageState._ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    if (timeText.isNotEmpty)
+                      Text(
+                        timeText,
+                        style: const TextStyle(
+                          color: _SubwayServicePageState._muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  instruction == null || instruction.isEmpty
+                      ? '按站内导向前进'
+                      : instruction,
+                  style: const TextStyle(
+                    color: _SubwayServicePageState._muted,
+                    fontSize: 14,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (photoFile != null && photoFile.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 7,
+                      child: Image.asset(
+                        photoFile,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.add_photo_alternate_rounded,
+                                  color: _SubwayServicePageState._line10,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '照片位：$photoFile',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: _SubwayServicePageState._muted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              color: _SubwayServicePageState._muted),
         ],
+      ),
+    );
+  }
+}
+
+class _ExitRow extends StatelessWidget {
+  final String number;
+  final String text;
+  final VoidCallback? onTap;
+
+  const _ExitRow({
+    required this.number,
+    required this.text,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _SubwayServicePageState._chipBlue,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                number,
+                style: const TextStyle(
+                  color: _SubwayServicePageState._ink,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _SubwayServicePageState._ink,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Icon(
+              onTap == null
+                  ? Icons.chevron_right_rounded
+                  : Icons.navigation_rounded,
+              color: _SubwayServicePageState._muted,
+              size: 22,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1072,60 +1529,75 @@ class _InfoRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool enabled;
+  final VoidCallback? onTap;
 
   const _InfoRow({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.enabled,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = enabled ? _SubwayServicePageState._line10 : Colors.grey;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor:
-                enabled ? const Color(0xFFECE3F1) : const Color(0xFFF0F0F2),
-            child: Icon(icon, color: color, size: 21),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: enabled ? _SubwayServicePageState._ink : Colors.grey,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _SubwayServicePageState._muted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: enabled ? onTap : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor:
+                  enabled ? const Color(0xFFECE3F1) : const Color(0xFFF0F0F2),
+              child: Icon(icon, color: color, size: 21),
             ),
-          ),
-          Icon(
-            enabled ? Icons.check_circle_rounded : Icons.cancel_outlined,
-            color: enabled ? const Color(0xFF35A853) : Colors.grey,
-            size: 20,
-          ),
-        ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color:
+                          enabled ? _SubwayServicePageState._ink : Colors.grey,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _SubwayServicePageState._muted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              onTap != null && enabled
+                  ? Icons.navigation_rounded
+                  : enabled
+                      ? Icons.check_circle_rounded
+                      : Icons.cancel_outlined,
+              color: onTap != null && enabled
+                  ? _SubwayServicePageState._line10
+                  : enabled
+                      ? const Color(0xFF35A853)
+                      : Colors.grey,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }

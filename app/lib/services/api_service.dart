@@ -147,6 +147,10 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> getIndoorGuide({
     required String from,
     required String to,
+    String? startEntranceId,
+    String? startEntranceName,
+    String? endExitId,
+    String? endExitName,
   }) {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response = await _networkManager.get(
@@ -154,13 +158,16 @@ class ApiService {
         queryParameters: {
           'from': from,
           'to': to,
+          if (startEntranceId != null && startEntranceId.isNotEmpty)
+            'startEntranceId': startEntranceId,
+          if (startEntranceName != null && startEntranceName.isNotEmpty)
+            'startEntranceName': startEntranceName,
+          if (endExitId != null && endExitId.isNotEmpty) 'endExitId': endExitId,
+          if (endExitName != null && endExitName.isNotEmpty)
+            'endExitName': endExitName,
         },
       );
-      final data = response.data;
-      if (data is Map && data['success'] == true && data['data'] is Map) {
-        return Map<String, dynamic>.from(data['data']);
-      }
-      return Map<String, dynamic>.from(data);
+      return _unwrapDataMap(response.data);
     });
   }
 
@@ -168,6 +175,10 @@ class ApiService {
     required String from,
     required String to,
     required int stepIndex,
+    String? startEntranceId,
+    String? startEntranceName,
+    String? endExitId,
+    String? endExitName,
   }) {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response = await _networkManager.get(
@@ -176,13 +187,51 @@ class ApiService {
           'from': from,
           'to': to,
           'stepIndex': stepIndex,
+          if (startEntranceId != null && startEntranceId.isNotEmpty)
+            'startEntranceId': startEntranceId,
+          if (startEntranceName != null && startEntranceName.isNotEmpty)
+            'startEntranceName': startEntranceName,
+          if (endExitId != null && endExitId.isNotEmpty) 'endExitId': endExitId,
+          if (endExitName != null && endExitName.isNotEmpty)
+            'endExitName': endExitName,
         },
       );
-      final data = response.data;
-      if (data is Map && data['success'] == true && data['data'] is Map) {
-        return Map<String, dynamic>.from(data['data']);
-      }
-      return Map<String, dynamic>.from(data);
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getIndoorStationTopology({
+    String stationId = 'tongji_university',
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.get(
+        '/indoor-navigation/topology',
+        queryParameters: {'stationId': stationId},
+      );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getIndoorNavigationPath({
+    String stationId = 'tongji_university',
+    required String fromNodeId,
+    String? toNodeId,
+    String? targetType,
+    String? targetId,
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.get(
+        '/indoor-navigation/path',
+        queryParameters: {
+          'stationId': stationId,
+          'fromNodeId': fromNodeId,
+          if (toNodeId != null && toNodeId.isNotEmpty) 'toNodeId': toNodeId,
+          if (targetType != null && targetType.isNotEmpty)
+            'targetType': targetType,
+          if (targetId != null && targetId.isNotEmpty) 'targetId': targetId,
+        },
+      );
+      return _unwrapDataMap(response.data);
     });
   }
 

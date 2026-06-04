@@ -5,11 +5,19 @@ import 'package:smart_travel_app/services/api_service.dart';
 class AIPlanningPage extends StatefulWidget {
   final String? initialStartStation;
   final String? initialEndStation;
+  final String? initialStartEntranceId;
+  final String? initialStartEntranceName;
+  final String? initialEndExitId;
+  final String? initialEndExitName;
 
   const AIPlanningPage({
     super.key,
     this.initialStartStation,
     this.initialEndStation,
+    this.initialStartEntranceId,
+    this.initialStartEntranceName,
+    this.initialEndExitId,
+    this.initialEndExitName,
   });
 
   @override
@@ -28,6 +36,10 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
   late final String _startStation;
   late final String _endStation;
+  late final String _startEntranceId;
+  late final String _endExitId;
+  late final String _startEntranceName;
+  late final String _endExitName;
   late final bool _hasRoute;
   int _stepIndex = 0;
   _ProgressStatus? _stepStatus;
@@ -39,6 +51,10 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     super.initState();
     _startStation = widget.initialStartStation?.trim() ?? '';
     _endStation = widget.initialEndStation?.trim() ?? '';
+    _startEntranceId = widget.initialStartEntranceId?.trim() ?? '';
+    _endExitId = widget.initialEndExitId?.trim() ?? '';
+    _startEntranceName = widget.initialStartEntranceName?.trim() ?? '';
+    _endExitName = widget.initialEndExitName?.trim() ?? '';
     _hasRoute = _startStation.isNotEmpty && _endStation.isNotEmpty;
     if (_hasRoute) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadIndoorGuide());
@@ -51,6 +67,10 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       from: _startStation,
       to: _endStation,
       stepIndex: _stepIndex,
+      startEntranceId: _startEntranceId,
+      startEntranceName: _startEntranceName,
+      endExitId: _endExitId,
+      endExitName: _endExitName,
     );
     if (!mounted) return;
     final rawStatus = response.data?['status'];
@@ -65,6 +85,10 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     final response = await _apiService.getIndoorGuide(
       from: _startStation,
       to: _endStation,
+      startEntranceId: _startEntranceId,
+      startEntranceName: _startEntranceName,
+      endExitId: _endExitId,
+      endExitName: _endExitName,
     );
     if (!mounted || !response.success) {
       return;
@@ -153,6 +177,15 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                   _ProgressPanel(
                     status: _stepStatus ?? _fallbackStatusFor(step, steps),
                   ),
+                  if (_hasAccessSelection) ...[
+                    const SizedBox(height: 12),
+                    _AccessTaskPanel(
+                      startStation: _startStation,
+                      startEntrance: _startEntranceName,
+                      endStation: _endStation,
+                      endExit: _endExitName,
+                    ),
+                  ],
                   if (showSummary) ...[
                     const SizedBox(height: 12),
                     _RouteSummaryPanel(summary: _summary!),
@@ -204,6 +237,9 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       icon: step.icon,
     );
   }
+
+  bool get _hasAccessSelection =>
+      _startEntranceName.isNotEmpty || _endExitName.isNotEmpty;
 }
 
 class _WaitingRouteState extends StatelessWidget {
@@ -258,6 +294,115 @@ class _WaitingRouteState extends StatelessWidget {
         ),
         const Spacer(),
       ],
+    );
+  }
+}
+
+class _AccessTaskPanel extends StatelessWidget {
+  final String startStation;
+  final String startEntrance;
+  final String endStation;
+  final String endExit;
+
+  const _AccessTaskPanel({
+    required this.startStation,
+    required this.startEntrance,
+    required this.endStation,
+    required this.endExit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: _softPanel(),
+      child: Row(
+        children: [
+          _AccessNode(
+            icon: Icons.login_rounded,
+            title: startEntrance.isEmpty ? '待补进站口' : startEntrance,
+            subtitle: startStation,
+            color: _AIPlanningPageState._line10,
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Icon(
+              Icons.arrow_forward_rounded,
+              color: _AIPlanningPageState._muted,
+              size: 20,
+            ),
+          ),
+          _AccessNode(
+            icon: Icons.logout_rounded,
+            title: endExit.isEmpty ? '待补出站口' : endExit,
+            subtitle: endStation,
+            color: _AIPlanningPageState._green,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccessNode extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+
+  const _AccessNode({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 21),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _AIPlanningPageState._ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _AIPlanningPageState._muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -634,7 +779,17 @@ class _ScenePanel extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CustomPaint(painter: _ScenePainter(color: step.lineColor)),
+          if (step.photoFile.isNotEmpty)
+            Image.asset(
+              step.photoFile,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return CustomPaint(
+                    painter: _ScenePainter(color: step.lineColor));
+              },
+            )
+          else
+            CustomPaint(painter: _ScenePainter(color: step.lineColor)),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -661,8 +816,8 @@ class _ScenePanel extends StatelessWidget {
                     color: Colors.white.withOpacity(0.86),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
-                    '实景占位',
+                  child: Text(
+                    step.photoFile.isEmpty ? '实景占位' : '实景照片',
                     style: TextStyle(
                       color: _AIPlanningPageState._muted,
                       fontSize: 12,
@@ -886,6 +1041,8 @@ class _NavStep {
   final int totalStops;
   final String doorHint;
   final Map<String, dynamic> arrivalQuery;
+  final String photoKey;
+  final String photoFile;
 
   const _NavStep({
     required this.stage,
@@ -902,6 +1059,8 @@ class _NavStep {
     this.totalStops = 0,
     this.arrivalQuery = const <String, dynamic>{},
     this.doorHint = '车门',
+    this.photoKey = '',
+    this.photoFile = '',
   });
 
   factory _NavStep.fromJson(Map<String, dynamic> json) {
@@ -926,6 +1085,8 @@ class _NavStep {
           ? Map<String, dynamic>.from(rawArrivalQuery)
           : const <String, dynamic>{},
       doorHint: json['doorHint']?.toString() ?? '车门',
+      photoKey: json['photoKey']?.toString() ?? '',
+      photoFile: json['photoFile']?.toString() ?? '',
     );
   }
 }

@@ -180,8 +180,14 @@ func GetMetroArrival(c *gin.Context) {
 func GetIndoorGuide(c *gin.Context) {
 	from := c.DefaultQuery("from", "新天地")
 	to := c.DefaultQuery("to", "静安寺")
+	options := services.IndoorGuideOptions{
+		StartEntranceID:   c.Query("startEntranceId"),
+		StartEntranceName: c.Query("startEntranceName"),
+		EndExitID:         c.Query("endExitId"),
+		EndExitName:       c.Query("endExitName"),
+	}
 
-	plan := services.BuildIndoorGuide(from, to)
+	plan := services.BuildIndoorGuideWithOptions(from, to, options)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": plan})
 }
 
@@ -189,9 +195,48 @@ func GetIndoorGuideProgress(c *gin.Context) {
 	from := c.DefaultQuery("from", "新天地")
 	to := c.DefaultQuery("to", "静安寺")
 	stepIndex, _ := strconv.Atoi(c.DefaultQuery("stepIndex", "0"))
+	options := services.IndoorGuideOptions{
+		StartEntranceID:   c.Query("startEntranceId"),
+		StartEntranceName: c.Query("startEntranceName"),
+		EndExitID:         c.Query("endExitId"),
+		EndExitName:       c.Query("endExitName"),
+	}
 
-	progress := services.BuildIndoorGuideProgress(from, to, stepIndex)
+	progress := services.BuildIndoorGuideProgressWithOptions(from, to, stepIndex, options)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": progress})
+}
+
+func GetIndoorStationTopology(c *gin.Context) {
+	stationID := c.DefaultQuery("stationId", "tongji_university")
+
+	topology, err := services.LoadStationTopology(stationID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": topology})
+}
+
+func GetIndoorNavigationPath(c *gin.Context) {
+	stationID := c.DefaultQuery("stationId", "tongji_university")
+	fromNodeID := c.Query("fromNodeId")
+	toNodeID := c.Query("toNodeId")
+	targetType := c.Query("targetType")
+	targetID := c.Query("targetId")
+
+	if fromNodeID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "fromNodeId is required"})
+		return
+	}
+
+	path, err := services.BuildIndoorNavigationPath(stationID, fromNodeID, toNodeID, targetType, targetID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": path})
 }
 
 func GetCommonRoutes(c *gin.Context) {

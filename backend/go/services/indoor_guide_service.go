@@ -23,6 +23,8 @@ type IndoorGuideStep struct {
 	TotalStops     int               `json:"totalStops,omitempty"`
 	DoorHint       string            `json:"doorHint,omitempty"`
 	ArrivalQuery   map[string]string `json:"arrivalQuery,omitempty"`
+	PhotoKey       string            `json:"photoKey,omitempty"`
+	PhotoFile      string            `json:"photoFile,omitempty"`
 }
 
 type IndoorGuideProgressStatus struct {
@@ -72,6 +74,13 @@ type IndoorGuidePlan struct {
 	ArrivalQueries   []map[string]string       `json:"arrivalQueries"`
 	Route            []IndoorGuideRouteSegment `json:"route"`
 	Steps            []IndoorGuideStep         `json:"steps"`
+}
+
+type IndoorGuideOptions struct {
+	StartEntranceID   string
+	StartEntranceName string
+	EndExitID         string
+	EndExitName       string
 }
 
 type metroState struct {
@@ -316,16 +325,24 @@ func applyIndoorGuideData(config indoorGuideDataConfig) {
 }
 
 func BuildIndoorGuide(from string, to string) IndoorGuidePlan {
+	return BuildIndoorGuideWithOptions(from, to, IndoorGuideOptions{})
+}
+
+func BuildIndoorGuideWithOptions(from string, to string, options IndoorGuideOptions) IndoorGuidePlan {
 	ensureIndoorGuideDataLoaded()
 	from = normalizeIndoorStation(from, "新天地")
 	to = normalizeIndoorStation(to, "静安寺")
+
+	if plan, ok := buildSameStationIndoorPlan(from, to, options); ok {
+		return plan
+	}
 
 	route := planMetroRoute(from, to)
 	if len(route.Segments) == 0 {
 		route = fallbackMetroRoute(from, to)
 	}
 
-	steps := composeIndoorGuideSteps(route, from, to)
+	steps := composeIndoorGuideSteps(route, from, to, options)
 	transferStation := ""
 	if len(route.TransferStations) > 0 {
 		transferStation = route.TransferStations[0]
@@ -346,8 +363,92 @@ func BuildIndoorGuide(from string, to string) IndoorGuidePlan {
 	}
 }
 
+func buildSameStationIndoorPlan(from string, to string, options IndoorGuideOptions) (IndoorGuidePlan, bool) {
+	if strings.TrimSpace(from) == "" || from != to {
+		return IndoorGuidePlan{}, false
+	}
+
+	stationID := topologyStationIDFor(from)
+	if stationID == "" || options.StartEntranceID == "" || options.EndExitID == "" {
+		return IndoorGuidePlan{}, false
+	}
+
+	fromNodeID := topologyExitNodeID(stationID, options.StartEntranceID)
+	if fromNodeID == "" {
+		return IndoorGuidePlan{}, false
+	}
+
+	path, err := BuildIndoorNavigationPath(stationID, fromNodeID, "", "exit", options.EndExitID)
+	if err != nil || path == nil {
+		return IndoorGuidePlan{}, false
+	}
+	if len(path.Steps) == 0 {
+		steps := []IndoorGuideStep{samePointIndoorStep(path, options)}
+		return IndoorGuidePlan{
+			From:    from,
+			To:      to,
+			Summary: buildSameStationIndoorSummary(from, to, steps, options),
+			Steps:   steps,
+		}, true
+	}
+
+	steps := guideStepsFromTopologyPath(path, "indoor", "站内通行", "#B07AB2")
+	return IndoorGuidePlan{
+		From:    from,
+		To:      to,
+		Summary: buildSameStationIndoorSummary(from, to, steps, options),
+		Steps:   steps,
+	}, true
+}
+
+func samePointIndoorStep(path *IndoorNavigationPath, options IndoorGuideOptions) IndoorGuideStep {
+	targetName := options.EndExitName
+	if targetName == "" {
+		targetName = path.ToNode.Name
+	}
+	return guideStep(
+		"indoor",
+		"站内通行",
+		"#B07AB2",
+		"已在目标出入口",
+		"你选择的进站口和出站口是同一个点，无需进闸、乘车或绕行。",
+		targetName,
+		"无需移动",
+		0,
+		"navigation",
+	)
+}
+
+func buildSameStationIndoorSummary(from string, to string, steps []IndoorGuideStep, options IndoorGuideOptions) IndoorGuideSummary {
+	duration := 0
+	for _, step := range steps {
+		duration += step.Minutes
+	}
+	nextAction := "选择站内路径"
+	if len(steps) > 0 {
+		nextAction = steps[0].Title
+	}
+	doorHint := "无需乘车"
+	if options.StartEntranceName != "" && options.EndExitName != "" {
+		doorHint = options.StartEntranceName + "到" + options.EndExitName
+	}
+	return IndoorGuideSummary{
+		Title:           from + "站内通行",
+		DurationMinutes: duration,
+		TransferCount:   0,
+		TransferText:    "无需进闸乘车",
+		DoorHint:        doorHint,
+		Lines:           []string{"站内通行"},
+		NextAction:      nextAction,
+	}
+}
+
 func BuildIndoorGuideProgress(from string, to string, stepIndex int) IndoorGuideProgress {
-	plan := BuildIndoorGuide(from, to)
+	return BuildIndoorGuideProgressWithOptions(from, to, stepIndex, IndoorGuideOptions{})
+}
+
+func BuildIndoorGuideProgressWithOptions(from string, to string, stepIndex int, options IndoorGuideOptions) IndoorGuideProgress {
+	plan := BuildIndoorGuideWithOptions(from, to, options)
 	if len(plan.Steps) == 0 {
 		return IndoorGuideProgress{
 			StepIndex: 0,
@@ -547,14 +648,14 @@ func routeSegment(line string, stops []string) IndoorGuideRouteSegment {
 	}
 }
 
-func composeIndoorGuideSteps(route metroRoute, from string, to string) []IndoorGuideStep {
+func composeIndoorGuideSteps(route metroRoute, from string, to string, options IndoorGuideOptions) []IndoorGuideStep {
 	if len(route.Segments) == 0 {
 		return nil
 	}
 
 	steps := []IndoorGuideStep{}
 	first := route.Segments[0]
-	steps = append(steps, entryStepsForStation(from, first.LineName)...)
+	steps = append(steps, entryStepsForStation(from, first.LineName, options)...)
 	steps = append(steps, platformStepForSegment(first, first.To))
 	steps = append(steps, rideStepForSegment(first, nextTransferTarget(route, 0)))
 
@@ -566,22 +667,31 @@ func composeIndoorGuideSteps(route metroRoute, from string, to string) []IndoorG
 		steps = append(steps, rideStepForSegment(current, nextTransferTarget(route, i)))
 	}
 
-	steps = append(steps, exitStepsForStation(to)...)
+	last := route.Segments[len(route.Segments)-1]
+	steps = append(steps, exitStepsForStation(to, last.LineName, options)...)
 	assignArrivalQueriesToSteps(steps, route)
 	return steps
 }
 
-func entryStepsForStation(station string, line string) []IndoorGuideStep {
+func entryStepsForStation(station string, line string, options IndoorGuideOptions) []IndoorGuideStep {
+	if steps := topologyEntryStepsForStation(station, line, options); len(steps) > 0 {
+		return steps
+	}
+
 	profile := profileForStation(station)
 	templates := profile.Entry
 	if len(templates) == 0 {
 		templates = stationProfiles["default"].Entry
 	}
 	lineColor := metroLineColors[line]
+	entrance := profile.Entrance
+	if options.StartEntranceName != "" {
+		entrance = options.StartEntranceName
+	}
 	context := map[string]string{
 		"station":  station,
 		"line":     line,
-		"entrance": profile.Entrance,
+		"entrance": entrance,
 		"exit":     profile.Exit,
 	}
 	return stepsFromTemplates("entry", line, lineColor, templates, context)
@@ -652,17 +762,132 @@ func transferStepsForStation(station string, fromLine string, toLine string) []I
 	return steps
 }
 
-func exitStepsForStation(station string) []IndoorGuideStep {
+func exitStepsForStation(station string, line string, options IndoorGuideOptions) []IndoorGuideStep {
+	if steps := topologyExitStepsForStation(station, line, options); len(steps) > 0 {
+		return steps
+	}
+
 	profile := profileForStation(station)
 	templates := profile.ExitStep
 	if len(templates) == 0 {
 		templates = stationProfiles["default"].ExitStep
 	}
+	exit := profile.Exit
+	if options.EndExitName != "" {
+		exit = options.EndExitName
+	}
 	context := map[string]string{
 		"station": station,
-		"exit":    profile.Exit,
+		"exit":    exit,
 	}
 	return stepsFromTemplates("exit", "出站", metroLineColors["出站"], templates, context)
+}
+
+func topologyEntryStepsForStation(station string, line string, options IndoorGuideOptions) []IndoorGuideStep {
+	stationID := topologyStationIDFor(station)
+	if stationID == "" || options.StartEntranceID == "" {
+		return nil
+	}
+
+	fromNodeID := topologyExitNodeID(stationID, options.StartEntranceID)
+	if fromNodeID == "" {
+		return nil
+	}
+
+	path, err := BuildIndoorNavigationPath(stationID, fromNodeID, "20", "", "")
+	if err != nil || path == nil {
+		return nil
+	}
+
+	return guideStepsFromTopologyPath(path, "entry", line, metroLineColors[line])
+}
+
+func topologyExitStepsForStation(station string, line string, options IndoorGuideOptions) []IndoorGuideStep {
+	stationID := topologyStationIDFor(station)
+	if stationID == "" || options.EndExitID == "" {
+		return nil
+	}
+
+	path, err := BuildIndoorNavigationPath(stationID, "20", "", "exit", options.EndExitID)
+	if err != nil || path == nil {
+		return nil
+	}
+
+	return guideStepsFromTopologyPath(path, "exit", "出站", metroLineColors["出站"])
+}
+
+func guideStepsFromTopologyPath(path *IndoorNavigationPath, stage string, lineName string, lineColor string) []IndoorGuideStep {
+	steps := make([]IndoorGuideStep, 0, len(path.Steps))
+	for _, topologyStep := range path.Steps {
+		minutes := topologyStep.Seconds / 60
+		if topologyStep.Seconds%60 != 0 {
+			minutes++
+		}
+		if minutes < 1 {
+			minutes = 1
+		}
+
+		step := guideStep(
+			stage,
+			lineName,
+			lineColor,
+			topologyStep.Title,
+			topologyStep.Instruction,
+			topologyStep.ToNode.Name,
+			topologyStep.Note,
+			minutes,
+			iconKeyForTopologyEdge(topologyStep.EdgeType, stage),
+		)
+		if step.ImageSubtitle == "" {
+			step.ImageSubtitle = "预计" + secondsText(topologyStep.Seconds)
+		}
+		step.PhotoKey = topologyStep.PhotoKey
+		step.PhotoFile = topologyStep.PhotoFile
+		steps = append(steps, step)
+	}
+	return steps
+}
+
+func topologyStationIDFor(station string) string {
+	switch strings.TrimSpace(station) {
+	case "同济大学":
+		return "tongji_university"
+	default:
+		return ""
+	}
+}
+
+func topologyExitNodeID(stationID string, exitID string) string {
+	topology, err := LoadStationTopology(stationID)
+	if err != nil || topology == nil {
+		return ""
+	}
+	for _, exit := range topology.Exits {
+		if exit.ExitNo == exitID || exit.Name == exitID {
+			return exit.NodeID
+		}
+	}
+	return ""
+}
+
+func iconKeyForTopologyEdge(edgeType string, stage string) string {
+	switch edgeType {
+	case "entry_gate":
+		return "login"
+	case "exit_gate":
+		return "output"
+	case "vertical":
+		return "escalator"
+	case "elevator":
+		return "elevator"
+	case "facility":
+		return "signpost"
+	default:
+		if stage == "exit" {
+			return "output"
+		}
+		return "straight"
+	}
 }
 
 func guideStep(stage string, lineName string, lineColor string, title string, detail string, imageTitle string, imageSubtitle string, minutes int, iconKey string) IndoorGuideStep {

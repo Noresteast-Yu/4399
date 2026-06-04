@@ -397,7 +397,7 @@ class ShanghaiMetroMapData {
 
   static final MetroMapDataset coreLine10 = MetroMapDataset(
     mapSize: const Size(1800, 1050),
-    initialStationId: 'mock-l10-wujiaochang',
+    initialStationId: 'mock-l10-tongji-university',
     lines: metroLines,
     referenceLines: referenceLines,
   );

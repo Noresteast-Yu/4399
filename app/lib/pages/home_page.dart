@@ -23,7 +23,7 @@ class _HomePageState extends State<HomePage> {
   static const Color _green = Color(0xFF008644);
 
   final TextEditingController _startController =
-      TextEditingController(text: '五角场');
+      TextEditingController(text: '同济大学');
   final TextEditingController _endController = TextEditingController();
   final ApiService _apiService = ApiService();
 
@@ -31,8 +31,12 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? _metroArrival;
   bool _isArrivalLoading = false;
 
-  String _selectedMetroStopId = 'mock-l10-wujiaochang';
-  String _selectedMetroStopName = '五角场';
+  String _selectedMetroStopId = 'mock-l10-tongji-university';
+  String _selectedMetroStopName = '同济大学';
+  String? _startStationId = 'mock-l10-tongji-university';
+  String? _endStationId;
+  _AccessChoice? _startEntrance;
+  _AccessChoice? _endExit;
   int _selectedMetroDirection = 0;
   double _arrivalDockHeight = 156;
   bool _isDockDragging = false;
@@ -143,16 +147,22 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _setSelectedAsStart() {
+  Future<void> _setSelectedAsStart() async {
     setState(() {
       _startController.text = _selectedMetroStopName;
+      _startStationId = _selectedMetroStopId;
+      _startEntrance = null;
     });
+    await _chooseAccessPoint(forStart: true);
   }
 
-  void _setSelectedAsEnd() {
+  Future<void> _setSelectedAsEnd() async {
     setState(() {
       _endController.text = _selectedMetroStopName;
+      _endStationId = _selectedMetroStopId;
+      _endExit = null;
     });
+    await _chooseAccessPoint(forStart: false);
   }
 
   void _goPlanning() {
@@ -164,9 +174,203 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
+    if (_startEntrance == null || _endExit == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请补全进站口和出站口')),
+      );
+      return;
+    }
     context.go(
-      '/ai-planning?start=${Uri.encodeComponent(start)}&end=${Uri.encodeComponent(end)}',
+      '/ai-planning?start=${Uri.encodeComponent(start)}'
+      '&end=${Uri.encodeComponent(end)}'
+      '&startId=${Uri.encodeComponent(_startStationId ?? '')}'
+      '&endId=${Uri.encodeComponent(_endStationId ?? '')}'
+      '&startEntranceId=${Uri.encodeComponent(_startEntrance!.id)}'
+      '&startEntranceName=${Uri.encodeComponent(_startEntrance!.label)}'
+      '&endExitId=${Uri.encodeComponent(_endExit!.id)}'
+      '&endExitName=${Uri.encodeComponent(_endExit!.label)}',
     );
+  }
+
+  Future<void> _chooseAccessPoint({required bool forStart}) async {
+    final stationName =
+        forStart ? _startController.text.trim() : _endController.text.trim();
+    if (stationName.isEmpty) return;
+
+    final choices = _accessChoicesFor(stationName, forStart: forStart);
+    final selected = await showModalBottomSheet<_AccessChoice>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.72;
+        return Container(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 46,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE4D9E5),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                forStart ? '选择进站口' : '选择出站口',
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                stationName,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: choices.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final choice = choices[index];
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => Navigator.pop(sheetContext, choice),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8F5FA),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFE7D8EA)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _line10,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                choice.shortLabel,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    choice.label,
+                                    style: const TextStyle(
+                                      color: _ink,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    choice.detail,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: _muted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded,
+                                color: _muted),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected == null || !mounted) return;
+    setState(() {
+      if (forStart) {
+        _startEntrance = selected;
+      } else {
+        _endExit = selected;
+      }
+    });
+  }
+
+  List<_AccessChoice> _accessChoicesFor(
+    String stationName, {
+    required bool forStart,
+  }) {
+    if (stationName.contains('同济大学')) {
+      return const [
+        _AccessChoice('1', '1号口', '四平路，同济大学正门'),
+        _AccessChoice('2', '2号口', '彰武路，赤峰路'),
+        _AccessChoice('3', '3号口', '站厅北侧通道'),
+        _AccessChoice('4', '4号口', '站厅北侧通道'),
+        _AccessChoice('5', '5号口', '同济联合广场'),
+      ];
+    }
+    if (stationName.contains('虹桥')) {
+      return const [
+        _AccessChoice('A', 'A口', '高铁到达层，虹桥枢纽'),
+        _AccessChoice('B', 'B口', '2号线、17号线换乘'),
+        _AccessChoice('C', 'C口', '出租车，公交枢纽'),
+      ];
+    }
+    if (stationName.contains('五角场')) {
+      return const [
+        _AccessChoice('1', '1号口', '邯郸路，国定路'),
+        _AccessChoice('4', '4号口', '万达广场'),
+        _AccessChoice('5', '5号口', '合生汇，大学路'),
+      ];
+    }
+    return forStart
+        ? const [
+            _AccessChoice('1', '1号口', '默认进站口'),
+            _AccessChoice('2', '2号口', '备用进站口'),
+          ]
+        : const [
+            _AccessChoice('1', '1号口', '默认出站口'),
+            _AccessChoice('2', '2号口', '备用出站口'),
+          ];
   }
 
   double _dockMinHeight(Size size) => size.height < 720 ? 136 : 156;
@@ -390,7 +594,82 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+        const SizedBox(height: 8),
+        _buildAccessSummaryBar(),
       ],
+    );
+  }
+
+  Widget _buildAccessSummaryBar() {
+    return _GlassPanel(
+      borderRadius: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: _accessSummaryChip(
+              icon: Icons.login_rounded,
+              label: _startEntrance?.label ?? '选择进站口',
+              active: _startEntrance != null,
+              onTap: _startController.text.trim().isEmpty
+                  ? null
+                  : () => _chooseAccessPoint(forStart: true),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _accessSummaryChip(
+              icon: Icons.logout_rounded,
+              label: _endExit?.label ?? '选择出站口',
+              active: _endExit != null,
+              onTap: _endController.text.trim().isEmpty
+                  ? null
+                  : () => _chooseAccessPoint(forStart: false),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _accessSummaryChip({
+    required IconData icon,
+    required String label,
+    required bool active,
+    required VoidCallback? onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 9),
+        decoration: BoxDecoration(
+          color: active ? Colors.white.withOpacity(0.78) : Colors.white38,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: active ? const Color(0xFFE7D8EA) : Colors.white54,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: active ? _line10 : _muted, size: 16),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: active ? _ink : _muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1140,4 +1419,14 @@ class _GlassPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AccessChoice {
+  final String id;
+  final String label;
+  final String detail;
+
+  const _AccessChoice(this.id, this.label, this.detail);
+
+  String get shortLabel => id;
 }
