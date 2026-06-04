@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_travel_app/components/common/top_nav_bar.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/providers/user_preferences_provider.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
 import 'package:smart_travel_app/services/api_service.dart';
-import 'package:smart_travel_app/services/ai_planning_service.dart';
+import 'package:smart_travel_app/services/navigation_memory.dart';
 
 class RoutePlanPage extends StatefulWidget {
   final String? initialStartStation;
   final String? initialEndStation;
+  final String? initialStartEntranceId;
+  final String? initialStartEntranceName;
+  final String? initialEndExitId;
+  final String? initialEndExitName;
 
   const RoutePlanPage({
     super.key,
     this.initialStartStation,
     this.initialEndStation,
+    this.initialStartEntranceId,
+    this.initialStartEntranceName,
+    this.initialEndExitId,
+    this.initialEndExitName,
   });
 
   @override
@@ -29,6 +38,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   List<Map<String, dynamic>> _routePlans = [];
   int _selectedPlanIndex = 0;
   bool _isLoading = false;
+  bool _isGuideLoading = false;
   String? _error;
   bool _hasSearched = false;
 
@@ -41,6 +51,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     if (widget.initialEndStation != null) {
       _endController.text = widget.initialEndStation!;
     }
+    _rememberRoutePlanLocation();
     if (widget.initialStartStation != null &&
         widget.initialEndStation != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -49,40 +60,33 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     }
   }
 
-  Future<void> _fallbackToOfflinePlan(String start, String end) async {
-    try {
-      final result = await AIPlanningService.planRoute(
-        startStation: start,
-        endStation: end,
-      );
+  void _rememberRoutePlanLocation() {
+    _rememberCurrentRoutePlanLocation(
+      start: widget.initialStartStation,
+      end: widget.initialEndStation,
+    );
+  }
 
-      final steps = result.steps
-          .map((s) => {
-                'line': s.line,
-                'type': s.type,
-                'description': s.description,
-                'time': '${s.timeMinutes}分钟',
-                'distance': s.stops != null ? '${s.stops}站' : '',
-              })
-          .toList();
+  void _rememberCurrentRoutePlanLocation({String? start, String? end}) {
+    final params = <String, String>{};
 
-      setState(() {
-        _routePlans = [
-          {
-            'title': result.title,
-            'time': '${result.totalTimeMinutes}分钟',
-            'transfers': result.transfers,
-            'description': result.summary,
-            'segments': steps,
-          },
-        ];
-        _error = null;
-      });
-    } catch (e) {
-      setState(() {
-        _routePlans = [];
-        _error = '后端服务不可用，离线规划也未能找到路线。请检查站点名称是否正确';
-      });
+    void addIfNotEmpty(String key, String? value) {
+      final text = value?.trim();
+      if (text != null && text.isNotEmpty) {
+        params[key] = text;
+      }
+    }
+
+    addIfNotEmpty('start', start);
+    addIfNotEmpty('end', end);
+    addIfNotEmpty('startEntranceId', widget.initialStartEntranceId);
+    addIfNotEmpty('startEntranceName', widget.initialStartEntranceName);
+    addIfNotEmpty('endExitId', widget.initialEndExitId);
+    addIfNotEmpty('endExitName', widget.initialEndExitName);
+
+    if (params.isNotEmpty) {
+      NavigationMemory.routePlanLocation =
+          Uri(path: '/route-plan', queryParameters: params).toString();
     }
   }
 
@@ -107,6 +111,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
 
     final start = _startController.text.trim();
     final end = _endController.text.trim();
+    _rememberCurrentRoutePlanLocation(start: start, end: end);
 
     try {
       setState(() {
@@ -126,23 +131,36 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         start,
         end,
         preferences: preferencesJson,
+        startEntranceId: widget.initialStartEntranceId,
+        startEntranceName: widget.initialStartEntranceName,
+        endExitId: widget.initialEndExitId,
+        endExitName: widget.initialEndExitName,
       );
 
       if (response.success && response.data != null) {
         final routeData = response.data!;
         if (routeData.isNotEmpty) {
           setState(() {
-            _routePlans =
-                routeData.map((e) => e as Map<String, dynamic>).toList();
+            _routePlans = routeData
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
           });
         } else {
-          await _fallbackToOfflinePlan(start, end);
+          setState(() {
+            _error = '后端没有返回可行路线，请检查站点名称或后端线路数据。';
+          });
         }
       } else {
-        await _fallbackToOfflinePlan(start, end);
+        setState(() {
+          _error = response.error ?? '后端规划失败';
+        });
       }
     } catch (e) {
-      await _fallbackToOfflinePlan(start, end);
+      setState(() {
+        _routePlans = [];
+        _error = '后端规划接口异常：$e';
+      });
     } finally {
       setState(() {
         _isLoading = false;
@@ -204,7 +222,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                             ),
                           )
                         : const Icon(Icons.search),
-                    label: Text(_isLoading ? '规划中...' : 'AI 智能规划'),
+                    label: Text(_isLoading ? '规划中...' : '后端智能规划'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.primary,
                       foregroundColor: colorScheme.onPrimary,
@@ -368,7 +386,8 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                   const Divider(height: 1),
                   SizedBox(height: AppTheme.spacingM),
                   ..._buildSegments(context, plan),
-                  if (plan['description'] != null) ...[
+                  if (_textOf(plan['aiAdvice']).isNotEmpty ||
+                      _textOf(plan['description']).isNotEmpty) ...[
                     SizedBox(height: AppTheme.spacingS),
                     Container(
                       padding: EdgeInsets.all(AppTheme.spacingS),
@@ -376,14 +395,42 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                         color: colorScheme.surfaceVariant,
                         borderRadius: AppTheme.borderRadiusM,
                       ),
-                      child: Text(
-                        plan['description'],
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
+                          SizedBox(width: AppTheme.spacingS),
+                          Expanded(
+                            child: Text(
+                              _textOf(plan['aiAdvice']).isNotEmpty
+                                  ? _textOf(plan['aiAdvice'])
+                                  : _textOf(plan['description']),
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
+                  SizedBox(height: AppTheme.spacingM),
+                  Row(
+                    children: [
+                      if (plan['score'] != null)
+                        _buildScoreBadge(context, plan['score']),
+                      const Spacer(),
+                      FilledButton.icon(
+                        onPressed: () => _openIndoorGuide(plan),
+                        icon: const Icon(Icons.transfer_within_a_station),
+                        label: const Text('站内指引'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -411,6 +458,171 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     );
   }
 
+  Widget _buildScoreBadge(BuildContext context, dynamic rawScore) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final score = rawScore is num
+        ? rawScore.round()
+        : int.tryParse(rawScore?.toString() ?? '') ?? 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer,
+        borderRadius: AppTheme.borderRadiusM,
+      ),
+      child: Text(
+        '匹配度 $score',
+        style: TextStyle(
+          color: colorScheme.onSecondaryContainer,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  void _openIndoorGuide(Map<String, dynamic> plan) {
+    final start = _startController.text.trim();
+    final end = _endController.text.trim();
+    if (start.isEmpty || end.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先输入起点和终点')),
+      );
+      return;
+    }
+
+    final params = <String, String>{
+      'start': start,
+      'end': end,
+    };
+
+    void addIfNotEmpty(String key, String? value) {
+      final text = value?.trim();
+      if (text != null && text.isNotEmpty) {
+        params[key] = text;
+      }
+    }
+
+    addIfNotEmpty('startEntranceId', widget.initialStartEntranceId);
+    addIfNotEmpty('startEntranceName', widget.initialStartEntranceName);
+    addIfNotEmpty('endExitId', widget.initialEndExitId);
+    addIfNotEmpty('endExitName', widget.initialEndExitName);
+    addIfNotEmpty('routeTitle', _textOf(plan['title']));
+    addIfNotEmpty('routeId', _textOf(plan['routeId']));
+
+    context.push(Uri(path: '/ai-planning', queryParameters: params).toString());
+  }
+
+  Future<void> _showIndoorGuideSheet(Map<String, dynamic> plan) async {
+    final start = _startController.text.trim();
+    final end = _endController.text.trim();
+    if (start.isEmpty || end.isEmpty) return;
+
+    setState(() => _isGuideLoading = true);
+    final response = await _apiService.getIndoorGuide(
+      from: start,
+      to: end,
+      startEntranceId: widget.initialStartEntranceId,
+      startEntranceName: widget.initialStartEntranceName,
+      endExitId: widget.initialEndExitId,
+      endExitName: widget.initialEndExitName,
+    );
+    if (!mounted) return;
+    setState(() => _isGuideLoading = false);
+
+    if (!response.success || response.data == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response.error ?? '站内指引加载失败')),
+      );
+      return;
+    }
+
+    final rawSteps = response.data!['steps'];
+    final steps = rawSteps is List
+        ? rawSteps
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    if (steps.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('暂无站内指引步骤')),
+      );
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
+        return DraggableScrollableSheet(
+          initialChildSize: 0.72,
+          minChildSize: 0.42,
+          maxChildSize: 0.92,
+          builder: (context, controller) {
+            return Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+              ),
+              child: ListView(
+                controller: controller,
+                padding: EdgeInsets.fromLTRB(
+                  AppTheme.spacingM,
+                  10,
+                  AppTheme.spacingM,
+                  AppTheme.spacingL,
+                ),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: AppTheme.spacingM),
+                  Text(
+                    '站内一点通',
+                    style: textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: AppTheme.spacingS),
+                  Text(
+                    '${_textOf(plan['title']).isEmpty ? '已选路线' : _textOf(plan['title'])} · ${start} → $end',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  SizedBox(height: AppTheme.spacingM),
+                  ...List.generate(
+                    steps.length,
+                    (index) => _IndoorGuideStepTile(
+                      index: index,
+                      total: steps.length,
+                      step: steps[index],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _textOf(dynamic value) => value?.toString().trim() ?? '';
+
   List<Widget> _buildSegments(BuildContext context, Map<String, dynamic> plan) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -419,6 +631,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
 
     for (int i = 0; i < segments.length; i++) {
       final segment = segments[i];
+      final segmentColor = _colorFromHex(segment['color']?.toString()) ??
+          (segment['type'] == 'walk'
+              ? colorScheme.tertiary
+              : colorScheme.primary);
+      final stops = segment['stops'];
       if (i > 0) {
         widgets.add(
           Padding(
@@ -439,9 +656,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: segment['type'] == 'walk'
-                    ? colorScheme.tertiaryContainer
-                    : colorScheme.primaryContainer,
+                color: segmentColor.withOpacity(0.16),
                 borderRadius: AppTheme.borderRadiusS,
               ),
               child: Icon(
@@ -449,9 +664,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                     ? Icons.directions_walk
                     : Icons.subway,
                 size: 16,
-                color: segment['type'] == 'walk'
-                    ? colorScheme.onTertiaryContainer
-                    : colorScheme.onPrimaryContainer,
+                color: segmentColor,
               ),
             ),
             SizedBox(width: AppTheme.spacingS),
@@ -471,6 +684,14 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       segment['description'],
                       style: textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  if (stops is num && stops > 0)
+                    Text(
+                      '共${stops.toInt()}站',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                 ],
@@ -498,5 +719,147 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     }
 
     return widgets;
+  }
+}
+
+Color? _colorFromHex(String? value) {
+  if (value == null || value.isEmpty) return null;
+  final cleaned = value.replaceFirst('#', '');
+  if (cleaned.length != 6) return null;
+  final parsed = int.tryParse(cleaned, radix: 16);
+  if (parsed == null) return null;
+  return Color(0xFF000000 | parsed);
+}
+
+class _IndoorGuideStepTile extends StatelessWidget {
+  final int index;
+  final int total;
+  final Map<String, dynamic> step;
+
+  const _IndoorGuideStepTile({
+    required this.index,
+    required this.total,
+    required this.step,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final title = step['title']?.toString() ?? '站内步骤';
+    final detail = step['detail']?.toString() ?? '';
+    final imageTitle = step['imageTitle']?.toString() ?? '';
+    final imageSubtitle = step['imageSubtitle']?.toString() ?? '';
+    final minutes = step['minutes'];
+    final lineColor =
+        _colorFromHex(step['lineColor']?.toString()) ?? colorScheme.primary;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: AppTheme.spacingM),
+      padding: EdgeInsets.all(AppTheme.spacingM),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: AppTheme.borderRadiusL,
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: lineColor.withOpacity(0.16),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    color: lineColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (index + 1 < total)
+                Container(
+                  width: 2,
+                  height: 44,
+                  margin: const EdgeInsets.only(top: 8),
+                  color: colorScheme.outlineVariant,
+                ),
+            ],
+          ),
+          SizedBox(width: AppTheme.spacingM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    if (minutes != null)
+                      Text(
+                        '${minutes}分钟',
+                        style: textTheme.labelMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+                if (detail.isNotEmpty) ...[
+                  SizedBox(height: AppTheme.spacingS),
+                  Text(
+                    detail,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                if (imageTitle.isNotEmpty || imageSubtitle.isNotEmpty) ...[
+                  SizedBox(height: AppTheme.spacingS),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(AppTheme.spacingS),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer.withOpacity(0.4),
+                      borderRadius: AppTheme.borderRadiusM,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (imageTitle.isNotEmpty)
+                          Text(
+                            imageTitle,
+                            style: textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        if (imageSubtitle.isNotEmpty)
+                          Text(
+                            imageSubtitle,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

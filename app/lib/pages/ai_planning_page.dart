@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/services/api_service.dart';
+import 'package:smart_travel_app/services/navigation_memory.dart';
 
 class AIPlanningPage extends StatefulWidget {
   final String? initialStartStation;
@@ -174,6 +176,8 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Column(
                 children: [
+                  _GuideTopBar(onBack: _returnToRoutePlan),
+                  const SizedBox(height: 10),
                   _ProgressPanel(
                     status: _stepStatus ?? _fallbackStatusFor(step, steps),
                   ),
@@ -240,6 +244,48 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
   bool get _hasAccessSelection =>
       _startEntranceName.isNotEmpty || _endExitName.isNotEmpty;
+
+  void _returnToRoutePlan() {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go(NavigationMemory.routePlanLocation ?? '/route-plan');
+  }
+}
+
+class _GuideTopBar extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const _GuideTopBar({required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 44,
+          height: 44,
+          child: IconButton.filledTonal(
+            onPressed: onBack,
+            icon: const Icon(Icons.arrow_back),
+            tooltip: '返回路线方案',
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Text(
+            '站内一点通',
+            style: TextStyle(
+              color: _AIPlanningPageState._ink,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _WaitingRouteState extends StatelessWidget {

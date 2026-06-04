@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:smart_travel_app/services/navigation_memory.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -21,7 +22,7 @@ class BottomNavBar extends StatelessWidget {
             context.go('/');
             break;
           case 1:
-            context.go('/route-plan');
+            context.go(NavigationMemory.routePlanLocation ?? '/route-plan');
             break;
           case 2:
             context.go('/subway-service');

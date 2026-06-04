@@ -142,12 +142,16 @@ var metroLineStations = map[string][]string{
 	"17号线": {
 		"虹桥火车站", "诸光路", "蟠龙路", "徐盈路", "徐泾北城", "嘉松中路",
 	},
+	"18号线": {
+		"抚顺路", "国权路", "复旦大学",
+	},
 }
 
 var metroLineColors = map[string]string{
 	"10号线": "#B07AB2",
 	"2号线":  "#73C92D",
 	"17号线": "#B58A00",
+	"18号线": "#00A3AD",
 	"出站":   "#008C4A",
 }
 
@@ -214,6 +218,13 @@ var stationStopIDs = map[string]map[string]string{
 	"同济大学": {
 		"10号线": "tongji_university_10",
 	},
+	"国权路": {
+		"10号线": "guoquan_road_10",
+		"18号线": "guoquan_road_18",
+	},
+	"复旦大学": {
+		"18号线": "fudan_university_18",
+	},
 	"虹桥火车站": {
 		"10号线": "hongqiao_railway_10",
 		"2号线":  "hongqiao_railway_2",
@@ -239,6 +250,7 @@ var lineIDs = map[string]string{
 	"10号线": "mock-line-10",
 	"2号线":  "mock-line-2",
 	"17号线": "mock-line-17",
+	"18号线": "mock-line-18",
 }
 
 var transferMinutes = map[string]int{
@@ -589,7 +601,7 @@ func buildMetroGraph() (map[metroState][]metroEdge, map[string][]string) {
 				toState := metroState{Station: station, Line: toLine}
 				graph[fromState] = append(graph[fromState], metroEdge{
 					To:   toState,
-					Cost: transferMinutesForStation(station, fromLine, toLine),
+					Cost: transferMinutesForStation(station, fromLine, toLine) + 6,
 				})
 			}
 		}

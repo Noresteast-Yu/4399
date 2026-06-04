@@ -1244,9 +1244,11 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     }
     if (name.contains('同济大学')) {
       return const [
-        _ExitInfo('1', '四平路，同济大学正门'),
+        _ExitInfo('1', '同济联合广场'),
         _ExitInfo('2', '彰武路，赤峰路'),
-        _ExitInfo('5', '同济联合广场'),
+        _ExitInfo('3', '站厅南侧通道'),
+        _ExitInfo('4', '站厅南侧通道'),
+        _ExitInfo('5', '四平路，同济大学正门'),
       ];
     }
     if (name.contains('虹桥')) {

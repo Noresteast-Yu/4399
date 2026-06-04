@@ -82,13 +82,29 @@ class MetroMapDataset {
 
   List<Line10MapStation> get allStations {
     final seen = <String>{};
+    final seenNames = <String>{};
     final result = <Line10MapStation>[];
     for (final line in lines) {
       for (final group in line.stationGroups) {
         for (final station in group) {
           if (seen.add(station.id)) {
             result.add(station);
+            seenNames.add(station.name);
           }
+        }
+      }
+    }
+    for (final line in referenceLines) {
+      for (final stop in line.stops) {
+        if (!seenNames.add(stop.name)) continue;
+        final station = Line10MapStation(
+          id: _referenceStopId(line.id, stop.name),
+          name: stop.name,
+          position: stop.position,
+          lineId: line.id,
+        );
+        if (seen.add(station.id)) {
+          result.add(station);
         }
       }
     }
@@ -101,6 +117,13 @@ class MetroMapDataset {
       orElse: () => allStations.first,
     );
   }
+}
+
+String _referenceStopId(String lineId, String stationName) {
+  final lineKey = lineId.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-');
+  final nameKey =
+      stationName.codeUnits.map((unit) => unit.toRadixString(16)).join('-');
+  return 'mock-l$lineKey-ref-$nameKey';
 }
 
 class _MapLabelPlacement {

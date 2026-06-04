@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/components/home/line10_interactive_metro_map.dart';
 import 'package:smart_travel_app/services/api_service.dart';
+import 'package:smart_travel_app/services/navigation_memory.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -33,6 +34,8 @@ class _HomePageState extends State<HomePage> {
 
   String _selectedMetroStopId = 'mock-l10-tongji-university';
   String _selectedMetroStopName = '同济大学';
+  String _selectedMetroLineId = '10';
+  String _selectedMetroLineName = '10号线';
   String? _startStationId = 'mock-l10-tongji-university';
   String? _endStationId;
   _AccessChoice? _startEntrance;
@@ -73,6 +76,8 @@ class _HomePageState extends State<HomePage> {
         _apiService.getMetroArrival(
           stopId: _selectedMetroStopId,
           stopName: _selectedMetroStopName,
+          lineId: _arrivalLineId,
+          lineName: _selectedMetroLineName,
           direction: _selectedMetroDirection,
         ),
       ]).timeout(
@@ -114,6 +119,8 @@ class _HomePageState extends State<HomePage> {
     final response = await _apiService.getMetroArrival(
       stopId: _selectedMetroStopId,
       stopName: _selectedMetroStopName,
+      lineId: _arrivalLineId,
+      lineName: _selectedMetroLineName,
       direction: _selectedMetroDirection,
     );
 
@@ -133,11 +140,54 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _selectedMetroStopId = station.id;
       _selectedMetroStopName = station.name;
+      _selectedMetroLineId = station.lineId;
+      _selectedMetroLineName = _lineNameFor(station.lineId);
       if (_allowStationTapAutoExpand) {
         _arrivalDockHeight = _dockMaxHeight(size);
       }
     });
     _loadMetroArrival();
+  }
+
+  String get _arrivalLineId {
+    final lineId = _selectedMetroLineId == '3-4' ? '3' : _selectedMetroLineId;
+    return 'mock-line-$lineId';
+  }
+
+  static String _lineNameFor(String lineId) {
+    if (lineId == '3-4') return '3/4号线';
+    return '$lineId号线';
+  }
+
+  static Color _lineColorFor(String lineId) {
+    switch (lineId) {
+      case '1':
+        return const Color(0xFFE4002B);
+      case '2':
+        return const Color(0xFF7AC143);
+      case '3':
+      case '4':
+      case '3-4':
+        return const Color(0xFF4B2E83);
+      case '6':
+        return const Color(0xFFBE2D79);
+      case '10':
+        return _line10;
+      case '11':
+        return const Color(0xFF7B3F2A);
+      case '12':
+        return const Color(0xFF00843D);
+      case '13':
+        return const Color(0xFFF49AC1);
+      case '14':
+        return const Color(0xFFA6A01D);
+      case '17':
+        return const Color(0xFFC490C0);
+      case '18':
+        return const Color(0xFF00A3AD);
+      default:
+        return _line10;
+    }
   }
 
   void _disableStationTapAutoExpand() {
@@ -180,16 +230,16 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
-    context.go(
-      '/ai-planning?start=${Uri.encodeComponent(start)}'
-      '&end=${Uri.encodeComponent(end)}'
-      '&startId=${Uri.encodeComponent(_startStationId ?? '')}'
-      '&endId=${Uri.encodeComponent(_endStationId ?? '')}'
-      '&startEntranceId=${Uri.encodeComponent(_startEntrance!.id)}'
-      '&startEntranceName=${Uri.encodeComponent(_startEntrance!.label)}'
-      '&endExitId=${Uri.encodeComponent(_endExit!.id)}'
-      '&endExitName=${Uri.encodeComponent(_endExit!.label)}',
-    );
+    final location = '/route-plan?start=${Uri.encodeComponent(start)}'
+        '&end=${Uri.encodeComponent(end)}'
+        '&startId=${Uri.encodeComponent(_startStationId ?? '')}'
+        '&endId=${Uri.encodeComponent(_endStationId ?? '')}'
+        '&startEntranceId=${Uri.encodeComponent(_startEntrance!.id)}'
+        '&startEntranceName=${Uri.encodeComponent(_startEntrance!.label)}'
+        '&endExitId=${Uri.encodeComponent(_endExit!.id)}'
+        '&endExitName=${Uri.encodeComponent(_endExit!.label)}';
+    NavigationMemory.routePlanLocation = location;
+    context.go(location);
   }
 
   Future<void> _chooseAccessPoint({required bool forStart}) async {
@@ -341,11 +391,11 @@ class _HomePageState extends State<HomePage> {
   }) {
     if (stationName.contains('同济大学')) {
       return const [
-        _AccessChoice('1', '1号口', '四平路，同济大学正门'),
+        _AccessChoice('1', '1号口', '同济联合广场'),
         _AccessChoice('2', '2号口', '彰武路，赤峰路'),
-        _AccessChoice('3', '3号口', '站厅北侧通道'),
-        _AccessChoice('4', '4号口', '站厅北侧通道'),
-        _AccessChoice('5', '5号口', '同济联合广场'),
+        _AccessChoice('3', '3号口', '站厅南侧通道'),
+        _AccessChoice('4', '4号口', '站厅南侧通道'),
+        _AccessChoice('5', '5号口', '四平路，同济大学正门'),
       ];
     }
     if (stationName.contains('虹桥')) {
@@ -781,7 +831,11 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _pill('10号线', _line10, Colors.white),
+                          _pill(
+                            _selectedMetroLineName,
+                            _lineColorFor(_selectedMetroLineId),
+                            Colors.white,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
