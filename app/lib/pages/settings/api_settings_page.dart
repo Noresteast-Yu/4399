@@ -88,7 +88,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -99,13 +99,13 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                 color: colorScheme.onSurface,
               ),
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             Card(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Padding(
-                padding: EdgeInsets.all(AppTheme.spacingM),
+                padding: const EdgeInsets.all(AppTheme.spacingM),
                 child: Column(
                   children: [
                     CommonInput(
@@ -115,25 +115,25 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                       prefixIcon:
                           Icon(Icons.key, color: colorScheme.onSurfaceVariant),
                     ),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     CommonInput(
                       controller: _endpointController,
                       hintText: 'API 端点地址',
                       prefixIcon:
                           Icon(Icons.link, color: colorScheme.onSurfaceVariant),
                     ),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     CommonInput(
                       controller: _modelController,
                       hintText: '模型名称 (如: qwen-plus)',
                       prefixIcon: Icon(Icons.model_training,
                           color: colorScheme.onSurfaceVariant),
                     ),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     Container(
-                      padding: EdgeInsets.all(AppTheme.spacingS),
+                      padding: const EdgeInsets.all(AppTheme.spacingS),
                       decoration: BoxDecoration(
-                        color: colorScheme.tertiaryContainer.withOpacity(0.5),
+                        color: colorScheme.tertiaryContainer.withValues(alpha: 0.5),
                         borderRadius: AppTheme.borderRadiusS,
                       ),
                       child: Text(
@@ -149,7 +149,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                 ),
               ),
             ),
-            SizedBox(height: AppTheme.spacingXL),
+            const SizedBox(height: AppTheme.spacingXL),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -157,14 +157,14 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                 icon: const Icon(Icons.save),
                 label: const Text('保存配置'),
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: AppTheme.spacingM),
-                  shape: RoundedRectangleBorder(
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+                  shape: const RoundedRectangleBorder(
                     borderRadius: AppTheme.borderRadiusM,
                   ),
                 ),
               ),
             ),
-            SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingL),
             Text(
               '后端服务',
               style: textTheme.titleMedium?.copyWith(
@@ -172,13 +172,13 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                 color: colorScheme.onSurface,
               ),
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             Card(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Padding(
-                padding: EdgeInsets.all(AppTheme.spacingM),
+                padding: const EdgeInsets.all(AppTheme.spacingM),
                 child: Column(
                   children: [
                     Row(
@@ -192,7 +192,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                                 color: colorScheme.onSurfaceVariant),
                           ),
                         ),
-                        SizedBox(width: AppTheme.spacingS),
+                        const SizedBox(width: AppTheme.spacingS),
                         Expanded(
                           flex: 1,
                           child: CommonInput(
@@ -204,11 +204,11 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     Container(
-                      padding: EdgeInsets.all(AppTheme.spacingS),
+                      padding: const EdgeInsets.all(AppTheme.spacingS),
                       decoration: BoxDecoration(
-                        color: colorScheme.secondaryContainer.withOpacity(0.5),
+                        color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
                         borderRadius: AppTheme.borderRadiusS,
                       ),
                       child: Text(

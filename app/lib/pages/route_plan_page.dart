@@ -144,34 +144,34 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       body: Column(
         children: [
           Container(
-            padding: EdgeInsets.all(AppTheme.spacingM),
+            padding: const EdgeInsets.all(AppTheme.spacingM),
             color: colorScheme.surfaceContainer,
             child: Column(
               children: [
                 TextField(
                   controller: _startController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: '起点站',
                     hintText: '请输入起点站',
-                    prefixIcon: const Icon(Icons.location_on),
+                    prefixIcon: Icon(Icons.location_on),
                     border: OutlineInputBorder(
                       borderRadius: AppTheme.borderRadiusM,
                     ),
                   ),
                 ),
-                SizedBox(height: AppTheme.spacingM),
+                const SizedBox(height: AppTheme.spacingM),
                 TextField(
                   controller: _endController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: '终点站',
                     hintText: '请输入终点站',
-                    prefixIcon: const Icon(Icons.location_off),
+                    prefixIcon: Icon(Icons.location_off),
                     border: OutlineInputBorder(
                       borderRadius: AppTheme.borderRadiusM,
                     ),
                   ),
                 ),
-                SizedBox(height: AppTheme.spacingM),
+                const SizedBox(height: AppTheme.spacingM),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -193,8 +193,8 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       backgroundColor: colorScheme.primary,
                       foregroundColor: colorScheme.onPrimary,
                       padding:
-                          EdgeInsets.symmetric(vertical: AppTheme.spacingM),
-                      shape: RoundedRectangleBorder(
+                          const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+                      shape: const RoundedRectangleBorder(
                         borderRadius: AppTheme.borderRadiusM,
                       ),
                     ),
@@ -210,13 +210,13 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                   if (_error != null)
                     Container(
                       width: double.infinity,
-                      padding: EdgeInsets.all(AppTheme.spacingS),
+                      padding: const EdgeInsets.all(AppTheme.spacingS),
                       color: colorScheme.tertiaryContainer,
                       child: Row(
                         children: [
                           Icon(Icons.offline_bolt,
                               color: colorScheme.onTertiaryContainer),
-                          SizedBox(width: AppTheme.spacingS),
+                          const SizedBox(width: AppTheme.spacingS),
                           Expanded(
                             child: Text(
                               _error!,
@@ -240,7 +240,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                                   size: 64,
                                   color: colorScheme.onSurfaceVariant,
                                 ),
-                                SizedBox(height: AppTheme.spacingM),
+                                const SizedBox(height: AppTheme.spacingM),
                                 Text(
                                   '暂无路线数据',
                                   style: textTheme.bodyLarge?.copyWith(
@@ -257,7 +257,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             ),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
     );
   }
 
@@ -266,7 +266,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return ListView.builder(
-      padding: EdgeInsets.all(AppTheme.spacingM),
+      padding: const EdgeInsets.all(AppTheme.spacingM),
       itemCount: _routePlans.length,
       itemBuilder: (context, index) {
         final plan = _routePlans[index];
@@ -278,7 +278,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             });
           },
           child: Container(
-            margin: EdgeInsets.only(bottom: AppTheme.spacingM),
+            margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
             decoration: BoxDecoration(
               color: isSelected
                   ? colorScheme.primaryContainer
@@ -292,7 +292,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               ),
             ),
             child: Padding(
-              padding: EdgeInsets.all(AppTheme.spacingM),
+              padding: const EdgeInsets.all(AppTheme.spacingM),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -304,7 +304,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                           children: [
                             if (index == 0)
                               Container(
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 2,
                                 ),
@@ -321,7 +321,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                                   ),
                                 ),
                               ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
                               plan['title'] ?? '路线 ${index + 1}',
                               style: textTheme.titleMedium?.copyWith(
@@ -338,7 +338,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                             Icons.access_time,
                             plan['time'] ?? '--',
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           _buildInfoChip(
                             context,
                             Icons.swap_horiz,
@@ -348,17 +348,17 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   const Divider(height: 1),
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   ..._buildSegments(context, plan),
                   if (_textOf(plan['aiAdvice']).isNotEmpty ||
                       _textOf(plan['description']).isNotEmpty) ...[
-                    SizedBox(height: AppTheme.spacingS),
+                    const SizedBox(height: AppTheme.spacingS),
                     Container(
-                      padding: EdgeInsets.all(AppTheme.spacingS),
+                      padding: const EdgeInsets.all(AppTheme.spacingS),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceVariant,
+                        color: colorScheme.surfaceContainerHighest,
                         borderRadius: AppTheme.borderRadiusM,
                       ),
                       child: Row(
@@ -369,7 +369,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                             size: 16,
                             color: colorScheme.primary,
                           ),
-                          SizedBox(width: AppTheme.spacingS),
+                          const SizedBox(width: AppTheme.spacingS),
                           Expanded(
                             child: Text(
                               _textOf(plan['aiAdvice']).isNotEmpty
@@ -384,7 +384,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       ),
                     ),
                   ],
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   Row(
                     children: [
                       if (plan['score'] != null)
@@ -421,7 +421,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
-        SizedBox(width: 4),
+        const SizedBox(width: 4),
         Text(
           text,
           style: TextStyle(
@@ -515,7 +515,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               ),
               child: ListView(
                 controller: controller,
-                padding: EdgeInsets.fromLTRB(
+                padding: const EdgeInsets.fromLTRB(
                   AppTheme.spacingM,
                   10,
                   AppTheme.spacingM,
@@ -532,21 +532,21 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   Text(
                     '站内一点通',
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingS),
+                  const SizedBox(height: AppTheme.spacingS),
                   Text(
-                    '${_textOf(plan['title']).isEmpty ? '已选路线' : _textOf(plan['title'])} · ${start} → $end',
+                    '${_textOf(plan['title']).isEmpty ? '已选路线' : _textOf(plan['title'])} · $start → $end',
                     style: textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   ...List.generate(
                     steps.length,
                     (index) => _IndoorGuideStepTile(
@@ -582,7 +582,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       if (i > 0) {
         widgets.add(
           Padding(
-            padding: EdgeInsets.only(left: 28),
+            padding: const EdgeInsets.only(left: 28),
             child: Container(
               height: 20,
               width: 2,
@@ -599,7 +599,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: segmentColor.withOpacity(0.16),
+                color: segmentColor.withValues(alpha: 0.16),
                 borderRadius: AppTheme.borderRadiusS,
               ),
               child: Icon(
@@ -610,7 +610,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                 color: segmentColor,
               ),
             ),
-            SizedBox(width: AppTheme.spacingS),
+            const SizedBox(width: AppTheme.spacingS),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,8 +698,8 @@ class _IndoorGuideStepTile extends StatelessWidget {
         _colorFromHex(step['lineColor']?.toString()) ?? colorScheme.primary;
 
     return Container(
-      margin: EdgeInsets.only(bottom: AppTheme.spacingM),
-      padding: EdgeInsets.all(AppTheme.spacingM),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
+      padding: const EdgeInsets.all(AppTheme.spacingM),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
         borderRadius: AppTheme.borderRadiusL,
@@ -715,7 +715,7 @@ class _IndoorGuideStepTile extends StatelessWidget {
                 height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: lineColor.withOpacity(0.16),
+                  color: lineColor.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -735,7 +735,7 @@ class _IndoorGuideStepTile extends StatelessWidget {
                 ),
             ],
           ),
-          SizedBox(width: AppTheme.spacingM),
+          const SizedBox(width: AppTheme.spacingM),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -752,7 +752,7 @@ class _IndoorGuideStepTile extends StatelessWidget {
                     ),
                     if (minutes != null)
                       Text(
-                        '${minutes}分钟',
+                        '$minutes分钟',
                         style: textTheme.labelMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -760,7 +760,7 @@ class _IndoorGuideStepTile extends StatelessWidget {
                   ],
                 ),
                 if (detail.isNotEmpty) ...[
-                  SizedBox(height: AppTheme.spacingS),
+                  const SizedBox(height: AppTheme.spacingS),
                   Text(
                     detail,
                     style: textTheme.bodyMedium?.copyWith(
@@ -769,12 +769,12 @@ class _IndoorGuideStepTile extends StatelessWidget {
                   ),
                 ],
                 if (imageTitle.isNotEmpty || imageSubtitle.isNotEmpty) ...[
-                  SizedBox(height: AppTheme.spacingS),
+                  const SizedBox(height: AppTheme.spacingS),
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(AppTheme.spacingS),
+                    padding: const EdgeInsets.all(AppTheme.spacingS),
                     decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withOpacity(0.4),
+                      color: colorScheme.primaryContainer.withValues(alpha: 0.4),
                       borderRadius: AppTheme.borderRadiusM,
                     ),
                     child: Column(

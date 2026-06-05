@@ -99,7 +99,7 @@ class ApiService {
 
   Future<ApiResponse<Map<String, dynamic>>> getBackendHealth() {
     return _handleApiCall<Map<String, dynamic>>(() async {
-      final response = await _networkManager.health();
+      final response = await _networkManager.get('/health');
       return Map<String, dynamic>.from(response.data);
     });
   }

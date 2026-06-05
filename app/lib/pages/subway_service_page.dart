@@ -130,7 +130,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
               : _facilityInfo == null
                   ? const Center(child: Text('暂无设施数据'))
                   : _buildContent(colorScheme, textTheme),
-      bottomNavigationBar: BottomNavBar(currentIndex: 2),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
     );
   }
 
@@ -161,7 +161,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
 
   Widget _buildStationHeader(ColorScheme colorScheme, TextTheme textTheme) {
     final lineIds = (_facilityInfo!['lineIds'] as List<dynamic>?) ?? [];
-    final lineNames = lineIds.map((l) => '${l}号线').join('、');
+    final lineNames = lineIds.map((l) => '$l号线').join('、');
 
     return Card(
       elevation: 2,
@@ -452,7 +452,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
+                      color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -538,7 +538,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
             size: 20,
             color: item.status
                 ? Colors.green
-                : colorScheme.onSurfaceVariant.withOpacity(0.5),
+                : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -551,7 +551,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                     fontWeight: FontWeight.w500,
                     color: item.status
                         ? null
-                        : colorScheme.onSurfaceVariant.withOpacity(0.6),
+                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                   ),
                 ),
                 if (item.detail != null && item.detail!.isNotEmpty)
@@ -570,7 +570,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
             size: 20,
             color: item.status
                 ? Colors.green
-                : colorScheme.onSurfaceVariant.withOpacity(0.4),
+                : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
           ),
         ],
       ),

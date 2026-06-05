@@ -138,27 +138,27 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                 ),
               )
             : SingleChildScrollView(
-                padding: EdgeInsets.all(AppTheme.spacingM),
+                padding: const EdgeInsets.all(AppTheme.spacingM),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildInputSection(colorScheme, textTheme),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     _buildPreferencesSection(colorScheme, textTheme),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     CommonButton(
                       text: '开始AI智能规划',
                       onPressed: _startPlanning,
                     ),
                     if (_error != null) ...[
-                      SizedBox(height: AppTheme.spacingM),
+                      const SizedBox(height: AppTheme.spacingM),
                       _buildErrorSection(colorScheme, textTheme),
                     ],
                     if (_result != null) ...[
-                      SizedBox(height: AppTheme.spacingL),
+                      const SizedBox(height: AppTheme.spacingL),
                       _buildResultSection(colorScheme, textTheme),
                     ],
-                    SizedBox(height: AppTheme.spacingXL),
+                    const SizedBox(height: AppTheme.spacingXL),
                   ],
                 ),
               ),
@@ -169,18 +169,18 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
   Widget _buildInputSection(ColorScheme colorScheme, TextTheme textTheme) {
     return Card(
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: AppTheme.borderRadiusL,
       ),
       child: Padding(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(Icons.auto_awesome, color: colorScheme.primary, size: 22),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'AI智能路线规划',
                   style: textTheme.titleMedium?.copyWith(
@@ -190,17 +190,17 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                 ),
               ],
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             CommonInput(
               controller: _startController,
               hintText: '请输入起点站名',
-              prefixIcon: Icon(Icons.trip_origin, color: Colors.green),
+              prefixIcon: const Icon(Icons.trip_origin, color: Colors.green),
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             CommonInput(
               controller: _endController,
               hintText: '请输入终点站名',
-              prefixIcon: Icon(Icons.flag, color: Colors.red),
+              prefixIcon: const Icon(Icons.flag, color: Colors.red),
             ),
           ],
         ),
@@ -211,11 +211,11 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   Widget _buildPreferencesSection(
       ColorScheme colorScheme, TextTheme textTheme) {
     return Card(
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: AppTheme.borderRadiusL,
       ),
       child: Padding(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -226,7 +226,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                 color: colorScheme.onSurface,
               ),
             ),
-            SizedBox(height: AppTheme.spacingS),
+            const SizedBox(height: AppTheme.spacingS),
             Wrap(
               spacing: 8,
               children: [
@@ -268,15 +268,15 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   Widget _buildErrorSection(ColorScheme colorScheme, TextTheme textTheme) {
     return Card(
       color: colorScheme.errorContainer,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: AppTheme.borderRadiusM,
       ),
       child: Padding(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Row(
           children: [
             Icon(Icons.error_outline, color: colorScheme.error),
-            SizedBox(width: AppTheme.spacingS),
+            const SizedBox(width: AppTheme.spacingS),
             Expanded(
               child: Text(
                 '规划失败: $_error',
@@ -298,7 +298,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         Row(
           children: [
             Icon(Icons.auto_awesome, color: colorScheme.primary, size: 20),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
               'AI规划结果',
               style: textTheme.titleMedium?.copyWith(
@@ -324,13 +324,13 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
             ),
           ],
         ),
-        SizedBox(height: AppTheme.spacingM),
+        const SizedBox(height: AppTheme.spacingM),
         Card(
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppTheme.borderRadiusL,
           ),
           child: Padding(
-            padding: EdgeInsets.all(AppTheme.spacingM),
+            padding: const EdgeInsets.all(AppTheme.spacingM),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -341,14 +341,14 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                     color: colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(height: AppTheme.spacingS),
+                const SizedBox(height: AppTheme.spacingS),
                 Text(
                   result.summary,
                   style: textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                SizedBox(height: AppTheme.spacingM),
+                const SizedBox(height: AppTheme.spacingM),
                 Row(
                   children: [
                     _buildInfoChip(
@@ -357,7 +357,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                       color: colorScheme.primary,
                       backgroundColor: colorScheme.primaryContainer,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     _buildInfoChip(
                       icon: Icons.transfer_within_a_station,
                       label: result.transfers == 0
@@ -369,15 +369,15 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                   ],
                 ),
                 if (result.steps.isNotEmpty) ...[
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   const Divider(),
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   ...result.steps.asMap().entries.map((entry) {
                     final idx = entry.key;
                     final step = entry.value;
                     final isTransfer = step.type == 'transfer';
                     return Padding(
-                      padding: EdgeInsets.only(bottom: AppTheme.spacingS),
+                      padding: const EdgeInsets.only(bottom: AppTheme.spacingS),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -403,7 +403,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                               ),
                             ),
                           ),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -442,9 +442,9 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                   }),
                 ],
                 if (result.tips.isNotEmpty) ...[
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   const Divider(),
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   Text(
                     '出行建议',
                     style: textTheme.titleSmall?.copyWith(
@@ -452,9 +452,9 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                       color: colorScheme.onSurface,
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingS),
+                  const SizedBox(height: AppTheme.spacingS),
                   ...result.tips.map((tip) => Padding(
-                        padding: EdgeInsets.only(bottom: AppTheme.spacingXS),
+                        padding: const EdgeInsets.only(bottom: AppTheme.spacingXS),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -463,7 +463,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                               size: 16,
                               color: colorScheme.tertiary,
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 tip,
@@ -501,7 +501,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: color),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(

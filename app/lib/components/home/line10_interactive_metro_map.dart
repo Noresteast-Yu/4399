@@ -29,11 +29,25 @@ class _TransferStop {
 class Line10InteractiveMetroMap extends StatefulWidget {
   final String selectedStationId;
   final ValueChanged<Line10MapStation> onStationSelected;
+  final VoidCallback? onMapInteraction;
+  final double height;
+  final bool immersive;
+  final bool showControls;
+  final bool showHint;
+  final double controlsBottomOffset;
+  final double labelBottomInset;
 
   const Line10InteractiveMetroMap({
     super.key,
     required this.selectedStationId,
     required this.onStationSelected,
+    this.onMapInteraction,
+    this.height = 390,
+    this.immersive = false,
+    this.showControls = true,
+    this.showHint = true,
+    this.controlsBottomOffset = 12,
+    this.labelBottomInset = 48,
   });
 
   // Coordinates are based on the user's R-C.jpg reference image pixels.
@@ -347,14 +361,18 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusL),
+      shape: const RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusL),
       child: SizedBox(
-        height: 390,
+        height: widget.height,
         child: Stack(
           children: [
             Positioned.fill(
               child: GestureDetector(
-                onTapUp: _handleTapUp,
+                onTapUp: (details) {
+                  widget.onMapInteraction?.call();
+                  _handleTapUp(details);
+                },
+                onPanStart: (_) => widget.onMapInteraction?.call(),
                 child: InteractiveViewer(
                   transformationController: _controller,
                   constrained: false,
@@ -365,6 +383,7 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
                     horizontal: 700,
                     vertical: 520,
                   ),
+                  onInteractionStart: (_) => widget.onMapInteraction?.call(),
                   child: CustomPaint(
                     size: Line10InteractiveMetroMap.mapSize,
                     painter: _Line10MetroPainter(
@@ -376,65 +395,68 @@ class _Line10InteractiveMetroMapState extends State<Line10InteractiveMetroMap> {
                 ),
               ),
             ),
-            Positioned(
-              left: 12,
-              top: 12,
-              right: 12,
-              child: _MapSearchBar(
-                selectedStationName: _allStations
-                    .firstWhere(
-                      (station) => station.id == widget.selectedStationId,
-                      orElse: () => Line10InteractiveMetroMap.stations.first,
-                    )
-                    .name,
-              ),
-            ),
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Column(
-                children: [
-                  _MapIconButton(
-                    icon: Icons.add,
-                    tooltip: '放大',
-                    onPressed: () => _zoomBy(1.22),
-                  ),
-                  const SizedBox(height: 8),
-                  _MapIconButton(
-                    icon: Icons.remove,
-                    tooltip: '缩小',
-                    onPressed: () => _zoomBy(0.82),
-                  ),
-                  const SizedBox(height: 8),
-                  _MapIconButton(
-                    icon: Icons.my_location,
-                    tooltip: '复位',
-                    onPressed: _fitInitialView,
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              left: 12,
-              bottom: 12,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colorScheme.surface.withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: colorScheme.outlineVariant),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Text(
-                    _scale < 0.72 ? '放大查看更多站名' : '点击站点查看到站',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                  ),
+            if (!widget.immersive)
+              Positioned(
+                left: 12,
+                top: 12,
+                right: 12,
+                child: _MapSearchBar(
+                  selectedStationName: _allStations
+                      .firstWhere(
+                        (station) => station.id == widget.selectedStationId,
+                        orElse: () => Line10InteractiveMetroMap.stations.first,
+                      )
+                      .name,
                 ),
               ),
-            ),
+            if (widget.showControls)
+              Positioned(
+                right: 12,
+                bottom: widget.controlsBottomOffset,
+                child: Column(
+                  children: [
+                    _MapIconButton(
+                      icon: Icons.add,
+                      tooltip: '放大',
+                      onPressed: () => _zoomBy(1.22),
+                    ),
+                    const SizedBox(height: 8),
+                    _MapIconButton(
+                      icon: Icons.remove,
+                      tooltip: '缩小',
+                      onPressed: () => _zoomBy(0.82),
+                    ),
+                    const SizedBox(height: 8),
+                    _MapIconButton(
+                      icon: Icons.my_location,
+                      tooltip: '复位',
+                      onPressed: _fitInitialView,
+                    ),
+                  ],
+                ),
+              ),
+            if (widget.showHint)
+              Positioned(
+                left: 12,
+                bottom: widget.labelBottomInset,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colorScheme.outlineVariant),
+                  ),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Text(
+                      _scale < 0.72 ? '放大查看更多站名' : '点击站点查看到站',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -457,11 +479,11 @@ class _MapSearchBar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.surface.withOpacity(0.95),
+        color: colorScheme.surface.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -504,7 +526,7 @@ class _MapIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Theme.of(context).colorScheme.surface.withOpacity(0.95),
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
       elevation: 2,
       borderRadius: BorderRadius.circular(8),
       child: IconButton(
@@ -559,7 +581,7 @@ class _Line10MetroPainter extends CustomPainter {
 
   void _drawRiver(Canvas canvas) {
     final paint = Paint()
-      ..color = const Color(0xFFBFE7F5).withOpacity(0.65)
+      ..color = const Color(0xFFBFE7F5).withValues(alpha: 0.65)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 42
       ..strokeCap = StrokeCap.round
@@ -607,7 +629,7 @@ class _Line10MetroPainter extends CustomPainter {
     String label,
   ) {
     final paint = Paint()
-      ..color = color.withOpacity(0.78)
+      ..color = color.withValues(alpha: 0.78)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 12
       ..strokeCap = StrokeCap.round
@@ -830,7 +852,7 @@ class _Line10MetroPainter extends CustomPainter {
         const Radius.circular(6),
       );
       canvas.drawRRect(
-          bg, Paint()..color = colorScheme.surface.withOpacity(0.92));
+          bg, Paint()..color = colorScheme.surface.withValues(alpha: 0.92));
     }
     tp.paint(canvas, Offset(dx, dy));
   }

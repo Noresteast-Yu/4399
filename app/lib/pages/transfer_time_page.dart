@@ -115,14 +115,14 @@ class _TransferTimePageState extends State<TransferTimePage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.all(AppTheme.spacingM),
+              padding: const EdgeInsets.all(AppTheme.spacingM),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_error != null)
                     Card(
                       child: Padding(
-                        padding: EdgeInsets.all(AppTheme.spacingM),
+                        padding: const EdgeInsets.all(AppTheme.spacingM),
                         child: Column(
                           children: [
                             Text('加载失败: $_error',
@@ -137,19 +137,19 @@ class _TransferTimePageState extends State<TransferTimePage> {
                     ),
                   Card(
                     elevation: 2,
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusL,
                     ),
                     color: isEmergency ? colorScheme.errorContainer : null,
                     child: Padding(
-                      padding: EdgeInsets.all(AppTheme.spacingM),
+                      padding: const EdgeInsets.all(AppTheme.spacingM),
                       child: Column(
                         children: [
                           Text(
                             '剩余换乘时间',
                             style: textTheme.headlineSmall,
                           ),
-                          SizedBox(height: AppTheme.spacingM),
+                          const SizedBox(height: AppTheme.spacingM),
                           Text(
                             formatTime(_remainingTime),
                             style: TextStyle(
@@ -162,7 +162,7 @@ class _TransferTimePageState extends State<TransferTimePage> {
                           ),
                           if (isEmergency)
                             Padding(
-                              padding: EdgeInsets.only(top: AppTheme.spacingM),
+                              padding: const EdgeInsets.only(top: AppTheme.spacingM),
                               child: Text(
                                 '时间紧张，请快速换乘！',
                                 style: TextStyle(
@@ -175,23 +175,23 @@ class _TransferTimePageState extends State<TransferTimePage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingL),
+                  const SizedBox(height: AppTheme.spacingL),
                   Text(
                     '行程进度',
                     style: textTheme.titleLarge,
                   ),
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   Card(
                     elevation: 2,
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusL,
                     ),
                     child: Padding(
-                      padding: EdgeInsets.all(AppTheme.spacingM),
+                      padding: const EdgeInsets.all(AppTheme.spacingM),
                       child: Column(
                         children: _progressSteps.map((step) {
                           return Padding(
-                            padding: EdgeInsets.only(bottom: AppTheme.spacingM),
+                            padding: const EdgeInsets.only(bottom: AppTheme.spacingM),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -209,10 +209,10 @@ class _TransferTimePageState extends State<TransferTimePage> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: AppTheme.spacingS),
+                                const SizedBox(height: AppTheme.spacingS),
                                 LinearProgressIndicator(
                                   value: (step['progress'] ?? 0) / 100,
-                                  backgroundColor: colorScheme.surfaceVariant,
+                                  backgroundColor: colorScheme.surfaceContainerHighest,
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                       colorScheme.primary),
                                 ),
@@ -223,14 +223,14 @@ class _TransferTimePageState extends State<TransferTimePage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingL),
+                  const SizedBox(height: AppTheme.spacingL),
                   Card(
                     elevation: 2,
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusL,
                     ),
                     child: Padding(
-                      padding: EdgeInsets.all(AppTheme.spacingM),
+                      padding: const EdgeInsets.all(AppTheme.spacingM),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -238,12 +238,12 @@ class _TransferTimePageState extends State<TransferTimePage> {
                             '最优换乘路线',
                             style: textTheme.titleLarge,
                           ),
-                          SizedBox(height: AppTheme.spacingM),
+                          const SizedBox(height: AppTheme.spacingM),
                           Row(
                             children: [
                               Icon(Icons.navigation,
                                   color: colorScheme.onSurfaceVariant),
-                              SizedBox(width: AppTheme.spacingM),
+                              const SizedBox(width: AppTheme.spacingM),
                               Expanded(
                                 child: Text(
                                   _optimalRoute.isNotEmpty
@@ -258,14 +258,14 @@ class _TransferTimePageState extends State<TransferTimePage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingL),
+                  const SizedBox(height: AppTheme.spacingL),
                   Card(
                     elevation: 2,
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusL,
                     ),
                     child: Padding(
-                      padding: EdgeInsets.all(AppTheme.spacingM),
+                      padding: const EdgeInsets.all(AppTheme.spacingM),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -273,7 +273,7 @@ class _TransferTimePageState extends State<TransferTimePage> {
                             '备选方案',
                             style: textTheme.titleLarge,
                           ),
-                          SizedBox(height: AppTheme.spacingM),
+                          const SizedBox(height: AppTheme.spacingM),
                           Text(
                             '下一班次: ${_nextTrain ?? '暂无'}',
                             style: textTheme.bodyLarge,

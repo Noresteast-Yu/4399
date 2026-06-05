@@ -107,12 +107,6 @@ class AppRouter {
           return AIPlanningPage(
             initialStartStation: start,
             initialEndStation: end,
-            initialStartEntranceId:
-                state.uri.queryParameters['startEntranceId'],
-            initialStartEntranceName:
-                state.uri.queryParameters['startEntranceName'],
-            initialEndExitId: state.uri.queryParameters['endExitId'],
-            initialEndExitName: state.uri.queryParameters['endExitName'],
           );
         },
       ),

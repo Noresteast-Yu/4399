@@ -526,10 +526,10 @@ class _HomePageState extends State<HomePage> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _GlassPanel(
+        const _GlassPanel(
           borderRadius: 18,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: const Row(
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
             children: [
               Icon(Icons.subway_rounded, color: _line10, size: 20),
               SizedBox(width: 8),
@@ -570,7 +570,7 @@ class _HomePageState extends State<HomePage> {
               ),
               _compactRouteField(
                 icon: Icons.location_on_outlined,
-                iconColor: Color(0xFFFF4D5A),
+                iconColor: const Color(0xFFFF4D5A),
                 controller: _endController,
                 hintText: '选择终点',
               ),
@@ -645,7 +645,7 @@ class _HomePageState extends State<HomePage> {
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 9),
         decoration: BoxDecoration(
-          color: active ? Colors.white.withOpacity(0.78) : Colors.white38,
+          color: active ? Colors.white.withValues(alpha: 0.78) : Colors.white38,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: active ? const Color(0xFFE7D8EA) : Colors.white54,
@@ -683,7 +683,7 @@ class _HomePageState extends State<HomePage> {
       child: Container(
         height: 42,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.55),
+          color: Colors.white.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(15),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 9),
@@ -878,7 +878,7 @@ class _HomePageState extends State<HomePage> {
     return Container(
       height: 42,
       decoration: BoxDecoration(
-        color: _surfaceBlue.withOpacity(0.72),
+        color: _surfaceBlue.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFD7E3FF)),
       ),
@@ -923,7 +923,7 @@ class _HomePageState extends State<HomePage> {
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.82),
+          color: Colors.white.withValues(alpha: 0.82),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white),
         ),
@@ -954,7 +954,7 @@ class _HomePageState extends State<HomePage> {
     return Container(
       height: 74,
       decoration: BoxDecoration(
-        color: _surfaceBlue.withOpacity(0.9),
+        color: _surfaceBlue.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFD7E3FF)),
       ),
@@ -1098,10 +1098,10 @@ class _HomePageState extends State<HomePage> {
     if (progress == null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(999),
-        child: LinearProgressIndicator(
+        child: const LinearProgressIndicator(
           minHeight: 6,
           color: _line10,
-          backgroundColor: const Color(0xFFD1C2CD),
+          backgroundColor: Color(0xFFD1C2CD),
         ),
       );
     }
@@ -1151,7 +1151,7 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(999),
                         boxShadow: [
                           BoxShadow(
-                            color: _line10.withOpacity(0.28),
+                            color: _line10.withValues(alpha: 0.28),
                             blurRadius: 8,
                           ),
                         ],
@@ -1170,7 +1170,7 @@ class _HomePageState extends State<HomePage> {
                         border: Border.all(color: _line10, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: _line10.withOpacity(0.22),
+                            color: _line10.withValues(alpha: 0.22),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1261,18 +1261,18 @@ class _MiniActionButtonState extends State<_MiniActionButton> {
         height: 42,
         decoration: BoxDecoration(
           color: _pressed
-              ? widget.color.withOpacity(0.16)
-              : Colors.white.withOpacity(0.62),
+              ? widget.color.withValues(alpha: 0.16)
+              : Colors.white.withValues(alpha: 0.62),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _pressed
-                ? widget.color.withOpacity(0.42)
-                : Colors.white.withOpacity(0.7),
+                ? widget.color.withValues(alpha: 0.42)
+                : Colors.white.withValues(alpha: 0.7),
           ),
           boxShadow: [
             if (!_pressed)
               BoxShadow(
-                color: Colors.black.withOpacity(0.025),
+                color: Colors.black.withValues(alpha: 0.025),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -1284,8 +1284,8 @@ class _MiniActionButtonState extends State<_MiniActionButton> {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            splashColor: widget.color.withOpacity(0.16),
-            highlightColor: widget.color.withOpacity(0.08),
+            splashColor: widget.color.withValues(alpha: 0.16),
+            highlightColor: widget.color.withValues(alpha: 0.08),
             onTap: widget.onTap,
             onTapDown: (_) => _setPressed(true),
             onTapUp: (_) => _setPressed(false),
@@ -1350,10 +1350,10 @@ class _MapReadabilityVeil extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.white.withOpacity(0.28),
-            Colors.white.withOpacity(0.02),
-            Colors.white.withOpacity(0.0),
-            Colors.white.withOpacity(0.42),
+            Colors.white.withValues(alpha: 0.28),
+            Colors.white.withValues(alpha: 0.02),
+            Colors.white.withValues(alpha: 0.0),
+            Colors.white.withValues(alpha: 0.42),
           ],
           stops: const [0, 0.28, 0.62, 1],
         ),
@@ -1368,7 +1368,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFCCDBF4).withOpacity(0.34)
+      ..color = const Color(0xFFCCDBF4).withValues(alpha: 0.34)
       ..strokeWidth = 1;
     const step = 42.0;
     for (var x = 0.0; x < size.width; x += step) {
@@ -1402,12 +1402,12 @@ class _GlassPanel extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.72),
+            color: Colors.white.withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(color: Colors.white.withOpacity(0.7)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7B4A7F).withOpacity(0.08),
+                color: const Color(0xFF7B4A7F).withValues(alpha: 0.08),
                 blurRadius: 26,
                 offset: const Offset(0, 12),
               ),
