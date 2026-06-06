@@ -64,6 +64,32 @@ func TestCORSWildcardEchoesRequestOrigin(t *testing.T) {
 	}
 }
 
+func TestIndoorNavigationRoutesAreRegistered(t *testing.T) {
+	config.AppConfig = &config.Config{
+		CORSOrigins: []string{"*"},
+	}
+
+	expected := map[string]bool{
+		"GET /api/indoor-guide":               false,
+		"GET /api/indoor-guide/progress":      false,
+		"GET /api/indoor-navigation/topology": false,
+		"GET /api/indoor-navigation/path":     false,
+	}
+
+	for _, route := range SetupRouter().Routes() {
+		key := route.Method + " " + route.Path
+		if _, ok := expected[key]; ok {
+			expected[key] = true
+		}
+	}
+
+	for route, registered := range expected {
+		if !registered {
+			t.Fatalf("expected route %s to be registered", route)
+		}
+	}
+}
+
 func containsAll(value string, needles []string) bool {
 	for _, needle := range needles {
 		if !strings.Contains(value, needle) {

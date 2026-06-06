@@ -1332,7 +1332,7 @@ class _TopologyStepCard extends StatelessWidget {
     final title = step['title']?.toString().trim();
     final instruction = step['instruction']?.toString().trim();
     final seconds = (step['seconds'] as num?)?.toInt() ?? 0;
-    final photoFile = step['photoFile']?.toString().trim();
+    final photoUrl = step['photoUrl']?.toString().trim();
     final timeText = seconds <= 0 ? '' : '约 ${(seconds / 60).ceil()} 分钟';
 
     return Container(
@@ -1412,14 +1412,14 @@ class _TopologyStepCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (photoFile != null && photoFile.isNotEmpty) ...[
+                if (photoUrl != null && photoUrl.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
                     child: AspectRatio(
                       aspectRatio: 16 / 7,
-                      child: Image.asset(
-                        photoFile,
+                      child: Image.network(
+                        photoUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -1435,7 +1435,7 @@ class _TopologyStepCard extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    '照片位：$photoFile',
+                                    '照片加载失败',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(

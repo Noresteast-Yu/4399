@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
@@ -47,6 +49,8 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   _ProgressStatus? _stepStatus;
   _RouteSummary? _summary;
   List<_NavStep> _guideSteps = [];
+  Timer? _statusRefreshTimer;
+  int _statusRequestId = 0;
 
   @override
   void initState() {
@@ -65,16 +69,22 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
   Future<void> _refreshStepStatus() async {
     if (!_hasRoute || _guideSteps.isEmpty) return;
+    final requestedStepIndex = _stepIndex;
+    final requestId = ++_statusRequestId;
     final response = await _apiService.getIndoorGuideProgress(
       from: _startStation,
       to: _endStation,
-      stepIndex: _stepIndex,
+      stepIndex: requestedStepIndex,
       startEntranceId: _startEntranceId,
       startEntranceName: _startEntranceName,
       endExitId: _endExitId,
       endExitName: _endExitName,
     );
-    if (!mounted) return;
+    if (!mounted ||
+        requestedStepIndex != _stepIndex ||
+        requestId != _statusRequestId) {
+      return;
+    }
     final rawStatus = response.data?['status'];
     setState(() {
       _stepStatus = response.success && rawStatus is Map
@@ -122,6 +132,21 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       }
     });
     await _refreshStepStatus();
+    _startStatusRefreshTimer();
+  }
+
+  void _startStatusRefreshTimer() {
+    _statusRefreshTimer?.cancel();
+    _statusRefreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _refreshStepStatus(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _statusRefreshTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -239,6 +264,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       progress: ((_stepIndex + 1) / steps.length).clamp(0.05, 1),
       color: step.lineColor,
       icon: step.icon,
+      isFallback: true,
     );
   }
 
@@ -566,6 +592,27 @@ class _ProgressPanel extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (status.isFallback) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFE8CC),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          '兜底数据',
+                          style: TextStyle(
+                            color: Color(0xFF9A4D00),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 7),
@@ -825,9 +872,9 @@ class _ScenePanel extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (step.photoFile.isNotEmpty)
-            Image.asset(
-              step.photoFile,
+          if (step.photoUrl.isNotEmpty)
+            Image.network(
+              step.photoUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return CustomPaint(
@@ -863,7 +910,7 @@ class _ScenePanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    step.photoFile.isEmpty ? '实景占位' : '实景照片',
+                    step.photoUrl.isEmpty ? '实景占位' : '实景照片',
                     style: TextStyle(
                       color: _AIPlanningPageState._muted,
                       fontSize: 12,
@@ -1088,7 +1135,7 @@ class _NavStep {
   final String doorHint;
   final Map<String, dynamic> arrivalQuery;
   final String photoKey;
-  final String photoFile;
+  final String photoUrl;
 
   const _NavStep({
     required this.stage,
@@ -1106,7 +1153,7 @@ class _NavStep {
     this.arrivalQuery = const <String, dynamic>{},
     this.doorHint = '车门',
     this.photoKey = '',
-    this.photoFile = '',
+    this.photoUrl = '',
   });
 
   factory _NavStep.fromJson(Map<String, dynamic> json) {
@@ -1132,7 +1179,7 @@ class _NavStep {
           : const <String, dynamic>{},
       doorHint: json['doorHint']?.toString() ?? '车门',
       photoKey: json['photoKey']?.toString() ?? '',
-      photoFile: json['photoFile']?.toString() ?? '',
+      photoUrl: json['photoUrl']?.toString() ?? '',
     );
   }
 }
@@ -1248,6 +1295,7 @@ class _ProgressStatus {
   final double progress;
   final Color color;
   final IconData icon;
+  final bool isFallback;
 
   const _ProgressStatus({
     required this.leadText,
@@ -1256,6 +1304,7 @@ class _ProgressStatus {
     required this.progress,
     required this.color,
     required this.icon,
+    required this.isFallback,
   });
 
   factory _ProgressStatus.fromJson(Map<String, dynamic> json) {
@@ -1269,6 +1318,7 @@ class _ProgressStatus {
         _AIPlanningPageState._line10,
       ),
       icon: _iconFromJson(json['iconKey']?.toString()),
+      isFallback: json['isFallback'] == true,
     );
   }
 }

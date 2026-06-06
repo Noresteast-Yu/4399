@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"smart-travel-backend/config"
 )
 
 type StationTopology struct {
@@ -15,7 +17,7 @@ type StationTopology struct {
 	LineIDs              []string                 `json:"lineIds"`
 	GraphName            string                   `json:"graphName"`
 	WeightUnit           string                   `json:"weightUnit"`
-	PhotoBasePath        string                   `json:"photoBasePath"`
+	PhotoObjectPrefix    string                   `json:"photoObjectPrefix"`
 	Nodes                []TopologyNode           `json:"nodes"`
 	Edges                []TopologyEdge           `json:"edges"`
 	Facilities           []TopologyFacility       `json:"facilities"`
@@ -72,9 +74,9 @@ type TopologyExit struct {
 }
 
 type TopologyPhoto struct {
-	PhotoKey string `json:"photoKey"`
-	Title    string `json:"title"`
-	File     string `json:"file"`
+	PhotoKey  string `json:"photoKey"`
+	Title     string `json:"title"`
+	ObjectKey string `json:"objectKey"`
 }
 
 type IndoorNavigationPath struct {
@@ -102,7 +104,7 @@ type IndoorNavigationStep struct {
 	Seconds     int          `json:"seconds"`
 	EdgeType    string       `json:"edgeType"`
 	PhotoKey    string       `json:"photoKey,omitempty"`
-	PhotoFile   string       `json:"photoFile,omitempty"`
+	PhotoURL    string       `json:"photoUrl,omitempty"`
 	Note        string       `json:"note,omitempty"`
 }
 
@@ -367,13 +369,16 @@ func expandTopologyEdges(edges []TopologyEdge) []directedTopologyEdge {
 func indoorNavigationStep(index int, nodePath []TopologyNode, edge directedTopologyEdge, photos map[string]TopologyPhoto) IndoorNavigationStep {
 	from := nodePath[len(nodePath)-2]
 	to := nodePath[len(nodePath)-1]
-	photoKey := edge.Edge.PhotoKey
+	photoKey := edge.From + "_to_" + edge.To + "_01"
+	if _, ok := photos[photoKey]; !ok {
+		photoKey = edge.Edge.PhotoKey
+	}
 	if photoKey == "" {
 		photoKey = to.PhotoKey
 	}
-	photoFile := ""
+	photoURL := ""
 	if photo, ok := photos[photoKey]; ok {
-		photoFile = photo.File
+		photoURL = objectStoragePhotoURL(photo.ObjectKey)
 	}
 
 	return IndoorNavigationStep{
@@ -385,9 +390,24 @@ func indoorNavigationStep(index int, nodePath []TopologyNode, edge directedTopol
 		Seconds:     edge.Edge.Time,
 		EdgeType:    edge.Edge.Type,
 		PhotoKey:    photoKey,
-		PhotoFile:   photoFile,
+		PhotoURL:    photoURL,
 		Note:        edge.Edge.Note,
 	}
+}
+
+func objectStoragePhotoURL(objectKey string) string {
+	objectKey = strings.TrimLeft(strings.TrimSpace(objectKey), "/")
+	if objectKey == "" {
+		return ""
+	}
+
+	publicURL := "http://10.0.2.2:9000"
+	bucket := "station-media"
+	if config.AppConfig != nil {
+		publicURL = strings.TrimRight(config.AppConfig.ObjectStorageURL, "/")
+		bucket = strings.Trim(config.AppConfig.ObjectBucket, "/")
+	}
+	return publicURL + "/" + bucket + "/" + objectKey
 }
 
 func stepTitle(nodePath []TopologyNode, edge directedTopologyEdge, toName string) string {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,16 +25,17 @@ type IndoorGuideStep struct {
 	DoorHint       string            `json:"doorHint,omitempty"`
 	ArrivalQuery   map[string]string `json:"arrivalQuery,omitempty"`
 	PhotoKey       string            `json:"photoKey,omitempty"`
-	PhotoFile      string            `json:"photoFile,omitempty"`
+	PhotoURL       string            `json:"photoUrl,omitempty"`
 }
 
 type IndoorGuideProgressStatus struct {
-	LeadText string  `json:"leadText"`
-	Title    string  `json:"title"`
-	Subtitle string  `json:"subtitle"`
-	Progress float64 `json:"progress"`
-	Color    string  `json:"color"`
-	IconKey  string  `json:"iconKey"`
+	LeadText   string  `json:"leadText"`
+	Title      string  `json:"title"`
+	Subtitle   string  `json:"subtitle"`
+	Progress   float64 `json:"progress"`
+	Color      string  `json:"color"`
+	IconKey    string  `json:"iconKey"`
+	IsFallback bool    `json:"isFallback"`
 }
 
 type IndoorGuideProgress struct {
@@ -854,7 +856,7 @@ func guideStepsFromTopologyPath(path *IndoorNavigationPath, stage string, lineNa
 			step.ImageSubtitle = "预计" + secondsText(topologyStep.Seconds)
 		}
 		step.PhotoKey = topologyStep.PhotoKey
-		step.PhotoFile = topologyStep.PhotoFile
+		step.PhotoURL = topologyStep.PhotoURL
 		steps = append(steps, step)
 	}
 	return steps
@@ -1015,6 +1017,7 @@ func defaultIndoorArrival(step IndoorGuideStep) *MetroArrivalResult {
 }
 
 func progressStatusForIndoorStep(step IndoorGuideStep, steps []IndoorGuideStep, index int, arrival *MetroArrivalResult) IndoorGuideProgressStatus {
+	isFallback := arrival == nil || arrival.Source == "indoor-guide-default"
 	switch step.Stage {
 	case "ride":
 		total := step.TotalStops
@@ -1027,12 +1030,13 @@ func progressStatusForIndoorStep(step IndoorGuideStep, steps []IndoorGuideStep, 
 		}
 		progress := float64(done) / float64(total)
 		return IndoorGuideProgressStatus{
-			LeadText: itoa(step.RemainingStops) + "站",
-			Title:    "乘车中",
-			Subtitle: "到" + step.TargetStation + "下车，提前靠近" + step.DoorHint,
-			Progress: clampProgress(progress),
-			Color:    step.LineColor,
-			IconKey:  "train",
+			LeadText:   itoa(step.RemainingStops) + "站",
+			Title:      "乘车中",
+			Subtitle:   "到" + step.TargetStation + "下车，提前靠近" + step.DoorHint,
+			Progress:   clampProgress(progress),
+			Color:      step.LineColor,
+			IconKey:    "train",
+			IsFallback: isFallback,
 		}
 	case "transfer", "transferWait":
 		catchPlan := catchPlanForIndoorStages(steps, index, map[string]bool{"transfer": true, "transferWait": true}, arrival, 1)
@@ -1040,22 +1044,27 @@ func progressStatusForIndoorStep(step IndoorGuideStep, steps []IndoorGuideStep, 
 		if catchPlan.UsesNextTrain {
 			title = step.LineName + "赶不上，改按下一班"
 		}
+		if catchPlan.MissedTrainCount > 1 {
+			title = step.LineName + "前" + itoa(catchPlan.MissedTrainCount) + "班赶不上，改按后续班次"
+		}
 		return IndoorGuideProgressStatus{
-			LeadText: itoa(catchPlan.TrainMinutes) + "分钟",
-			Title:    title,
-			Subtitle: "换乘还要约" + itoa(catchPlan.RemainingWalkMinutes) + "分钟，已推进" + itoa(catchPlan.CompletedWalkMinutes) + "分钟，预计余量" + itoa(catchPlan.SafeBufferMinutes) + "分钟",
-			Progress: catchPlan.Progress,
-			Color:    catchPlan.StatusColor(step.LineColor),
-			IconKey:  "transfer",
+			LeadText:   itoa(catchPlan.TrainMinutes) + "分钟",
+			Title:      title,
+			Subtitle:   "换乘还要约" + itoa(catchPlan.RemainingWalkMinutes) + "分钟，已推进" + itoa(catchPlan.CompletedWalkMinutes) + "分钟，预计余量" + itoa(catchPlan.SafeBufferMinutes) + "分钟",
+			Progress:   catchPlan.Progress,
+			Color:      catchPlan.StatusColor(step.LineColor),
+			IconKey:    "transfer",
+			IsFallback: isFallback,
 		}
 	case "exit":
 		return IndoorGuideProgressStatus{
-			LeadText: "到达",
-			Title:    "按出口指引出站",
-			Subtitle: "推荐走" + step.TargetStation,
-			Progress: 1,
-			Color:    "#008C4A",
-			IconKey:  "output",
+			LeadText:   "到达",
+			Title:      "按出口指引出站",
+			Subtitle:   "推荐走" + step.TargetStation,
+			Progress:   1,
+			Color:      "#008C4A",
+			IconKey:    "output",
+			IsFallback: false,
 		}
 	default:
 		catchPlan := catchPlanForIndoorStages(steps, index, map[string]bool{"entry": true, "platform": true}, arrival, 1)
@@ -1063,13 +1072,17 @@ func progressStatusForIndoorStep(step IndoorGuideStep, steps []IndoorGuideStep, 
 		if catchPlan.UsesNextTrain {
 			title = step.LineName + "赶不上，改按下一班"
 		}
+		if catchPlan.MissedTrainCount > 1 {
+			title = step.LineName + "前" + itoa(catchPlan.MissedTrainCount) + "班赶不上，改按后续班次"
+		}
 		return IndoorGuideProgressStatus{
-			LeadText: itoa(catchPlan.TrainMinutes) + "分钟",
-			Title:    title,
-			Subtitle: "到站台还要约" + itoa(catchPlan.RemainingWalkMinutes) + "分钟，已推进" + itoa(catchPlan.CompletedWalkMinutes) + "分钟，预计余量" + itoa(catchPlan.SafeBufferMinutes) + "分钟",
-			Progress: catchPlan.Progress,
-			Color:    catchPlan.StatusColor(step.LineColor),
-			IconKey:  "timer",
+			LeadText:   itoa(catchPlan.TrainMinutes) + "分钟",
+			Title:      title,
+			Subtitle:   "到站台还要约" + itoa(catchPlan.RemainingWalkMinutes) + "分钟，已推进" + itoa(catchPlan.CompletedWalkMinutes) + "分钟，预计余量" + itoa(catchPlan.SafeBufferMinutes) + "分钟",
+			Progress:   catchPlan.Progress,
+			Color:      catchPlan.StatusColor(step.LineColor),
+			IconKey:    "timer",
+			IsFallback: isFallback,
 		}
 	}
 }
@@ -1080,6 +1093,7 @@ type indoorCatchPlan struct {
 	CompletedWalkMinutes int
 	SafeBufferMinutes    int
 	UsesNextTrain        bool
+	MissedTrainCount     int
 	Progress             float64
 }
 
@@ -1099,28 +1113,53 @@ func catchPlanForIndoorStages(steps []IndoorGuideStep, index int, stages map[str
 	remainingWalk := remainingMinutesForIndoorStages(steps, index, stages)
 	completedWalk := completedMinutesForIndoorStages(steps, index, stages)
 	requiredMinutes := remainingWalk + safetyBufferMinutes
-	usesNextTrain := currentTrain < requiredMinutes
 	selectedTrain := currentTrain
-	if usesNextTrain {
+	missedTrainCount := 0
+	if selectedTrain < requiredMinutes {
+		missedTrainCount++
 		selectedTrain = nextTrain
+	}
+	intervalMinutes := trainIntervalMinutes(arrival, currentTrain, nextTrain)
+	for selectedTrain < requiredMinutes {
+		missedTrainCount++
+		selectedTrain += intervalMinutes
 	}
 	buffer := selectedTrain - remainingWalk
 	if buffer < 0 {
 		buffer = 0
 	}
-	progress := 0.0
-	if selectedTrain > 0 {
-		progress = float64(selectedTrain-remainingWalk) / float64(selectedTrain)
-	}
+	progress := stageProgress(completedWalk, remainingWalk)
 
 	return indoorCatchPlan{
 		TrainMinutes:         selectedTrain,
 		RemainingWalkMinutes: remainingWalk,
 		CompletedWalkMinutes: completedWalk,
 		SafeBufferMinutes:    buffer,
-		UsesNextTrain:        usesNextTrain,
+		UsesNextTrain:        missedTrainCount > 0,
+		MissedTrainCount:     missedTrainCount,
 		Progress:             clampProgress(progress),
 	}
+}
+
+func trainIntervalMinutes(arrival *MetroArrivalResult, currentTrainMinutes int, nextTrainMinutes int) int {
+	if arrival != nil {
+		var interval int
+		if _, err := fmt.Sscanf(arrival.Interval, "%d", &interval); err == nil && interval > 0 {
+			return interval
+		}
+	}
+	if inferred := nextTrainMinutes - currentTrainMinutes; inferred > 0 {
+		return inferred
+	}
+	return 7
+}
+
+func stageProgress(completedMinutes int, remainingMinutes int) float64 {
+	totalMinutes := completedMinutes + remainingMinutes
+	if totalMinutes <= 0 {
+		return 1
+	}
+	return clampProgress(float64(completedMinutes) / float64(totalMinutes))
 }
 
 func remainingMinutesForIndoorStages(steps []IndoorGuideStep, index int, stages map[string]bool) int {

@@ -19,6 +19,8 @@ type Config struct {
 	ShmaasMerchantID string
 	ShmaasSalt       string
 	ShmaasCityCode   string
+	ObjectStorageURL string
+	ObjectBucket     string
 	CORSOrigins      []string
 }
 
@@ -41,6 +43,8 @@ func LoadConfig() {
 		ShmaasMerchantID: getEnv("SHMAAS_MERCHANT_ID", "mock-merchant"),
 		ShmaasSalt:       getEnv("SHMAAS_SALT", "mock-salt"),
 		ShmaasCityCode:   getEnv("SHMAAS_CITY_CODE", "mock-shanghai"),
+		ObjectStorageURL: getEnv("OBJECT_STORAGE_PUBLIC_URL", "http://10.0.2.2:9000"),
+		ObjectBucket:     getEnv("OBJECT_STORAGE_BUCKET", "station-media"),
 		CORSOrigins:      splitEnv("CORS_ORIGINS", "*"),
 	}
 }

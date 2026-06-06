@@ -6,14 +6,13 @@
   ],
   "graphName": "station_topology_shortest_path_v1",
   "weightUnit": "seconds",
-  "photoBasePath": "assets/station_photos/tongji_university",
   "nodes": [
     {
       "id": "1",
       "name": "5号口地面",
       "type": "exit_ground",
       "floor": "ground",
-      "photoKey": "exit_5_ground",
+      "photoKey": "node_1_entrance_view_01",
       "x": 0,
       "y": 30,
       "area": "outside",
@@ -61,7 +60,7 @@
       "name": "1号口地面",
       "type": "exit_ground",
       "floor": "ground",
-      "photoKey": "exit_1_ground",
+      "photoKey": "node_5_entrance_view_01",
       "x": 76,
       "y": 0,
       "area": "outside",
@@ -555,6 +554,24 @@
       "direction": "正西"
     },
     {
+      "from": "16",
+      "to": "7_in",
+      "time": 10,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "站台通道1上端可直接前往点7内侧",
+      "photoKey": "platform_access_1_to_exit_gate_inside"
+    },
+    {
+      "from": "18",
+      "to": "7_in",
+      "time": 10,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "站台通道2上端可直接前往点7内侧",
+      "photoKey": "platform_access_2_to_exit_gate_inside"
+    },
+    {
       "from": "6_in",
       "to": "16",
       "time": 5,
@@ -711,54 +728,199 @@
   ],
   "photoSlots": [
     {
-      "photoKey": "exit_5_ground",
-      "title": "5号口地面",
-      "file": "assets/station_photos/tongji_university/exit_5_ground.jpg"
+      "photoKey": "1_to_2_01",
+      "title": "5号口地面 → 5号口地下",
+      "objectKey": "stations/tongji_university/1_to_2_01.jpg"
     },
     {
-      "photoKey": "exit_5_underground",
-      "title": "5号口地下",
-      "file": "assets/station_photos/tongji_university/exit_5_underground.jpg"
+      "photoKey": "10_to_9_01",
+      "title": "3号口地面 → 3号口地下",
+      "objectKey": "stations/tongji_university/10_to_9_01.jpg"
     },
     {
-      "photoKey": "gate_1_outside",
-      "title": "入站闸机口1外侧",
-      "file": "assets/station_photos/tongji_university/gate_1_outside.jpg"
+      "photoKey": "11_to_12_01",
+      "title": "4号口地下 → 4号口地面",
+      "objectKey": "stations/tongji_university/11_to_12_01.jpg"
     },
     {
-      "photoKey": "gate_2_outside",
-      "title": "入站闸机口2外侧",
-      "file": "assets/station_photos/tongji_university/gate_2_outside.jpg"
+      "photoKey": "11_to_21_01",
+      "title": "4号口地下 → 公共厕所",
+      "objectKey": "stations/tongji_university/11_to_21_01.jpg"
     },
     {
-      "photoKey": "exit_gate",
-      "title": "出站闸机",
-      "file": "assets/station_photos/tongji_university/exit_gate.jpg"
+      "photoKey": "11_to_9_01",
+      "title": "4号口地下 → 3号口地下",
+      "objectKey": "stations/tongji_university/11_to_9_01.jpg"
     },
     {
-      "photoKey": "platform_access_1_vertical",
-      "title": "站台通道1",
-      "file": "assets/station_photos/tongji_university/platform_access_1_vertical.jpg"
+      "photoKey": "13_to_14_01",
+      "title": "2号口地下 → 2号口地面",
+      "objectKey": "stations/tongji_university/13_to_14_01.jpg"
     },
     {
-      "photoKey": "platform_access_2_vertical",
-      "title": "站台通道2",
-      "file": "assets/station_photos/tongji_university/platform_access_2_vertical.jpg"
+      "photoKey": "13_to_15_out_01",
+      "title": "2号口地下 → 入站闸机口2外侧",
+      "objectKey": "stations/tongji_university/13_to_15_out_01.jpg"
     },
     {
-      "photoKey": "accessible_elevator",
-      "title": "无障碍电梯",
-      "file": "assets/station_photos/tongji_university/accessible_elevator.jpg"
+      "photoKey": "13_to_8_01",
+      "title": "2号口地下 → 3、4号出口地下分岔点",
+      "objectKey": "stations/tongji_university/13_to_8_01.jpg"
     },
     {
-      "photoKey": "public_toilet",
-      "title": "公共厕所",
-      "file": "assets/station_photos/tongji_university/public_toilet.jpg"
+      "photoKey": "14_to_13_01",
+      "title": "2号口地面 → 2号口地下",
+      "objectKey": "stations/tongji_university/14_to_13_01.jpg"
     },
     {
-      "photoKey": "service_center_hall",
-      "title": "服务中心",
-      "file": "assets/station_photos/tongji_university/service_center_hall.jpg"
+      "photoKey": "15_in_to_control_1_01",
+      "title": "入站闸机口2内侧 → 控制点1",
+      "objectKey": "stations/tongji_university/15_in_to_control_1_01.jpg"
+    },
+    {
+      "photoKey": "16_to_7_in_01",
+      "title": "站台通道1上端 → 出站闸机内侧 / 付费区侧",
+      "objectKey": "stations/tongji_university/16_to_7_in_01.jpg"
+    },
+    {
+      "photoKey": "17_to_16_01",
+      "title": "站台通道1下端 / 站台层 → 站台通道1上端",
+      "objectKey": "stations/tongji_university/17_to_16_01.jpg"
+    },
+    {
+      "photoKey": "18_to_19_01",
+      "title": "站台通道2上端 → 站台通道2下端 / 站台层",
+      "objectKey": "stations/tongji_university/18_to_19_01.jpg"
+    },
+    {
+      "photoKey": "18_to_7_in_01",
+      "title": "站台通道2上端 → 出站闸机内侧 / 付费区侧",
+      "objectKey": "stations/tongji_university/18_to_7_in_01.jpg"
+    },
+    {
+      "photoKey": "19_to_18_01",
+      "title": "站台通道2下端 / 站台层 → 站台通道2上端",
+      "objectKey": "stations/tongji_university/19_to_18_01.jpg"
+    },
+    {
+      "photoKey": "2_to_1_01",
+      "title": "5号口地下 → 5号口地面",
+      "objectKey": "stations/tongji_university/2_to_1_01.jpg"
+    },
+    {
+      "photoKey": "2_to_3_01",
+      "title": "5号口地下 → 5号口地下通道转向点",
+      "objectKey": "stations/tongji_university/2_to_3_01.jpg"
+    },
+    {
+      "photoKey": "2_to_4_01",
+      "title": "5号口地下 → 1号口地下",
+      "objectKey": "stations/tongji_university/2_to_4_01.jpg"
+    },
+    {
+      "photoKey": "21_to_11_01",
+      "title": "公共厕所 → 4号口地下",
+      "objectKey": "stations/tongji_university/21_to_11_01.jpg"
+    },
+    {
+      "photoKey": "3_to_2_01",
+      "title": "5号口地下通道转向点 → 5号口地下",
+      "objectKey": "stations/tongji_university/3_to_2_01.jpg"
+    },
+    {
+      "photoKey": "3_to_7_out_01",
+      "title": "5号口地下通道转向点 → 出站闸机外侧 / 服务中心 / 站厅侧",
+      "objectKey": "stations/tongji_university/3_to_7_out_01.jpg"
+    },
+    {
+      "photoKey": "4_to_2_01",
+      "title": "1号口地下 → 5号口地下",
+      "objectKey": "stations/tongji_university/4_to_2_01.jpg"
+    },
+    {
+      "photoKey": "4_to_5_01",
+      "title": "1号口地下 → 1号口地面",
+      "objectKey": "stations/tongji_university/4_to_5_01.jpg"
+    },
+    {
+      "photoKey": "4_to_6_out_01",
+      "title": "1号口地下 → 入站闸机口1外侧",
+      "objectKey": "stations/tongji_university/4_to_6_out_01.jpg"
+    },
+    {
+      "photoKey": "5_to_4_01",
+      "title": "1号口地面 → 1号口地下",
+      "objectKey": "stations/tongji_university/5_to_4_01.jpg"
+    },
+    {
+      "photoKey": "6_in_to_16_01",
+      "title": "入站闸机口1内侧 → 站台通道1上端",
+      "objectKey": "stations/tongji_university/6_in_to_16_01.jpg"
+    },
+    {
+      "photoKey": "6_in_to_control_1_01",
+      "title": "入站闸机口1内侧 → 控制点1",
+      "objectKey": "stations/tongji_university/6_in_to_control_1_01.jpg"
+    },
+    {
+      "photoKey": "6_out_to_4_01",
+      "title": "入站闸机口1外侧 → 1号口地下",
+      "objectKey": "stations/tongji_university/6_out_to_4_01.jpg"
+    },
+    {
+      "photoKey": "7_out_to_8_01",
+      "title": "出站闸机外侧 / 服务中心 / 站厅侧 → 3、4号出口地下分岔点",
+      "objectKey": "stations/tongji_university/7_out_to_8_01.jpg"
+    },
+    {
+      "photoKey": "8_to_13_01",
+      "title": "3、4号出口地下分岔点 → 2号口地下",
+      "objectKey": "stations/tongji_university/8_to_13_01.jpg"
+    },
+    {
+      "photoKey": "8_to_7_out_01",
+      "title": "3、4号出口地下分岔点 → 出站闸机外侧 / 服务中心 / 站厅侧",
+      "objectKey": "stations/tongji_university/8_to_7_out_01.jpg"
+    },
+    {
+      "photoKey": "8_to_9_01",
+      "title": "3、4号出口地下分岔点 → 3号口地下",
+      "objectKey": "stations/tongji_university/8_to_9_01.jpg"
+    },
+    {
+      "photoKey": "9_to_10_01",
+      "title": "3号口地下 → 3号口地面",
+      "objectKey": "stations/tongji_university/9_to_10_01.jpg"
+    },
+    {
+      "photoKey": "9_to_8_01",
+      "title": "3号口地下 → 3、4号出口地下分岔点",
+      "objectKey": "stations/tongji_university/9_to_8_01.jpg"
+    },
+    {
+      "photoKey": "control_1_to_15_in_01",
+      "title": "控制点1 → 入站闸机口2内侧",
+      "objectKey": "stations/tongji_university/control_1_to_15_in_01.jpg"
+    },
+    {
+      "photoKey": "control_1_to_6_in_01",
+      "title": "控制点1 → 入站闸机口1内侧",
+      "objectKey": "stations/tongji_university/control_1_to_6_in_01.jpg"
+    },
+    {
+      "photoKey": "control_1_to_7_in_01",
+      "title": "控制点1 → 出站闸机内侧 / 付费区侧",
+      "objectKey": "stations/tongji_university/control_1_to_7_in_01.jpg"
+    },
+    {
+      "photoKey": "node_1_entrance_view_01",
+      "title": "5号口地面入口环境",
+      "objectKey": "stations/tongji_university/node_1_entrance_view_01.jpg"
+    },
+    {
+      "photoKey": "node_5_entrance_view_01",
+      "title": "1号口地面入口环境",
+      "objectKey": "stations/tongji_university/node_5_entrance_view_01.jpg"
     }
   ],
   "facilityReference": [
@@ -959,5 +1121,6 @@
       }
     }
   },
-  "dataVersion": "tongji_university_topology_merged_2026-06-04"
+  "dataVersion": "tongji_university_topology_merged_2026-06-04",
+  "photoObjectPrefix": "stations/tongji_university"
 }

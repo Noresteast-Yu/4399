@@ -43,16 +43,22 @@ func SetupRouter() *gin.Engine {
 			metro.GET("/arrival", handlers.GetMetroArrival)
 		}
 
+		indoorGuide := api.Group("/indoor-guide")
+		{
+			indoorGuide.GET("", handlers.GetIndoorGuide)
+			indoorGuide.GET("/progress", handlers.GetIndoorGuideProgress)
+		}
+
+		indoorNavigation := api.Group("/indoor-navigation")
+		{
+			indoorNavigation.GET("/topology", handlers.GetIndoorStationTopology)
+			indoorNavigation.GET("/path", handlers.GetIndoorNavigationPath)
+		}
+
 		highSpeedRail := api.Group("/high-speed-rail")
 		{
 			highSpeedRail.GET("/train/:trainNumber", handlers.GetTrainInfo)
 			highSpeedRail.POST("/guide", handlers.GetTrainGuide)
-		}
-
-		transferTime := api.Group("/transfer-time")
-		{
-			transferTime.POST("/start", handlers.StartTransfer)
-			transferTime.GET("/update/:sessionId", handlers.GetTransferUpdate)
 		}
 
 		commonRoutes := api.Group("/common-routes")

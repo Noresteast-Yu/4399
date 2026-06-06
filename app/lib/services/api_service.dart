@@ -270,31 +270,6 @@ class ApiService {
     });
   }
 
-  Future<ApiResponse<Map<String, dynamic>>> startTransfer({
-    required String from,
-    required String to,
-    int remainingTime = 300,
-  }) {
-    return _handleApiCall<Map<String, dynamic>>(() async {
-      final response =
-          await _networkManager.post('/transfer-time/start', data: {
-        'from': from,
-        'to': to,
-        'remainingTime': remainingTime,
-      });
-      return _unwrapDataMap(response.data);
-    });
-  }
-
-  Future<ApiResponse<Map<String, dynamic>>> getTransferUpdate(
-      String sessionId) {
-    return _handleApiCall<Map<String, dynamic>>(() async {
-      final response =
-          await _networkManager.get('/transfer-time/update/$sessionId');
-      return _unwrapDataMap(response.data);
-    });
-  }
-
   Future<ApiResponse<List<dynamic>>> getCommonRoutes(String userId) {
     return _handleApiCall<List<dynamic>>(() async {
       final response = await _networkManager.get('/common-routes/user/$userId');

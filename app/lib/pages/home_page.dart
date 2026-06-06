@@ -900,10 +900,6 @@ class _HomePageState extends State<HomePage> {
                   _miniAction(Icons.elevator_rounded, '设施', () {
                     context.push('/subway-service');
                   }),
-                  const SizedBox(width: 8),
-                  _miniAction(Icons.timer_rounded, '计时', () {
-                    context.push('/transfer-time');
-                  }),
                 ],
               ),
             ] else
