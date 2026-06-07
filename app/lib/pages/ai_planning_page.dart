@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -49,6 +50,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   _ProgressStatus? _stepStatus;
   _RouteSummary? _summary;
   List<_NavStep> _guideSteps = [];
+  String? _guideLoadNotice;
   Timer? _statusRefreshTimer;
   int _statusRequestId = 0;
 
@@ -94,45 +96,116 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   }
 
   Future<void> _loadIndoorGuide() async {
-    final response = await _apiService.getIndoorGuide(
-      from: _startStation,
-      to: _endStation,
-      startEntranceId: _startEntranceId,
-      startEntranceName: _startEntranceName,
-      endExitId: _endExitId,
-      endExitName: _endExitName,
-    );
-    if (!mounted || !response.success) {
-      return;
+    try {
+      final response = await _apiService
+          .getIndoorGuide(
+            from: _startStation,
+            to: _endStation,
+            startEntranceId: _startEntranceId,
+            startEntranceName: _startEntranceName,
+            endExitId: _endExitId,
+            endExitName: _endExitName,
+          )
+          .timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+
+      if (!response.success) {
+        _useOfflineGuide(response.error ?? '站内指引接口暂时不可用');
+        return;
+      }
+
+      final rawSteps = response.data?['steps'];
+      if (rawSteps is! List) {
+        _useOfflineGuide('站内指引数据格式不完整');
+        return;
+      }
+
+      final steps = rawSteps
+          .whereType<Map>()
+          .map((item) => _NavStep.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+      if (steps.isEmpty) {
+        _useOfflineGuide('站内指引暂无可展示步骤');
+        return;
+      }
+
+      final rawSummary = response.data?['summary'];
+
+      setState(() {
+        _guideLoadNotice = null;
+        if (rawSummary is Map) {
+          _summary =
+              _RouteSummary.fromJson(Map<String, dynamic>.from(rawSummary));
+        }
+        _guideSteps = steps;
+        if (_stepIndex >= _guideSteps.length) {
+          _stepIndex = _guideSteps.length - 1;
+        }
+      });
+      await _refreshStepStatus();
+      _startStatusRefreshTimer();
+    } catch (_) {
+      if (!mounted) return;
+      _useOfflineGuide('站内指引加载超时，已切换为本地演示指引');
     }
+  }
 
-    final rawSteps = response.data?['steps'];
-    if (rawSteps is! List) {
-      return;
-    }
-
-    final steps = rawSteps
-        .whereType<Map>()
-        .map((item) => _NavStep.fromJson(Map<String, dynamic>.from(item)))
-        .toList();
-    if (steps.isEmpty) {
-      return;
-    }
-
-    final rawSummary = response.data?['summary'];
-
+  void _useOfflineGuide(String notice) {
     setState(() {
-      if (rawSummary is Map) {
-        _summary =
-            _RouteSummary.fromJson(Map<String, dynamic>.from(rawSummary));
-      }
-      _guideSteps = steps;
-      if (_stepIndex >= _guideSteps.length) {
-        _stepIndex = _guideSteps.length - 1;
-      }
+      _guideLoadNotice = notice;
+      _summary = _RouteSummary(
+        title: '本地换乘指引',
+        durationMinutes: 8,
+        transferCount: 0,
+        transferText: '按站内标识前往',
+        doorHint: _startEntranceName.isNotEmpty ? _startEntranceName : '中部车门',
+        lines: const ['演示路线'],
+        nextAction: '确认起终点后按页面步骤前进',
+      );
+      _guideSteps = [
+        _NavStep(
+          stage: _StepStage.entry,
+          lineName: '站内步行',
+          lineColor: _green,
+          title: '确认出发位置',
+          detail: _startEntranceName.isNotEmpty
+              ? '优先前往$_startEntranceName。'
+              : '按站内标识前往目标线路或换乘通道。',
+          imageTitle: '从$_startStation出发',
+          imageSubtitle: '先观察站内导向牌和当前出口位置',
+          minutes: 1,
+          icon: Icons.login_rounded,
+          doorHint: _startEntranceName.isNotEmpty ? _startEntranceName : '中部车门',
+        ),
+        _NavStep(
+          stage: _StepStage.transfer,
+          lineName: '换乘通道',
+          lineColor: _line10,
+          title: '前往换乘通道',
+          detail: '注意闸机、扶梯和站台方向提示。',
+          imageTitle: '沿主通道前进',
+          imageSubtitle: '避开逆向客流，携带行李时优先选择无障碍通道',
+          minutes: 3,
+          icon: Icons.transfer_within_a_station_rounded,
+          doorHint: '跟随站内换乘标识',
+        ),
+        _NavStep(
+          stage: _StepStage.exit,
+          lineName: '到达区域',
+          lineColor: _green,
+          title: '到达目标区域',
+          detail: _endExitName.isNotEmpty ? '目标出口：$_endExitName。' : '请以现场标识为准。',
+          imageTitle: '抵达$_endStation附近',
+          imageSubtitle: '按照出口或站台标识完成最后一段步行',
+          minutes: 4,
+          icon: Icons.flag_rounded,
+          targetStation: _endStation,
+          doorHint: _endExitName.isNotEmpty ? _endExitName : '目标出口',
+        ),
+      ];
+      _stepIndex = 0;
+      _stepStatus = _fallbackStatusFor(_guideSteps.first, _guideSteps);
     });
-    await _refreshStepStatus();
-    _startStatusRefreshTimer();
   }
 
   void _startStatusRefreshTimer() {
@@ -206,6 +279,10 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                   _ProgressPanel(
                     status: _stepStatus ?? _fallbackStatusFor(step, steps),
                   ),
+                  if (_guideLoadNotice != null) ...[
+                    const SizedBox(height: 12),
+                    _NoticePanel(message: _guideLoadNotice!),
+                  ],
                   if (_hasAccessSelection) ...[
                     const SizedBox(height: 12),
                     _AccessTaskPanel(
@@ -410,6 +487,47 @@ class _AccessTaskPanel extends StatelessWidget {
             title: endExit.isEmpty ? '待补出站口' : endExit,
             subtitle: endStation,
             color: _AIPlanningPageState._green,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoticePanel extends StatelessWidget {
+  final String message;
+
+  const _NoticePanel({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E8),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFFE0A8)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.info_rounded,
+            color: Color(0xFF9A5A00),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF7A4300),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
         ],
       ),
@@ -806,38 +924,112 @@ class _InstructionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shortcutHint = _exitShortcutHint(step);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: _softPanel(),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: step.lineColor.withOpacity(0.12),
-            child: Icon(step.icon, color: step.lineColor, size: 30),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: step.lineColor.withOpacity(0.12),
+                child: Icon(step.icon, color: step.lineColor, size: 30),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      step.title,
+                      style: const TextStyle(
+                        color: _AIPlanningPageState._ink,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      step.detail,
+                      style: const TextStyle(
+                        color: _AIPlanningPageState._muted,
+                        fontSize: 15,
+                        height: 1.35,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 15),
+          if (shortcutHint != null) ...[
+            const SizedBox(height: 14),
+            _ExitShortcutBanner(hint: shortcutHint),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ExitShortcutBanner extends StatelessWidget {
+  final _ExitShortcutHint hint;
+
+  const _ExitShortcutBanner({required this.hint});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(13, 11, 13, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF8F1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBCE7D1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: _AIPlanningPageState._green.withOpacity(0.13),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(
+              Icons.alt_route_rounded,
+              color: _AIPlanningPageState._green,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  step.title,
+                  hint.title,
                   style: const TextStyle(
-                    color: _AIPlanningPageState._ink,
-                    fontSize: 24,
+                    color: _AIPlanningPageState._green,
+                    fontSize: 13,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
-                  step.detail,
+                  hint.detail,
                   style: const TextStyle(
-                    color: _AIPlanningPageState._muted,
-                    fontSize: 15,
+                    color: Color(0xFF245A3B),
+                    fontSize: 12,
                     height: 1.35,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
@@ -856,6 +1048,8 @@ class _ScenePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shortcutHint = _exitShortcutHint(step);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -944,7 +1138,83 @@ class _ScenePanel extends StatelessWidget {
             right: 18,
             child: _LineBadge(lineName: step.lineName, color: step.lineColor),
           ),
+          if (shortcutHint != null)
+            Positioned(
+              left: 16,
+              right: 74,
+              top: 16,
+              child: _SceneShortcutTag(hint: shortcutHint),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _SceneShortcutTag extends StatelessWidget {
+  final _ExitShortcutHint hint;
+
+  const _SceneShortcutTag({required this.hint});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.88),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFC9EEDD)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: _AIPlanningPageState._green.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.shortcut_rounded,
+                  color: _AIPlanningPageState._green,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '抄近道标记',
+                      style: TextStyle(
+                        color: _AIPlanningPageState._green,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hint.marker,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _AIPlanningPageState._ink,
+                        fontSize: 12,
+                        height: 1.25,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1217,6 +1487,45 @@ class _RouteSummary {
       nextAction: json['nextAction']?.toString() ?? '',
     );
   }
+}
+
+class _ExitShortcutHint {
+  final String title;
+  final String marker;
+  final String detail;
+
+  const _ExitShortcutHint({
+    required this.title,
+    required this.marker,
+    required this.detail,
+  });
+}
+
+_ExitShortcutHint? _exitShortcutHint(_NavStep step) {
+  final isExitStep = step.stage == _StepStage.exit ||
+      step.title.contains('出站') ||
+      step.lineName.contains('出站');
+  if (!isExitStep) return null;
+
+  final exitName = _extractExitName(step);
+  final marker = '看到“$exitName”导向牌或绿色出站图标后，优先贴右侧通道走';
+  return _ExitShortcutHint(
+    title: '快速进入提示',
+    marker: marker,
+    detail: '$marker；不要绕到大厅中央，经过扶梯口后直接切入出口通道，通常能少走一段回头路。',
+  );
+}
+
+String _extractExitName(_NavStep step) {
+  final candidates = [step.title, step.imageTitle, step.detail, step.imageSubtitle];
+  final exitPattern = RegExp(r'([A-Za-z]?\d+[A-Za-z]?号口)');
+  for (final text in candidates) {
+    final match = exitPattern.firstMatch(text);
+    if (match != null) {
+      return match.group(1)!;
+    }
+  }
+  return '目标出口';
 }
 
 _StepStage _stageFromJson(dynamic value) {

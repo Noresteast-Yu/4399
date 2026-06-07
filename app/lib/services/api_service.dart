@@ -42,7 +42,7 @@ class ApiService {
     } on DioException catch (e) {
       return ApiResponse<T>(
         success: false,
-        error: '网络错误: ${e.message ?? '未知错误'}',
+        error: _friendlyDioError(e),
       );
     } catch (e) {
       return ApiResponse<T>(

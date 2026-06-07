@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/components/home/line10_interactive_metro_map.dart';
+import 'package:smart_travel_app/data/shanghai_metro_data.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/navigation_memory.dart';
 
@@ -26,6 +27,8 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _startController =
       TextEditingController(text: '同济大学');
   final TextEditingController _endController = TextEditingController();
+  final FocusNode _startFocusNode = FocusNode();
+  final FocusNode _endFocusNode = FocusNode();
   final ApiService _apiService = ApiService();
 
   List<Map<String, dynamic>> _travelAlerts = [];
@@ -47,9 +50,14 @@ class _HomePageState extends State<HomePage> {
   Timer? _arrivalTicker;
   DateTime? _arrivalFetchedAt;
 
+  late final List<_StationSuggestion> _stationSuggestions =
+      _buildStationSuggestions();
+
   @override
   void initState() {
     super.initState();
+    _startFocusNode.addListener(_handleRouteFieldFocusChanged);
+    _endFocusNode.addListener(_handleRouteFieldFocusChanged);
     _arrivalTicker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _metroArrival == null) return;
       setState(() {});
@@ -60,9 +68,21 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _arrivalTicker?.cancel();
+    _startFocusNode
+      ..removeListener(_handleRouteFieldFocusChanged)
+      ..dispose();
+    _endFocusNode
+      ..removeListener(_handleRouteFieldFocusChanged)
+      ..dispose();
     _startController.dispose();
     _endController.dispose();
     super.dispose();
+  }
+
+  void _handleRouteFieldFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadData() async {
@@ -188,6 +208,69 @@ class _HomePageState extends State<HomePage> {
       default:
         return _line10;
     }
+  }
+
+  static List<_StationSuggestion> _buildStationSuggestions() {
+    final grouped = <String, _StationSuggestion>{};
+    for (final line in ShanghaiMetroData.getAllLines()) {
+      for (final station in line.stations) {
+        final existing = grouped[station.name];
+        if (existing == null) {
+          grouped[station.name] = _StationSuggestion(
+            id: station.id,
+            name: station.name,
+            lineNames: [line.lineName],
+            lineColors: [line.lineColor],
+          );
+        } else if (!existing.lineNames.contains(line.lineName)) {
+          existing.lineNames.add(line.lineName);
+          existing.lineColors.add(line.lineColor);
+        }
+      }
+    }
+    final suggestions = grouped.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    return suggestions;
+  }
+
+  List<_StationSuggestion> _matchedStations(String keyword) {
+    final query = keyword.trim();
+    if (query.isEmpty) return const [];
+
+    final matches = _stationSuggestions.where((station) {
+      return station.name.contains(query) ||
+          station.lineNames.any((line) => line.contains(query));
+    }).toList();
+
+    matches.sort((a, b) {
+      final aStarts = a.name.startsWith(query) ? 0 : 1;
+      final bStarts = b.name.startsWith(query) ? 0 : 1;
+      if (aStarts != bStarts) return aStarts.compareTo(bStarts);
+      final aIndex = a.name.indexOf(query);
+      final bIndex = b.name.indexOf(query);
+      if (aIndex != bIndex) return aIndex.compareTo(bIndex);
+      return a.name.length.compareTo(b.name.length);
+    });
+    return matches.take(6).toList();
+  }
+
+  Future<void> _selectSuggestedStation({
+    required _StationSuggestion station,
+    required bool forStart,
+  }) async {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      if (forStart) {
+        _startController.text = station.name;
+        _startStationId = station.id;
+        _startEntrance = null;
+      } else {
+        _endController.text = station.name;
+        _endStationId = station.id;
+        _endExit = null;
+      }
+    });
+    await _chooseAccessPoint(forStart: forStart);
   }
 
   void _disableStationTapAutoExpand() {
@@ -608,7 +691,9 @@ class _HomePageState extends State<HomePage> {
                 icon: Icons.trip_origin_rounded,
                 iconColor: _green,
                 controller: _startController,
+                focusNode: _startFocusNode,
                 hintText: '选择起点',
+                forStart: true,
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
@@ -622,7 +707,9 @@ class _HomePageState extends State<HomePage> {
                 icon: Icons.location_on_outlined,
                 iconColor: Color(0xFFFF4D5A),
                 controller: _endController,
+                focusNode: _endFocusNode,
                 hintText: '选择终点',
+                forStart: false,
               ),
               const SizedBox(width: 8),
               SizedBox(
@@ -644,9 +731,108 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+        _buildStationSuggestionPanel(),
         const SizedBox(height: 8),
         _buildAccessSummaryBar(),
       ],
+    );
+  }
+
+  Widget _buildStationSuggestionPanel() {
+    final forStart = _startFocusNode.hasFocus;
+    final forEnd = _endFocusNode.hasFocus;
+    if (!forStart && !forEnd) return const SizedBox.shrink();
+
+    final controller = forStart ? _startController : _endController;
+    final matches = _matchedStations(controller.text);
+    if (controller.text.trim().isEmpty || matches.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: _GlassPanel(
+        borderRadius: 20,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Column(
+          children: [
+            for (var i = 0; i < matches.length; i++) ...[
+              _stationSuggestionTile(matches[i], forStart: forStart),
+              if (i != matches.length - 1)
+                const Divider(height: 1, color: Color(0xFFE8DDEA)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stationSuggestionTile(
+    _StationSuggestion station, {
+    required bool forStart,
+  }) {
+    final mainColor =
+        station.lineColors.isEmpty ? _line10 : station.lineColors.first;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => _selectSuggestedStation(
+        station: station,
+        forStart: forStart,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: mainColor.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(
+                Icons.subway_rounded,
+                color: mainColor,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    station.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    station.lineNames.join(' / '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.north_west_rounded,
+              color: _muted,
+              size: 17,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -727,7 +913,9 @@ class _HomePageState extends State<HomePage> {
     required IconData icon,
     required Color iconColor,
     required TextEditingController controller,
+    required FocusNode focusNode,
     required String hintText,
+    required bool forStart,
   }) {
     return Expanded(
       child: Container(
@@ -744,6 +932,18 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: TextField(
                 controller: controller,
+                focusNode: focusNode,
+                onChanged: (_) {
+                  setState(() {
+                    if (forStart) {
+                      _startStationId = null;
+                      _startEntrance = null;
+                    } else {
+                      _endStationId = null;
+                      _endExit = null;
+                    }
+                  });
+                },
                 style: const TextStyle(
                   color: _ink,
                   fontSize: 14,
@@ -1479,4 +1679,18 @@ class _AccessChoice {
   const _AccessChoice(this.id, this.label, this.detail);
 
   String get shortLabel => id;
+}
+
+class _StationSuggestion {
+  final String id;
+  final String name;
+  final List<String> lineNames;
+  final List<Color> lineColors;
+
+  const _StationSuggestion({
+    required this.id,
+    required this.name,
+    required this.lineNames,
+    required this.lineColors,
+  });
 }

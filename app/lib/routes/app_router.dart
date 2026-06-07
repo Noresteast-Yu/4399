@@ -15,10 +15,17 @@ import 'package:smart_travel_app/pages/settings/help_center_page.dart';
 import 'package:smart_travel_app/pages/settings/user_agreement_page.dart';
 import 'package:smart_travel_app/pages/settings/api_settings_page.dart';
 import 'package:smart_travel_app/pages/ai_planning_page.dart';
+import 'package:smart_travel_app/pages/mini_game_page.dart';
+import 'package:smart_travel_app/pages/splash_page.dart';
 
 class AppRouter {
   static final router = GoRouter(
+    initialLocation: '/splash',
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       GoRoute(
         path: '/',
         builder: (context, state) => const HomePage(),
@@ -93,6 +100,10 @@ class AppRouter {
       GoRoute(
         path: '/map-navigation',
         builder: (context, state) => const MapNavigationPage(),
+      ),
+      GoRoute(
+        path: '/mini-game',
+        builder: (context, state) => const MiniGamePage(),
       ),
       GoRoute(
         path: '/ai-planning',

@@ -67,20 +67,23 @@ func QueryMetroArrival(query MetroArrivalQuery) (*MetroArrivalResult, error) {
 		"stopId":    normalizeMetroStopID(query.StopID),
 		"stopName":  query.StopName,
 		"direction": defaultString(query.Direction, "0"),
-		"cityCode":  defaultString(query.CityCode, config.AppConfig.ShmaasCityCode),
+		"cityCode":  defaultString(query.CityCode, shmaasCityCode()),
 	}
 
 	env, err := callShmaas(shmaasArrivalPath, body)
 	if err != nil {
-		return nil, err
+		return mockMetroArrival(query, "local-demo"), nil
 	}
 
 	info, _ := env.Data["stopArriveInfo"].(map[string]interface{})
+	if len(info) == 0 {
+		return mockMetroArrival(query, "local-demo"), nil
+	}
 	return &MetroArrivalResult{
-		StationName:          stringValue(info["stopName"]),
+		StationName:          defaultString(stringValue(info["stopName"]), defaultString(query.StopName, "当前站点")),
 		LineName:             stringValue(body["lineName"]),
-		Direction:            stringValue(info["upDown"]),
-		Interval:             stringValue(env.Data["interval"]),
+		Direction:            defaultString(stringValue(info["upDown"]), directionLabel(query.Direction)),
+		Interval:             defaultString(stringValue(env.Data["interval"]), "约4分钟"),
 		CurrentArriveMinutes: intValue(info["currentBusArriveTime"]),
 		NextArriveMinutes:    intValue(info["nextBusArriveTime"]),
 		StopCount:            intValue(info["currentBusStopCount"]),
@@ -94,6 +97,70 @@ func QueryMetroArrival(query MetroArrivalQuery) (*MetroArrivalResult, error) {
 	}, nil
 }
 
+func mockMetroArrival(query MetroArrivalQuery, source string) *MetroArrivalResult {
+	direction := defaultString(query.Direction, "0")
+	base := 3
+	if direction == "1" {
+		base = 4
+	}
+	if strings.Contains(query.StopID, "wujiaochang") || strings.Contains(query.StopName, "五角场") {
+		base++
+	}
+
+	stationName := defaultString(query.StopName, "当前站点")
+	lineName := defaultString(query.LineName, "10号线")
+	return &MetroArrivalResult{
+		StationName:          stationName,
+		LineName:             lineName,
+		Direction:            directionLabel(direction),
+		Interval:             "约4分钟",
+		CurrentArriveMinutes: base,
+		NextArriveMinutes:    base + 5,
+		StopCount:            maxInt(1, base-1),
+		Comfort:              72,
+		TrainID:              "demo-train-" + direction,
+		TrainLocation:        previousDemoStop(stationName),
+		TrainNextStop:        stationName,
+		ActiveTrainCount:     2,
+		ServicePlan:          "演示数据，非官方实时运营信息",
+		Source:               source,
+	}
+}
+
+func directionLabel(direction string) string {
+	if direction == "1" {
+		return "反方向"
+	}
+	return "往基隆路"
+}
+
+func previousDemoStop(stationName string) string {
+	switch stationName {
+	case "五角场":
+		return "江湾体育场"
+	case "同济大学":
+		return "四平路"
+	case "虹桥火车站":
+		return "始发站"
+	default:
+		return "上一站"
+	}
+}
+
+func shmaasCityCode() string {
+	if config.AppConfig == nil {
+		return "mock-shanghai"
+	}
+	return config.AppConfig.ShmaasCityCode
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func callShmaas(endpoint string, body map[string]interface{}) (*shmaasEnvelope, error) {
 	bodyJSON, err := json.Marshal(body)
 	if err != nil {
@@ -101,8 +168,15 @@ func callShmaas(endpoint string, body map[string]interface{}) (*shmaasEnvelope, 
 	}
 
 	timestamp := shanghaiTimestamp(time.Now())
-	sign := shmaasSign(string(bodyJSON), timestamp, config.AppConfig.ShmaasSalt)
-	host := strings.TrimRight(config.AppConfig.ShmaasHost, "/")
+	salt := "mock-salt"
+	host := "http://127.0.0.1:8787"
+	merchantID := "mock-merchant"
+	if config.AppConfig != nil {
+		salt = config.AppConfig.ShmaasSalt
+		host = strings.TrimRight(config.AppConfig.ShmaasHost, "/")
+		merchantID = config.AppConfig.ShmaasMerchantID
+	}
+	sign := shmaasSign(string(bodyJSON), timestamp, salt)
 
 	req, err := http.NewRequest(http.MethodPost, host+endpoint, bytes.NewReader(bodyJSON))
 	if err != nil {
@@ -112,7 +186,7 @@ func callShmaas(endpoint string, body map[string]interface{}) (*shmaasEnvelope, 
 	req.Header.Set("X-Sign", sign)
 	req.Header.Set("X-SignAlgorithm", "1")
 	req.Header.Set("X-Timestamp", timestamp)
-	req.Header.Set("X-MerchantId", config.AppConfig.ShmaasMerchantID)
+	req.Header.Set("X-MerchantId", merchantID)
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)

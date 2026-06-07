@@ -41,10 +41,37 @@ class ServerConfig {
   }
 
   static Future<String> getBaseUrl() async {
-    final host = await getHost();
-    final port = await getPort();
+    final rawHost = (await getHost()).trim();
+    final port = (await getPort()).trim();
     final useHttps = await getUseHttps();
+    final normalizedUrl = _baseUrlFromRawHost(rawHost, port);
+    if (normalizedUrl != null) {
+      return normalizedUrl;
+    }
+
+    final host = rawHost.isEmpty ? defaultHost : rawHost;
     final scheme = useHttps ? 'https' : 'http';
     return '$scheme://$host:$port/api';
+  }
+
+  static String? _baseUrlFromRawHost(String rawHost, String configuredPort) {
+    if (!rawHost.startsWith('http://') && !rawHost.startsWith('https://')) {
+      return null;
+    }
+
+    final uri = Uri.tryParse(rawHost);
+    if (uri == null || uri.host.isEmpty) {
+      return null;
+    }
+
+    final scheme = uri.scheme.isEmpty ? 'http' : uri.scheme;
+    final port = uri.hasPort
+        ? ':${uri.port}'
+        : configuredPort.isEmpty
+            ? ''
+            : ':$configuredPort';
+    final basePath = uri.path.replaceAll(RegExp(r'/+$'), '');
+    final apiPath = basePath.endsWith('/api') ? basePath : '$basePath/api';
+    return '$scheme://${uri.host}$port$apiPath';
   }
 }

@@ -45,6 +45,25 @@ func TestDeleteCommonRouteWithoutDatabaseReturnsServiceUnavailable(t *testing.T)
 	}
 }
 
+func TestGetMetroArrivalFallsBackToLocalDemo(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.GET("/api/metro/arrival", GetMetroArrival)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/metro/arrival?stopId=mock-l10-wujiaochang&stopName=五角场&lineName=10号线&direction=0", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"source":"local-demo"`)) {
+		t.Fatalf("expected local demo fallback body, got %s", rec.Body.String())
+	}
+}
+
 func TestAddCommonRouteRejectsMissingUserID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	database.DB = nil

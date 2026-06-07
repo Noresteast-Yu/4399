@@ -29,6 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
   ];
 
   final List<Map<String, dynamic>> _helperFunctions = [
+    {'title': '换乘冲刺', 'icon': Icons.directions_run, 'route': '/mini-game'},
     {'title': '帮助中心', 'icon': Icons.help, 'route': '/profile/help-center'},
     {'title': '意见反馈', 'icon': Icons.feedback, 'route': '/profile/feedback'},
     {'title': '关于APP', 'icon': Icons.info, 'route': '/profile/about'},
