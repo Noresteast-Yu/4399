@@ -51,55 +51,41 @@ class _SplashPageState extends State<SplashPage>
         animation: _controller,
         builder: (context, _) {
           final progress = _controller.value;
-          final cameraRush = _phase(0.0, 0.72, curve: Curves.easeInOutCubic);
-          final train = _phase(0.08, 0.58, curve: Curves.easeInOutCubic);
-          final heroJump = _phase(0.38, 0.86, curve: Curves.easeOutBack);
+          final imageIn = _phase(0.0, 0.72, curve: Curves.easeOutCubic);
+          final imagePunch = _phase(0.18, 0.88, curve: Curves.easeInOutCubic);
           final logo = _phase(0.56, 0.96, curve: Curves.elasticOut);
           final fadeIn = _phase(0.82, 1);
-          final bob = sin(progress * pi * 9);
 
           return Stack(
             fit: StackFit.expand,
             children: [
-              CustomPaint(
-                painter: _RunwayPainter(
-                  progress: progress,
-                  cameraRush: cameraRush,
+              Transform.scale(
+                scale: lerpDouble(1.08, 1.0, imageIn)! +
+                    sin(imagePunch * pi) * 0.045,
+                child: Transform.translate(
+                  offset: Offset(0, lerpDouble(34, 0, imageIn)!),
+                  child: Image.asset(
+                    'assets/images/splash_runner_3d.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                ),
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.08),
+                      Colors.black.withOpacity(0.0),
+                      Colors.black.withOpacity(0.24),
+                    ],
+                    stops: const [0, 0.52, 1],
+                  ),
                 ),
               ),
               ..._buildCoins(size, progress),
-              Positioned(
-                left: size.width * 0.5 - 158 + train * 24,
-                top: lerpDouble(size.height * 0.23, size.height * 0.39, train),
-                child: Opacity(
-                  opacity: (1 - _phase(0.62, 0.82)).clamp(0, 1).toDouble(),
-                  child: Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.0012)
-                      ..rotateX(lerpDouble(0.18, -0.08, train)!)
-                      ..scale(lerpDouble(0.54, 1.18, train)!),
-                    child: const _MetroCar3D(),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: lerpDouble(-96, size.width * 0.5 - 68, heroJump)!,
-                bottom: lerpDouble(80, size.height * 0.22, heroJump)! +
-                    sin(heroJump * pi) * 56,
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001)
-                    ..rotateY(lerpDouble(-0.5, 0.1, heroJump)!)
-                    ..rotateZ(lerpDouble(-0.28, 0.08, heroJump)! + bob * 0.02)
-                    ..scale(lerpDouble(0.82, 1.16, heroJump)!),
-                  child: _RunnerCharacter(
-                    stride: progress,
-                    glow: _phase(0.6, 1),
-                  ),
-                ),
-              ),
               Positioned(
                 top: size.height * 0.1,
                 left: 18,
