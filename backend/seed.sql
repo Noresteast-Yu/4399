@@ -220,6 +220,13 @@ CROSS JOIN (
     SELECT 'rule_hongqiao_to_siping_road', 'shanghai_metro_line_8'
 ) AS t ON tr.rule_id = t.rule_id;
 
+-- 插入静态资源
+INSERT INTO static_resources (resource_type, resource_name, resource_path, description) VALUES
+('icon', 'timer', 'app/assets/icons/timer.png', '换乘倒计时图标'),
+('icon', 'transfer', 'app/assets/icons/transfer.png', '站内换乘图标'),
+('diagram', 'hongqiao-transfer', 'backend/go/data/station_topologies/hongqiao_railway_station.json', '虹桥火车站平面换乘拓扑数据'),
+('diagram', 'tongji-university', 'backend/go/data/station_topologies/tongji_university.json', '同济大学站平面换乘拓扑数据');
+
 -- 插入站点出口
 INSERT INTO station_exits (exit_id, station_id, exit_name, nearby_place, guide_tip, is_accessible) VALUES
 ('exit_hongqiao_railway_arrival', 'shanghai_hongqiao_railway_station', '高铁到达层导向', '上海虹桥火车站到达层', '从高铁到达层按地铁10号线标识进站，携带行李用户建议预留进站时间。', 1),

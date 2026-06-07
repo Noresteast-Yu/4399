@@ -63,6 +63,28 @@ func TestAddCommonRouteRejectsMissingUserID(t *testing.T) {
 	}
 }
 
+func TestAddCommonRouteRejectsLongTimeOrDistance(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.POST("/api/common-routes/add", AddCommonRoute)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/common-routes/add",
+		bytes.NewBufferString(`{"userId":"demo","start":"虹桥火车站","end":"人民广场","time":"123456789012345678901234567890123456789012345678901"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+}
+
 func TestDeleteCommonRouteRejectsInvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	database.DB = nil
@@ -77,6 +99,40 @@ func TestDeleteCommonRouteRejectsInvalidID(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+}
+
+func TestValidateDataWithoutDatabaseReturnsServiceUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/data/validate", ValidateData)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/data/validate", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusServiceUnavailable, rec.Code, rec.Body.String())
+	}
+}
+
+func TestGetStaticResourcesWithoutDatabaseReturnsEmptyList(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/data/static-resources", GetStaticResources)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/data/static-resources", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
 	}
 }
 

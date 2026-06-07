@@ -68,6 +68,22 @@ func SetupRouter() *gin.Engine {
 			commonRoutes.DELETE("/:id", handlers.DeleteCommonRoute)
 		}
 
+		data := api.Group("/data")
+		{
+			data.GET("/validate", handlers.ValidateData)
+			data.GET("/static-resources", handlers.GetStaticResources)
+		}
+
+		users := api.Group("/users")
+		{
+			users.GET("/:userId/preferences", handlers.GetUserPreferences)
+			users.PUT("/:userId/preferences", handlers.SaveUserPreferences)
+			users.GET("/:userId/abilities", handlers.GetUserAbilities)
+			users.PUT("/:userId/abilities/:abilityType", handlers.SaveUserAbility)
+			users.GET("/:userId/luggage", handlers.GetUserLuggage)
+			users.PUT("/:userId/luggage/:luggageType", handlers.SaveUserLuggage)
+		}
+
 		travelAlerts := api.Group("/travel-alerts")
 		{
 			travelAlerts.GET("", handlers.GetTravelAlerts)

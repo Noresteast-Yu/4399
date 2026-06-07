@@ -8,6 +8,7 @@ UNION ALL SELECT 'line_station_transfer_lines', COUNT(*) FROM line_station_trans
 UNION ALL SELECT 'transfer_rules', COUNT(*) FROM transfer_rules
 UNION ALL SELECT 'transfer_rule_tags', COUNT(*) FROM transfer_rule_tags
 UNION ALL SELECT 'transfer_rule_transfer_lines', COUNT(*) FROM transfer_rule_transfer_lines
+UNION ALL SELECT 'static_resources', COUNT(*) FROM static_resources
 UNION ALL SELECT 'station_exits', COUNT(*) FROM station_exits
 UNION ALL SELECT 'station_facilities', COUNT(*) FROM station_facilities
 UNION ALL SELECT 'travel_alerts', COUNT(*) FROM travel_alerts

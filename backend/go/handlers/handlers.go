@@ -256,7 +256,7 @@ func GetCommonRoutes(c *gin.Context) {
 	}
 
 	rows, err := database.DB.Query(
-		"SELECT id, user_id, start, end FROM common_routes WHERE user_id = ? ORDER BY id DESC",
+		"SELECT id, user_id, start, end, COALESCE(time, ''), COALESCE(distance, '') FROM common_routes WHERE user_id = ? ORDER BY id DESC",
 		userID,
 	)
 	if err != nil {
@@ -269,16 +269,18 @@ func GetCommonRoutes(c *gin.Context) {
 	for rows.Next() {
 		var id int
 		var routeUserID string
-		var start, end string
-		if err := rows.Scan(&id, &routeUserID, &start, &end); err != nil {
+		var start, end, routeTime, distance string
+		if err := rows.Scan(&id, &routeUserID, &start, &end, &routeTime, &distance); err != nil {
 			continue
 		}
 		routes = append(routes, gin.H{
-			"id":     id,
-			"userId": routeUserID,
-			"start":  start,
-			"end":    end,
-			"title":  start + " -> " + end,
+			"id":       id,
+			"userId":   routeUserID,
+			"start":    start,
+			"end":      end,
+			"time":     routeTime,
+			"distance": distance,
+			"title":    start + " -> " + end,
 		})
 	}
 
@@ -286,9 +288,11 @@ func GetCommonRoutes(c *gin.Context) {
 }
 func AddCommonRoute(c *gin.Context) {
 	var req struct {
-		UserID string `json:"userId"`
-		Start  string `json:"start" binding:"required"`
-		End    string `json:"end" binding:"required"`
+		UserID   string `json:"userId"`
+		Start    string `json:"start" binding:"required"`
+		End      string `json:"end" binding:"required"`
+		Time     string `json:"time"`
+		Distance string `json:"distance"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -299,8 +303,14 @@ func AddCommonRoute(c *gin.Context) {
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Start = strings.TrimSpace(req.Start)
 	req.End = strings.TrimSpace(req.End)
+	req.Time = strings.TrimSpace(req.Time)
+	req.Distance = strings.TrimSpace(req.Distance)
 	if req.UserID == "" || req.Start == "" || req.End == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID、起点和终点"})
+		return
+	}
+	if len(req.Time) > 50 || len(req.Distance) > 50 {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "路线时间或距离过长"})
 		return
 	}
 
@@ -310,8 +320,8 @@ func AddCommonRoute(c *gin.Context) {
 	}
 
 	result, err := database.DB.Exec(
-		"INSERT INTO common_routes (user_id, start, end) VALUES (?, ?, ?)",
-		req.UserID, req.Start, req.End,
+		"INSERT INTO common_routes (user_id, start, end, time, distance) VALUES (?, ?, ?, ?, ?)",
+		req.UserID, req.Start, req.End, req.Time, req.Distance,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "添加失败"})
@@ -321,7 +331,15 @@ func AddCommonRoute(c *gin.Context) {
 	id, _ := result.LastInsertId()
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    gin.H{"id": id, "start": req.Start, "end": req.End, "title": req.Start + " -> " + req.End},
+		"data": gin.H{
+			"id":       id,
+			"userId":   req.UserID,
+			"start":    req.Start,
+			"end":      req.End,
+			"time":     req.Time,
+			"distance": req.Distance,
+			"title":    req.Start + " -> " + req.End,
+		},
 	})
 }
 func DeleteCommonRoute(c *gin.Context) {
@@ -358,6 +376,148 @@ func DeleteCommonRoute(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": "删除成功"})
+}
+
+func ValidateData(c *gin.Context) {
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"data": gin.H{
+				"ok":     false,
+				"errors": []string{"database is not connected"},
+				"counts": gin.H{},
+			},
+		})
+		return
+	}
+
+	counts := gin.H{}
+	errors := []string{}
+	requiredTables := []struct {
+		Name string
+		Min  int
+	}{
+		{"stations", 1},
+		{"metro_lines", 1},
+		{"line_stations", 1},
+		{"transfer_rules", 1},
+		{"static_resources", 1},
+		{"travel_alerts", 1},
+	}
+
+	for _, table := range requiredTables {
+		count, err := countRows(table.Name)
+		if err != nil {
+			errors = append(errors, table.Name+" table check failed")
+			continue
+		}
+		counts[table.Name] = count
+		if count < table.Min {
+			errors = append(errors, table.Name+" has no data")
+		}
+	}
+
+	referenceChecks := []struct {
+		Name  string
+		Query string
+	}{
+		{
+			"line_stations_station_refs",
+			`SELECT COUNT(*) FROM line_stations ls
+			LEFT JOIN stations s ON s.station_id = ls.station_id
+			WHERE s.station_id IS NULL`,
+		},
+		{
+			"line_stations_line_refs",
+			`SELECT COUNT(*) FROM line_stations ls
+			LEFT JOIN metro_lines ml ON ml.line_id = ls.line_id
+			WHERE ml.line_id IS NULL`,
+		},
+		{
+			"transfer_rules_station_refs",
+			`SELECT COUNT(*) FROM transfer_rules tr
+			LEFT JOIN stations origin_station ON origin_station.station_id = tr.origin_station_id
+			LEFT JOIN stations target_station ON target_station.station_id = tr.target_station_id
+			WHERE origin_station.station_id IS NULL OR target_station.station_id IS NULL`,
+		},
+		{
+			"transfer_rules_line_refs",
+			`SELECT COUNT(*) FROM transfer_rules tr
+			LEFT JOIN metro_lines ml ON ml.line_id = tr.line_id
+			WHERE ml.line_id IS NULL`,
+		},
+	}
+
+	for _, check := range referenceChecks {
+		count, err := countQuery(check.Query)
+		if err != nil {
+			errors = append(errors, check.Name+" check failed")
+			continue
+		}
+		counts[check.Name] = count
+		if count > 0 {
+			errors = append(errors, check.Name+" has broken references")
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"ok":     len(errors) == 0,
+			"errors": errors,
+			"counts": counts,
+		},
+	})
+}
+
+func GetStaticResources(c *gin.Context) {
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		return
+	}
+
+	resourceType := strings.TrimSpace(c.Query("type"))
+	query := `SELECT resource_type, resource_name, resource_path, COALESCE(description, '')
+		FROM static_resources`
+	args := []interface{}{}
+	if resourceType != "" {
+		query += " WHERE resource_type = ?"
+		args = append(args, resourceType)
+	}
+	query += " ORDER BY resource_type, resource_name"
+
+	rows, err := database.DB.Query(query, args...)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		return
+	}
+	defer rows.Close()
+
+	resources := []gin.H{}
+	for rows.Next() {
+		var itemType, name, path, description string
+		if err := rows.Scan(&itemType, &name, &path, &description); err != nil {
+			continue
+		}
+		resources = append(resources, gin.H{
+			"type":        itemType,
+			"name":        name,
+			"path":        path,
+			"description": description,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resources})
+}
+
+func countRows(tableName string) (int, error) {
+	return countQuery("SELECT COUNT(*) FROM " + tableName)
+}
+
+func countQuery(query string) (int, error) {
+	var count int
+	err := database.DB.QueryRow(query).Scan(&count)
+	return count, err
 }
 
 func GetUserPreferences(c *gin.Context) {

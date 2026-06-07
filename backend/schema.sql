@@ -109,6 +109,19 @@ CREATE TABLE transfer_rule_transfer_lines (
     UNIQUE KEY uk_rule_transfer_line (transfer_rule_id, transfer_line_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 静态资源表（图标、站内示意图、演示资源）
+CREATE TABLE static_resources (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    resource_type VARCHAR(100) NOT NULL,
+    resource_name VARCHAR(200) NOT NULL,
+    resource_path VARCHAR(500) NOT NULL,
+    description TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_resource (resource_type, resource_name),
+    INDEX idx_resource_type (resource_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 站点出口表
 CREATE TABLE station_exits (
     id INT AUTO_INCREMENT PRIMARY KEY,
