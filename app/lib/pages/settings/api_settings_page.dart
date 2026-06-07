@@ -213,28 +213,28 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                 padding: EdgeInsets.all(AppTheme.spacingM),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: CommonInput(
-                            controller: _serverHostController,
-                            hintText: '服务器地址',
-                            prefixIcon: Icon(Icons.dns,
-                                color: colorScheme.onSurfaceVariant),
-                          ),
-                        ),
-                        SizedBox(width: AppTheme.spacingS),
-                        Expanded(
-                          flex: 1,
-                          child: CommonInput(
-                            controller: _serverPortController,
-                            hintText: '端口',
-                            prefixIcon: Icon(Icons.settings_ethernet,
-                                color: colorScheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ],
+                    CommonInput(
+                      controller: _serverHostController,
+                      hintText: '服务器地址或完整接口地址',
+                      keyboardType: TextInputType.url,
+                      prefixIcon:
+                          Icon(Icons.dns, color: colorScheme.onSurfaceVariant),
+                    ),
+                    SizedBox(height: AppTheme.spacingM),
+                    CommonInput(
+                      controller: _serverPortController,
+                      hintText: '端口，默认 3000',
+                      keyboardType: TextInputType.number,
+                      prefixIcon: Icon(Icons.settings_ethernet,
+                          color: colorScheme.onSurfaceVariant),
+                      suffixIcon: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _serverPortController.text = '3000';
+                          });
+                        },
+                        child: const Text('填3000'),
+                      ),
                     ),
                     SizedBox(height: AppTheme.spacingM),
                     Container(
@@ -244,8 +244,8 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                         borderRadius: AppTheme.borderRadiusS,
                       ),
                       child: Text(
-                        '模拟器调试使用 10.0.2.2，真机使用电脑局域网 IP。'
-                        '默认 10.0.2.2:3000，留空恢复默认。',
+                        '真机可以直接填完整地址：http://100.79.122.212:3000/api。'
+                        '如果分开填写，服务器地址填 100.79.122.212，端口填 3000。',
                         style: TextStyle(
                           fontSize: 12,
                           color: colorScheme.onSecondaryContainer,
