@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"smart-travel-backend/config"
 )
 
 type StationTopology struct {
@@ -400,14 +398,7 @@ func objectStoragePhotoURL(objectKey string) string {
 	if objectKey == "" {
 		return ""
 	}
-
-	publicURL := "http://10.0.2.2:9000"
-	bucket := "station-media"
-	if config.AppConfig != nil {
-		publicURL = strings.TrimRight(config.AppConfig.ObjectStorageURL, "/")
-		bucket = strings.Trim(config.AppConfig.ObjectBucket, "/")
-	}
-	return publicURL + "/" + bucket + "/" + objectKey
+	return "/static/" + objectKey
 }
 
 func stepTitle(nodePath []TopologyNode, edge directedTopologyEdge, toName string) string {

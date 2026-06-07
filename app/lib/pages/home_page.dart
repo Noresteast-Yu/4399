@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -180,34 +181,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   static Color _lineColorFor(String lineId) {
-    switch (lineId) {
-      case '1':
-        return const Color(0xFFE4002B);
-      case '2':
-        return const Color(0xFF7AC143);
-      case '3':
-      case '4':
-      case '3-4':
-        return const Color(0xFF4B2E83);
-      case '6':
-        return const Color(0xFFBE2D79);
-      case '10':
-        return _line10;
-      case '11':
-        return const Color(0xFF7B3F2A);
-      case '12':
-        return const Color(0xFF00843D);
-      case '13':
-        return const Color(0xFFF49AC1);
-      case '14':
-        return const Color(0xFFA6A01D);
-      case '17':
-        return const Color(0xFFC490C0);
-      case '18':
-        return const Color(0xFF00A3AD);
-      default:
-        return _line10;
-    }
+    return ShanghaiMetroData.getLineColor(lineId == '3-4' ? '3' : lineId);
   }
 
   static List<_StationSuggestion> _buildStationSuggestions() {
@@ -977,12 +951,11 @@ class _HomePageState extends State<HomePage> {
     final nextMinutes = _remainingMinutesFor('nextArriveMinutes')?.toString() ??
         arrival?['nextArriveMinutes']?.toString() ??
         '?';
-    final location = arrival?['trainLocation']?.toString() ?? '未知位置';
-    final nextStop =
-        arrival?['trainNextStop']?.toString() ?? _selectedMetroStopName;
-    final alertLabel = _travelAlerts.isEmpty
-        ? '运行正常'
-        : (_travelAlerts.first['title'] ?? '实时提醒').toString();
+    final location =
+        _cleanDisplayText(arrival?['trainLocation']?.toString() ?? '未知位置');
+    final nextStop = _cleanDisplayText(
+        arrival?['trainNextStop']?.toString() ?? _selectedMetroStopName);
+    final alertLabel = _displayAlertLabel();
     final size = MediaQuery.sizeOf(context);
     final expanded = _resolvedDockHeight(size) > _dockMaxHeight(size) - 28;
 
@@ -1112,6 +1085,35 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  String _displayAlertLabel() {
+    if (_travelAlerts.isEmpty) return '10号线运行正常';
+    final rawTitle = (_travelAlerts.first['title'] ?? '实时提醒').toString();
+    final repaired = _cleanDisplayText(rawTitle);
+    if (_looksLikeMojibake(repaired) || repaired.trim().isEmpty) {
+      return '10号线运行正常';
+    }
+    return repaired;
+  }
+
+  String _cleanDisplayText(String value) {
+    if (!_looksLikeMojibake(value)) return value;
+    try {
+      final repaired = utf8.decode(latin1.encode(value));
+      return repaired.trim().isEmpty ? value : repaired;
+    } catch (_) {
+      return value;
+    }
+  }
+
+  bool _looksLikeMojibake(String value) {
+    return value.contains('Ã') ||
+        value.contains('Â') ||
+        value.contains('å') ||
+        value.contains('ç') ||
+        value.contains('æ') ||
+        value.contains('é');
   }
 
   Widget _compactArrivalSummary({

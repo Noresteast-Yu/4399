@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/navigation_memory.dart';
+import 'package:smart_travel_app/utils/network_manager.dart';
 
 class AIPlanningPage extends StatefulWidget {
   final String? initialStartStation;
@@ -263,6 +264,8 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     final steps = _guideSteps;
     final step = steps[_stepIndex];
     final showSummary = _summary != null && _stepIndex == 0;
+    final sceneHeight =
+        (MediaQuery.sizeOf(context).height * 0.34).clamp(260.0, 360.0).toDouble();
 
     return Scaffold(
       backgroundColor: _surface,
@@ -276,30 +279,44 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                 children: [
                   _GuideTopBar(onBack: _returnToRoutePlan),
                   const SizedBox(height: 10),
-                  _ProgressPanel(
-                    status: _stepStatus ?? _fallbackStatusFor(step, steps),
-                  ),
-                  if (_guideLoadNotice != null) ...[
-                    const SizedBox(height: 12),
-                    _NoticePanel(message: _guideLoadNotice!),
-                  ],
-                  if (_hasAccessSelection) ...[
-                    const SizedBox(height: 12),
-                    _AccessTaskPanel(
-                      startStation: _startStation,
-                      startEntrance: _startEntranceName,
-                      endStation: _endStation,
-                      endExit: _endExitName,
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        children: [
+                          _ProgressPanel(
+                            status:
+                                _stepStatus ?? _fallbackStatusFor(step, steps),
+                          ),
+                          if (_guideLoadNotice != null) ...[
+                            const SizedBox(height: 12),
+                            _NoticePanel(message: _guideLoadNotice!),
+                          ],
+                          if (_hasAccessSelection) ...[
+                            const SizedBox(height: 12),
+                            _AccessTaskPanel(
+                              startStation: _startStation,
+                              startEntrance: _startEntranceName,
+                              endStation: _endStation,
+                              endExit: _endExitName,
+                            ),
+                          ],
+                          if (showSummary) ...[
+                            const SizedBox(height: 12),
+                            _RouteSummaryPanel(summary: _summary!),
+                          ],
+                          const SizedBox(height: 12),
+                          _InstructionPanel(step: step),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: sceneHeight,
+                            child: _ScenePanel(step: step),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                  if (showSummary) ...[
-                    const SizedBox(height: 12),
-                    _RouteSummaryPanel(summary: _summary!),
-                  ],
-                  const SizedBox(height: 12),
-                  _InstructionPanel(step: step),
-                  const SizedBox(height: 12),
-                  Expanded(child: _ScenePanel(step: step)),
+                  ),
                   const SizedBox(height: 12),
                   _StepControls(
                     canGoBack: _stepIndex > 0,
@@ -1049,6 +1066,8 @@ class _ScenePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shortcutHint = _exitShortcutHint(step);
+    final photoUrl = _resolvePhotoUrl(step.photoUrl);
+    final assetPhoto = _fallbackPhotoAsset(step);
 
     return Container(
       width: double.infinity,
@@ -1066,17 +1085,22 @@ class _ScenePanel extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (step.photoUrl.isNotEmpty)
+          if (photoUrl.isNotEmpty)
             Image.network(
-              step.photoUrl,
+              photoUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                return CustomPaint(
-                    painter: _ScenePainter(color: step.lineColor));
+                return _AssetScenePhoto(
+                  assetPath: assetPhoto,
+                  color: step.lineColor,
+                );
               },
             )
           else
-            CustomPaint(painter: _ScenePainter(color: step.lineColor)),
+            _AssetScenePhoto(
+              assetPath: assetPhoto,
+              color: step.lineColor,
+            ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -1104,7 +1128,7 @@ class _ScenePanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    step.photoUrl.isEmpty ? '实景占位' : '实景照片',
+                    '实景照片',
                     style: TextStyle(
                       color: _AIPlanningPageState._muted,
                       fontSize: 12,
@@ -1308,6 +1332,27 @@ class _LineBadge extends StatelessWidget {
           fontWeight: FontWeight.w900,
         ),
       ),
+    );
+  }
+}
+
+class _AssetScenePhoto extends StatelessWidget {
+  final String assetPath;
+  final Color color;
+
+  const _AssetScenePhoto({
+    required this.assetPath,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      assetPath,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return CustomPaint(painter: _ScenePainter(color: color));
+      },
     );
   }
 }
@@ -1526,6 +1571,37 @@ String _extractExitName(_NavStep step) {
     }
   }
   return '目标出口';
+}
+
+String _resolvePhotoUrl(String rawUrl) {
+  final value = rawUrl.trim();
+  if (value.isEmpty ||
+      value.startsWith('http://') ||
+      value.startsWith('https://')) {
+    return value;
+  }
+
+  try {
+    final baseUri = Uri.parse(NetworkManager().baseUrl);
+    final path = value.startsWith('/') ? value : '/$value';
+    return baseUri.replace(path: path, query: '').toString();
+  } catch (_) {
+    return value;
+  }
+}
+
+String _fallbackPhotoAsset(_NavStep step) {
+  switch (step.stage) {
+    case _StepStage.entry:
+      return 'assets/images/tongji_station_entry.jpg';
+    case _StepStage.exit:
+      return 'assets/images/tongji_station_exit.jpg';
+    case _StepStage.platform:
+    case _StepStage.transfer:
+    case _StepStage.transferWait:
+    case _StepStage.ride:
+      return 'assets/images/tongji_station_transfer.jpg';
+  }
 }
 
 _StepStage _stageFromJson(dynamic value) {

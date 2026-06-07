@@ -220,6 +220,21 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                       prefixIcon:
                           Icon(Icons.dns, color: colorScheme.onSurfaceVariant),
                     ),
+                    SizedBox(height: AppTheme.spacingS),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _serverHostController.text =
+                                'http://100.79.122.212:3000/api';
+                            _serverPortController.text = '3000';
+                          });
+                        },
+                        icon: const Icon(Icons.phone_android_rounded),
+                        label: const Text('一键填入手机后端地址'),
+                      ),
+                    ),
                     SizedBox(height: AppTheme.spacingM),
                     CommonInput(
                       controller: _serverPortController,
@@ -227,13 +242,18 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                       keyboardType: TextInputType.number,
                       prefixIcon: Icon(Icons.settings_ethernet,
                           color: colorScheme.onSurfaceVariant),
-                      suffixIcon: TextButton(
+                    ),
+                    SizedBox(height: AppTheme.spacingS),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
                         onPressed: () {
                           setState(() {
                             _serverPortController.text = '3000';
                           });
                         },
-                        child: const Text('填3000'),
+                        icon: const Icon(Icons.add_circle_outline_rounded),
+                        label: const Text('填入端口 3000'),
                       ),
                     ),
                     SizedBox(height: AppTheme.spacingM),

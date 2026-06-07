@@ -9,6 +9,7 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
+	r.StaticFS("/static", gin.Dir("../object-storage/seed", false))
 
 	r.Use(func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", corsOrigin(c.Request.Header.Get("Origin")))

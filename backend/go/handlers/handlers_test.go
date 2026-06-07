@@ -64,6 +64,20 @@ func TestGetMetroArrivalFallsBackToLocalDemo(t *testing.T) {
 	}
 }
 
+func TestCleanDisplayTextReplacesMojibake(t *testing.T) {
+	const fallback = "10号线运行正常"
+	got := cleanDisplayText("10å·çº¿å£«é¦ç­è½¦", fallback)
+	if got != fallback {
+		t.Fatalf("expected fallback for mojibake, got %q", got)
+	}
+
+	normal := "10号线运行正常"
+	got = cleanDisplayText(normal, fallback)
+	if got != normal {
+		t.Fatalf("expected normal Chinese text to be preserved, got %q", got)
+	}
+}
+
 func TestAddCommonRouteRejectsMissingUserID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	database.DB = nil

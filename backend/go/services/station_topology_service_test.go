@@ -65,7 +65,7 @@ func TestIndoorNavigationUsesDirectionSpecificPhoto(t *testing.T) {
 	if path.Steps[0].PhotoKey != "16_to_7_in_01" {
 		t.Fatalf("unexpected directional photo key: %q", path.Steps[0].PhotoKey)
 	}
-	if path.Steps[0].PhotoURL != "http://10.0.2.2:9000/station-media/stations/tongji_university/16_to_7_in_01.jpg" {
+	if path.Steps[0].PhotoURL != "/static/stations/tongji_university/16_to_7_in_01.jpg" {
 		t.Fatalf("unexpected directional photo URL: %q", path.Steps[0].PhotoURL)
 	}
 

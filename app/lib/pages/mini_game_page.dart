@@ -211,9 +211,9 @@ class _MiniGamePageState extends State<MiniGamePage>
   void _onHorizontalDragEnd(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
     if (velocity < -80) {
-      _moveLane(1);
-    } else if (velocity > 80) {
       _moveLane(-1);
+    } else if (velocity > 80) {
+      _moveLane(1);
     }
   }
 
