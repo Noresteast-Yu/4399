@@ -430,6 +430,26 @@ func findStation(name string) (models.Station, error) {
 		"龙漕路":     {ID: 27, StationID: "longxu_road", StationName: "龙漕路", City: "上海", StationType: "地铁站"},
 		"漕宝路":     {ID: 28, StationID: "caobao_road", StationName: "漕宝路", City: "上海", StationType: "地铁站"},
 		"徐泾东":     {ID: 29, StationID: "xujingdong", StationName: "徐泾东", City: "上海", StationType: "地铁站"},
+		"富锦路":     {ID: 107, StationID: "fujin_road", StationName: "富锦路", City: "上海", StationType: "地铁站"},
+		"友谊西路":    {ID: 108, StationID: "west_youyi_road", StationName: "友谊西路", City: "上海", StationType: "地铁站"},
+		"宝安公路":    {ID: 109, StationID: "baoan_highway", StationName: "宝安公路", City: "上海", StationType: "地铁站"},
+		"共富新村":    {ID: 110, StationID: "gongfu_xincun", StationName: "共富新村", City: "上海", StationType: "地铁站"},
+		"呼兰路":     {ID: 111, StationID: "hulan_road", StationName: "呼兰路", City: "上海", StationType: "地铁站"},
+		"通河新村":    {ID: 112, StationID: "tonghe_xincun", StationName: "通河新村", City: "上海", StationType: "地铁站"},
+		"共康路":     {ID: 113, StationID: "gongkang_road", StationName: "共康路", City: "上海", StationType: "地铁站"},
+		"彭浦新村":    {ID: 114, StationID: "pengpu_xincun", StationName: "彭浦新村", City: "上海", StationType: "地铁站"},
+		"汶水路":     {ID: 115, StationID: "wenshui_road", StationName: "汶水路", City: "上海", StationType: "地铁站"},
+		"上海马戏城":   {ID: 116, StationID: "shanghai_circus_world", StationName: "上海马戏城", City: "上海", StationType: "地铁站"},
+		"延长路":     {ID: 117, StationID: "yanchang_road", StationName: "延长路", City: "上海", StationType: "地铁站"},
+		"中山北路":    {ID: 118, StationID: "north_zhongshan_road", StationName: "中山北路", City: "上海", StationType: "地铁站"},
+		"汉中路":     {ID: 119, StationID: "hanzhong_road", StationName: "汉中路", City: "上海", StationType: "地铁站"},
+		"新闸路":     {ID: 120, StationID: "xinzha_road", StationName: "新闸路", City: "上海", StationType: "地铁站"},
+		"衡山路":     {ID: 121, StationID: "hengshan_road", StationName: "衡山路", City: "上海", StationType: "地铁站"},
+		"上海体育馆":   {ID: 122, StationID: "shanghai_indoor_stadium", StationName: "上海体育馆", City: "上海", StationType: "地铁站"},
+		"锦江乐园":    {ID: 123, StationID: "jinjiang_park", StationName: "锦江乐园", City: "上海", StationType: "地铁站"},
+		"莲花路":     {ID: 124, StationID: "lianhua_road", StationName: "莲花路", City: "上海", StationType: "地铁站"},
+		"外环路":     {ID: 125, StationID: "waihuanlu", StationName: "外环路", City: "上海", StationType: "地铁站"},
+		"莘庄":      {ID: 126, StationID: "xinzhuang", StationName: "莘庄", City: "上海", StationType: "地铁站"},
 		"虹桥火车站":   {ID: 30, StationID: "hongqiao_railway_2", StationName: "虹桥火车站", City: "上海", StationType: "地铁站"},
 		"虹桥2号航站楼": {ID: 31, StationID: "hongqiao_t2_2", StationName: "虹桥2号航站楼", City: "上海", StationType: "地铁站"},
 		"淞虹路":     {ID: 32, StationID: "songhong_road", StationName: "淞虹路", City: "上海", StationType: "地铁站"},
@@ -727,6 +747,13 @@ func getLineStations(stationID string) ([]models.LineStation, error) {
 		"dashijie": "大世界", "waigaoqiao_ftz_north": "外高桥保税区北", "waigaoqiao_ftz_south": "外高桥保税区南",
 		"zhuguang_road":            "诸光路",
 		"shanghai_railway_station": "上海火车站", "caohexi_kfq": "漕河泾开发区",
+		"fujin_road": "富锦路", "west_youyi_road": "友谊西路", "baoan_highway": "宝安公路",
+		"gongfu_xincun": "共富新村", "hulan_road": "呼兰路", "tonghe_xincun": "通河新村",
+		"gongkang_road": "共康路", "pengpu_xincun": "彭浦新村", "wenshui_road": "汶水路",
+		"shanghai_circus_world": "上海马戏城", "yanchang_road": "延长路", "north_zhongshan_road": "中山北路",
+		"hanzhong_road": "汉中路", "xinzha_road": "新闸路", "hengshan_road": "衡山路",
+		"shanghai_indoor_stadium": "上海体育馆", "jinjiang_park": "锦江乐园", "lianhua_road": "莲花路",
+		"waihuanlu": "外环路", "xinzhuang": "莘庄",
 	}
 	stationName := stationID
 	if name, ok := stationIDToName[stationID]; ok {
@@ -754,7 +781,14 @@ func getLineStations(stationID string) ([]models.LineStation, error) {
 		"国帆路": 26, "双江路": 27, "高桥西": 28, "高桥": 29, "港城路": 30, "基隆路": 31,
 	}
 
-	line1Stations := map[string]int{"常熟路": 1, "陕西南路": 2, "黄陂南路": 3}
+	line1Stations := map[string]int{
+		"富锦路": 1, "友谊西路": 2, "宝安公路": 3, "共富新村": 4, "呼兰路": 5,
+		"通河新村": 6, "共康路": 7, "彭浦新村": 8, "汶水路": 9, "上海马戏城": 10,
+		"延长路": 11, "中山北路": 12, "上海火车站": 13, "汉中路": 14, "新闸路": 15,
+		"人民广场": 16, "黄陂南路": 17, "陕西南路": 18, "常熟路": 19, "衡山路": 20,
+		"徐家汇": 21, "上海体育馆": 22, "漕宝路": 23, "上海南站": 24, "锦江乐园": 25,
+		"莲花路": 26, "外环路": 27, "莘庄": 28,
+	}
 	line3Stations := map[string]int{"延安西路": 1, "虹桥路": 2, "宜山路": 3}
 	line4Stations := map[string]int{"延安西路": 1, "虹桥路": 2, "宜山路": 3, "海伦路": 4}
 	line6Stations := map[string]int{"外高桥保税区北": 1, "港城路": 2, "外高桥保税区南": 3}
@@ -1078,7 +1112,12 @@ func buildTransferRoute(start, end models.Station, startLS, endLS models.LineSta
 		// 使用模拟数据 - 根据换乘站确定顺序
 		lineStations := map[string]map[string]int{
 			"1": map[string]int{
-				"常熟路": 1, "陕西南路": 2, "黄陂南路": 3,
+				"富锦路": 1, "友谊西路": 2, "宝安公路": 3, "共富新村": 4, "呼兰路": 5,
+				"通河新村": 6, "共康路": 7, "彭浦新村": 8, "汶水路": 9, "上海马戏城": 10,
+				"延长路": 11, "中山北路": 12, "上海火车站": 13, "汉中路": 14, "新闸路": 15,
+				"人民广场": 16, "黄陂南路": 17, "陕西南路": 18, "常熟路": 19, "衡山路": 20,
+				"徐家汇": 21, "上海体育馆": 22, "漕宝路": 23, "上海南站": 24, "锦江乐园": 25,
+				"莲花路": 26, "外环路": 27, "莘庄": 28,
 			},
 			"2": map[string]int{
 				"浦东国际机场": 1, "远东大道": 2, "凌空路": 3, "华夏东路": 4, "川沙": 5,
@@ -1200,7 +1239,12 @@ func mockTransferStation(transferID string) models.Station {
 func mockLineStationFor(lineID string, stationName string) (models.LineStation, bool) {
 	lineStations := map[string]map[string]int{
 		"1": {
-			"常熟路": 1, "陕西南路": 2, "黄陂南路": 3,
+			"富锦路": 1, "友谊西路": 2, "宝安公路": 3, "共富新村": 4, "呼兰路": 5,
+			"通河新村": 6, "共康路": 7, "彭浦新村": 8, "汶水路": 9, "上海马戏城": 10,
+			"延长路": 11, "中山北路": 12, "上海火车站": 13, "汉中路": 14, "新闸路": 15,
+			"人民广场": 16, "黄陂南路": 17, "陕西南路": 18, "常熟路": 19, "衡山路": 20,
+			"徐家汇": 21, "上海体育馆": 22, "漕宝路": 23, "上海南站": 24, "锦江乐园": 25,
+			"莲花路": 26, "外环路": 27, "莘庄": 28,
 		},
 		"2": {
 			"浦东国际机场": 1, "远东大道": 2, "凌空路": 3, "华夏东路": 4, "川沙": 5,

@@ -52,6 +52,31 @@ class ApiService {
     }
   }
 
+  String _friendlyDioError(DioException e) {
+    final statusCode = e.response?.statusCode;
+    if (statusCode == 502 || statusCode == 503 || statusCode == 504) {
+      return '服务暂时不可用，请稍后重试';
+    }
+    if (statusCode != null && statusCode >= 500) {
+      return '服务器开小差了，请稍后重试';
+    }
+    if (statusCode == 404) {
+      return '请求的内容不存在';
+    }
+    if (statusCode == 400) {
+      return '请求参数不完整，请检查后重试';
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      return '网络请求超时，请稍后重试';
+    }
+    if (e.type == DioExceptionType.connectionError) {
+      return '无法连接后端服务，请确认后端已启动';
+    }
+    return '网络请求失败，请稍后重试';
+  }
+
   Future<ApiResponse<List<dynamic>>> getRoutePlans(
     String start,
     String end, {
@@ -110,6 +135,19 @@ class ApiService {
       final response = await _networkManager
           .get('/subway-service/station/$stationId/facilities');
       return Map<String, dynamic>.from(response.data);
+    });
+  }
+
+  Future<ApiResponse<List<dynamic>>> getStationExits(String stationId) {
+    return _handleApiCall<List<dynamic>>(() async {
+      final encodedStationId = Uri.encodeComponent(stationId);
+      final response = await _networkManager
+          .get('/subway-service/station/$encodedStationId/exits');
+      final data = response.data;
+      if (data is Map && data['success'] == true && data['exits'] is List) {
+        return List<dynamic>.from(data['exits'] as List);
+      }
+      return _unwrapDataList(data);
     });
   }
 
@@ -266,6 +304,42 @@ class ApiService {
         'destination': destination,
         'currentCarriage': currentCarriage,
       });
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> startTransferTimer({
+    String fromStation = '',
+    String toStation = '',
+    String transferStation = '',
+    int estimatedMinutes = 8,
+    int walkingMinutes = 0,
+    int waitingMinutes = 0,
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.post(
+        '/transfer-time/start',
+        data: {
+          'fromStation': fromStation,
+          'toStation': toStation,
+          'transferStation': transferStation,
+          'estimatedMinutes': estimatedMinutes,
+          'walkingMinutes': walkingMinutes,
+          'waitingMinutes': waitingMinutes,
+        },
+      );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getTransferTimerUpdate(
+    String sessionId,
+  ) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final encodedSessionId = Uri.encodeComponent(sessionId);
+      final response = await _networkManager.get(
+        '/transfer-time/update/$encodedSessionId',
+      );
       return _unwrapDataMap(response.data);
     });
   }

@@ -64,6 +64,71 @@ func TestGetMetroArrivalFallsBackToLocalDemo(t *testing.T) {
 	}
 }
 
+func TestGetLinesWithoutDatabaseReturnsDemoLines(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/subway-service/lines", GetLines)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/subway-service/lines", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"name":"10号线"`)) {
+		t.Fatalf("expected demo metro lines, got %s", rec.Body.String())
+	}
+}
+
+func TestGetStationExitsWithoutDatabaseReturnsDemoExits(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/subway-service/station/:stationId/exits", GetStationExits)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/subway-service/station/tongji_university/exits", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"name":"5号口"`)) {
+		t.Fatalf("expected tongji demo exits, got %s", rec.Body.String())
+	}
+}
+
+func TestStartTransferReturnsSession(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.POST("/api/transfer-time/start", StartTransfer)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/transfer-time/start",
+		bytes.NewBufferString(`{"fromStation":"同济大学","toStation":"浦东国际机场","estimatedMinutes":9}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"sessionId"`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"remainingSeconds":540`)) {
+		t.Fatalf("expected transfer timer session, got %s", rec.Body.String())
+	}
+}
+
 func TestCleanDisplayTextReplacesMojibake(t *testing.T) {
 	const fallback = "10号线运行正常"
 	got := cleanDisplayText("10å·çº¿å£«é¦ç­è½¦", fallback)

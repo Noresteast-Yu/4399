@@ -233,4 +233,8 @@ INSERT INTO station_exits (exit_id, station_id, exit_name, nearby_place, guide_t
 ('exit_hongqiao_railway_metro', 'shanghai_hongqiao_railway_station', '地铁换乘大厅', '虹桥综合交通枢纽', '地铁2号线、10号线、17号线换乘客流较大，注意看清线路方向。', 1),
 ('exit_east_nanjing_road_center', 'east_nanjing_road', '南京东路方向出口', '南京东路步行街', '前往市中心商圈或换乘2号线时注意客流。', 0),
 ('exit_siping_road_transfer', 'siping_road', '8号线换乘导向', '四平路站换乘通道', '换乘8号线请按站内指示前往对应站台。', 0),
-('exit_tongji_university_campus', 'tongji_university', '同济大学方向出口', '同济大学四平路校区', '前往同济大学四平路校区可根据站内出口指示出站。', 0);
+('exit_tongji_university_1', 'tongji_university', '1号口', '同济联合广场', '靠近同济联合广场，适合作为同济大学周边进出站口。', 1),
+('exit_tongji_university_2', 'tongji_university', '2号口', '彰武路，赤峰路', '前往彰武路、赤峰路方向可选择2号口。', 1),
+('exit_tongji_university_3', 'tongji_university', '3号口', '站厅南侧通道', '从站厅南侧通道出站，适合前往四平路沿线。', 0),
+('exit_tongji_university_4', 'tongji_university', '4号口', '站厅南侧通道', '从站厅南侧通道出站，注意查看站内导向牌。', 0),
+('exit_tongji_university_5', 'tongji_university', '5号口', '四平路，同济大学正门', '前往同济大学正门优先选择5号口。', 1);

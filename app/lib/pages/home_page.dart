@@ -304,7 +304,14 @@ class _HomePageState extends State<HomePage> {
         forStart ? _startController.text.trim() : _endController.text.trim();
     if (stationName.isEmpty) return;
 
-    final choices = _accessChoicesFor(stationName, forStart: forStart);
+    final stationId = forStart ? _startStationId : _endStationId;
+    final choices = await _loadAccessChoices(
+      stationName,
+      stationId: stationId,
+      forStart: forStart,
+    );
+    if (!mounted) return;
+
     final selected = await showModalBottomSheet<_AccessChoice>(
       context: context,
       useSafeArea: true,
@@ -440,6 +447,31 @@ class _HomePageState extends State<HomePage> {
         _endExit = selected;
       }
     });
+  }
+
+  Future<List<_AccessChoice>> _loadAccessChoices(
+    String stationName, {
+    required String? stationId,
+    required bool forStart,
+  }) async {
+    final id = stationId?.trim() ?? '';
+    if (id.isNotEmpty) {
+      final response = await _apiService.getStationExits(id);
+      final data = response.data;
+      if (response.success && data != null) {
+        final remoteChoices = data
+            .whereType<Map>()
+            .map((item) => _AccessChoice.fromJson(
+                  Map<String, dynamic>.from(item),
+                ))
+            .where((choice) => choice.label.trim().isNotEmpty)
+            .toList();
+        if (remoteChoices.isNotEmpty) {
+          return remoteChoices;
+        }
+      }
+    }
+    return _accessChoicesFor(stationName, forStart: forStart);
   }
 
   List<_AccessChoice> _accessChoicesFor(
@@ -1679,6 +1711,29 @@ class _AccessChoice {
   final String detail;
 
   const _AccessChoice(this.id, this.label, this.detail);
+
+  factory _AccessChoice.fromJson(Map<String, dynamic> json) {
+    final rawId =
+        (json['id'] ?? json['exitId'] ?? json['exit_id'] ?? '').toString();
+    final rawLabel = (json['name'] ??
+            json['label'] ??
+            json['exitName'] ??
+            json['exit_name'] ??
+            rawId)
+        .toString();
+    final rawDetail = (json['detail'] ??
+            json['guideTip'] ??
+            json['guide_tip'] ??
+            json['nearbyPlace'] ??
+            json['nearby_place'] ??
+            '')
+        .toString();
+    return _AccessChoice(
+      rawId.isEmpty ? rawLabel : rawId,
+      rawLabel,
+      rawDetail.isEmpty ? '站内出口' : rawDetail,
+    );
+  }
 
   String get shortLabel => id;
 }

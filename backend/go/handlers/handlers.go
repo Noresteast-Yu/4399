@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"smart-travel-backend/database"
@@ -117,6 +118,112 @@ func GetStationFacilities(c *gin.Context) {
 	})
 }
 
+type stationExitResponse struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Label        string `json:"label"`
+	Detail       string `json:"detail"`
+	NearbyPlace  string `json:"nearbyPlace"`
+	GuideTip     string `json:"guideTip"`
+	IsAccessible bool   `json:"isAccessible"`
+}
+
+func GetStationExits(c *gin.Context) {
+	stationID := c.Param("stationId")
+
+	exits := stationExitsFromDatabase(stationID)
+	defaults := defaultStationExits(stationID)
+	if len(exits) == 0 || len(exits) < len(defaults) {
+		exits = defaults
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"exits":      exits,
+		"totalCount": len(exits),
+	})
+}
+
+func stationExitsFromDatabase(stationID string) []stationExitResponse {
+	if database.DB == nil {
+		return nil
+	}
+
+	rows, err := database.DB.Query(
+		`SELECT exit_id, exit_name, COALESCE(nearby_place, ''), COALESCE(guide_tip, ''), is_accessible
+		FROM station_exits
+		WHERE station_id = ?
+		ORDER BY exit_name`,
+		stationID,
+	)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	exits := make([]stationExitResponse, 0)
+	for rows.Next() {
+		var exit stationExitResponse
+		if err := rows.Scan(&exit.ID, &exit.Name, &exit.NearbyPlace, &exit.GuideTip, &exit.IsAccessible); err != nil {
+			continue
+		}
+		exit.Label = exit.Name
+		exit.Detail = exit.GuideTip
+		if exit.Detail == "" {
+			exit.Detail = exit.NearbyPlace
+		}
+		exits = append(exits, exit)
+	}
+	return exits
+}
+
+func defaultStationExits(stationID string) []stationExitResponse {
+	normalized := strings.ToLower(stationID)
+	switch {
+	case strings.Contains(normalized, "tongji") || strings.Contains(stationID, "同济"):
+		return stationExitChoices([][3]string{
+			{"1", "1号口", "同济联合广场"},
+			{"2", "2号口", "彰武路，赤峰路"},
+			{"3", "3号口", "站厅南侧通道"},
+			{"4", "4号口", "站厅南侧通道"},
+			{"5", "5号口", "四平路，同济大学正门"},
+		})
+	case strings.Contains(normalized, "hongqiao") || strings.Contains(stationID, "虹桥"):
+		return stationExitChoices([][3]string{
+			{"A", "A口", "高铁到达层，虹桥枢纽"},
+			{"B", "B口", "2号线、17号线换乘"},
+			{"C", "C口", "出租车，公交枢纽"},
+		})
+	case strings.Contains(normalized, "wujiaochang") || strings.Contains(stationID, "五角场"):
+		return stationExitChoices([][3]string{
+			{"1", "1号口", "邯郸路，国定路"},
+			{"4", "4号口", "万达广场"},
+			{"5", "5号口", "合生汇，大学路"},
+		})
+	default:
+		return stationExitChoices([][3]string{
+			{"1", "1号口", "默认出站口"},
+			{"2", "2号口", "备用出站口"},
+		})
+	}
+}
+
+func stationExitChoices(items [][3]string) []stationExitResponse {
+	exits := make([]stationExitResponse, 0, len(items))
+	for _, item := range items {
+		exits = append(exits, stationExitResponse{
+			ID:           item[0],
+			Name:         item[1],
+			Label:        item[1],
+			Detail:       item[2],
+			NearbyPlace:  item[2],
+			GuideTip:     item[2],
+			IsAccessible: true,
+		})
+	}
+	return exits
+}
+
 func GetAllStationsFacilities(c *gin.Context) {
 	facilities := services.GetAllStationFacilities()
 	c.JSON(http.StatusOK, gin.H{
@@ -128,7 +235,7 @@ func GetAllStationsFacilities(c *gin.Context) {
 
 func GetLines(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusOK, []gin.H{})
+		c.JSON(http.StatusOK, defaultMetroLines())
 		return
 	}
 
@@ -157,6 +264,16 @@ func GetLines(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, lines)
+}
+
+func defaultMetroLines() []gin.H {
+	return []gin.H{
+		{"id": "1", "name": "1号线", "city": "上海", "color": "#E4002B", "directions": []string{"富锦路", "莘庄"}},
+		{"id": "2", "name": "2号线", "city": "上海", "color": "#8CC63F", "directions": []string{"徐泾东", "浦东国际机场"}},
+		{"id": "10", "name": "10号线", "city": "上海", "color": "#C5A3FF", "directions": []string{"虹桥火车站", "基隆路"}},
+		{"id": "11", "name": "11号线", "city": "上海", "color": "#7A3E2F", "directions": []string{"嘉定北", "迪士尼"}},
+		{"id": "18", "name": "18号线", "city": "上海", "color": "#C8A45D", "directions": []string{"长江南路", "航头"}},
+	}
 }
 
 func GetMetroArrival(c *gin.Context) {
@@ -242,6 +359,82 @@ func GetIndoorNavigationPath(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": path})
+}
+
+func StartTransfer(c *gin.Context) {
+	var req struct {
+		FromStation      string `json:"fromStation"`
+		ToStation        string `json:"toStation"`
+		TransferStation  string `json:"transferStation"`
+		EstimatedMinutes int    `json:"estimatedMinutes"`
+		WalkingMinutes   int    `json:"walkingMinutes"`
+		WaitingMinutes   int    `json:"waitingMinutes"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "换乘计时参数格式不正确"})
+		return
+	}
+
+	req.FromStation = strings.TrimSpace(req.FromStation)
+	req.ToStation = strings.TrimSpace(req.ToStation)
+	req.TransferStation = strings.TrimSpace(req.TransferStation)
+	if req.FromStation == "" {
+		req.FromStation = "当前位置"
+	}
+	if req.ToStation == "" {
+		req.ToStation = "目标站点"
+	}
+	if req.TransferStation == "" {
+		req.TransferStation = "换乘通道"
+	}
+
+	totalMinutes := req.EstimatedMinutes
+	if totalMinutes <= 0 {
+		totalMinutes = req.WalkingMinutes + req.WaitingMinutes
+	}
+	if totalMinutes <= 0 {
+		totalMinutes = 8
+	}
+	if totalMinutes > 120 {
+		totalMinutes = 120
+	}
+
+	now := time.Now()
+	sessionID := fmt.Sprintf("transfer-%d", now.UnixNano())
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"sessionId":        sessionID,
+			"fromStation":      req.FromStation,
+			"toStation":        req.ToStation,
+			"transferStation":  req.TransferStation,
+			"startedAt":        now.Format(time.RFC3339),
+			"totalSeconds":     totalMinutes * 60,
+			"remainingSeconds": totalMinutes * 60,
+			"status":           "running",
+			"message":          "换乘计时已开始",
+		},
+	})
+}
+
+func GetTransferUpdate(c *gin.Context) {
+	sessionID := strings.TrimSpace(c.Param("sessionId"))
+	if sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供换乘计时会话ID"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"sessionId":        sessionID,
+			"status":           "running",
+			"remainingSeconds": 420,
+			"elapsedSeconds":   60,
+			"nextAction":       "沿站内换乘标识前进，注意扶梯和客流方向",
+			"message":          "预计仍有约7分钟完成换乘",
+		},
+	})
 }
 
 func GetCommonRoutes(c *gin.Context) {

@@ -35,6 +35,7 @@ func SetupRouter() *gin.Engine {
 		{
 			subway.GET("/station/:stationId", handlers.GetStation)
 			subway.GET("/station/:stationId/facilities", handlers.GetStationFacilities)
+			subway.GET("/station/:stationId/exits", handlers.GetStationExits)
 			subway.GET("/facilities", handlers.GetAllStationsFacilities)
 			subway.GET("/lines", handlers.GetLines)
 		}
@@ -60,6 +61,12 @@ func SetupRouter() *gin.Engine {
 		{
 			highSpeedRail.GET("/train/:trainNumber", handlers.GetTrainInfo)
 			highSpeedRail.POST("/guide", handlers.GetTrainGuide)
+		}
+
+		transferTime := api.Group("/transfer-time")
+		{
+			transferTime.POST("/start", handlers.StartTransfer)
+			transferTime.GET("/update/:sessionId", handlers.GetTransferUpdate)
 		}
 
 		commonRoutes := api.Group("/common-routes")
