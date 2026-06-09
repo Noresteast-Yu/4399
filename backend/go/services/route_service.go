@@ -549,6 +549,10 @@ func findStation(name string) (models.Station, error) {
 		}
 	}
 
+	if station, ok := metroNetworkStationByName(name); ok {
+		return station, nil
+	}
+
 	return models.Station{}, fmt.Errorf("未找到站点: %s", name)
 }
 
@@ -598,6 +602,11 @@ func findRoutes(start, end models.Station) ([]PlannedRoute, error) {
 				continue
 			}
 			fmt.Printf("[DEBUG-findRoutes] 数据库无线路详情，降级使用模拟线路: %s\n", lineID)
+		}
+
+		if networkLine, ok := metroNetworkLine(lineID); ok {
+			lineDetails[lineID] = networkLine
+			continue
 		}
 
 		// 模拟线路数据
@@ -667,6 +676,20 @@ func findRoutes(start, end models.Station) ([]PlannedRoute, error) {
 					allRoutes = append(allRoutes, routes...)
 				}
 			}
+		}
+	}
+
+	if networkRoute := findMetroNetworkRoute(start, end); networkRoute != nil {
+		seen := false
+		networkSignature := routeSignature(*networkRoute)
+		for _, route := range allRoutes {
+			if routeSignature(route) == networkSignature {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			allRoutes = append(allRoutes, *networkRoute)
 		}
 	}
 
@@ -758,6 +781,9 @@ func getLineStations(stationID string) ([]models.LineStation, error) {
 	stationName := stationID
 	if name, ok := stationIDToName[stationID]; ok {
 		stationName = name
+	}
+	if networkStations := metroNetworkLineStations(stationID, stationName); len(networkStations) > 0 {
+		return networkStations, nil
 	}
 
 	// 2号线站点映射
@@ -989,6 +1015,10 @@ func findCommonTransferStations(lineID1, lineID2 string) ([]string, error) {
 		fmt.Printf("[DEBUG-findCommonTransferStations] 数据库无换乘站记录，降级使用模拟换乘: %s-%s\n", lineID1, lineID2)
 	}
 
+	if stations := metroNetworkCommonTransferStations(lineID1, lineID2); len(stations) > 0 {
+		return stations, nil
+	}
+
 	// 模拟换乘站数据
 	transferStations := map[string]map[string][]string{
 		"2": map[string][]string{
@@ -1110,6 +1140,30 @@ func buildTransferRoute(start, end models.Station, startLS, endLS models.LineSta
 		}
 	} else {
 		// 使用模拟数据 - 根据换乘站确定顺序
+		if firstOrder, ok := metroNetworkOrder(startLS.LineID, transferID); ok {
+			if secondOrder, ok := metroNetworkOrder(endLS.LineID, transferID); ok {
+				ls1 = models.LineStation{
+					ID:           0,
+					LineID:       startLS.LineID,
+					StationID:    transferID,
+					Direction:    "both",
+					StationOrder: firstOrder,
+					IsTransfer:   true,
+					PlatformTip:  nil,
+				}
+				ls2 = models.LineStation{
+					ID:           0,
+					LineID:       endLS.LineID,
+					StationID:    transferID,
+					Direction:    "both",
+					StationOrder: secondOrder,
+					IsTransfer:   true,
+					PlatformTip:  nil,
+				}
+				goto transferOrdersReady
+			}
+		}
+
 		lineStations := map[string]map[string]int{
 			"1": map[string]int{
 				"富锦路": 1, "友谊西路": 2, "宝安公路": 3, "共富新村": 4, "呼兰路": 5,
@@ -1190,6 +1244,7 @@ func buildTransferRoute(start, end models.Station, startLS, endLS models.LineSta
 		}
 	}
 
+transferOrdersReady:
 	firstLegStops := int(math.Abs(float64(ls1.StationOrder - startLS.StationOrder)))
 	secondLegStops := int(math.Abs(float64(endLS.StationOrder - ls2.StationOrder)))
 
@@ -1237,6 +1292,18 @@ func mockTransferStation(transferID string) models.Station {
 }
 
 func mockLineStationFor(lineID string, stationName string) (models.LineStation, bool) {
+	if order, ok := metroNetworkOrder(lineID, stationName); ok {
+		return models.LineStation{
+			ID:           0,
+			LineID:       lineID,
+			StationID:    stationName,
+			Direction:    "both",
+			StationOrder: order,
+			IsTransfer:   metroNetworkIsTransferStation(metroNetworkStationName(stationName, stationName)),
+			PlatformTip:  nil,
+		}, true
+	}
+
 	lineStations := map[string]map[string]int{
 		"1": {
 			"富锦路": 1, "友谊西路": 2, "宝安公路": 3, "共富新村": 4, "呼兰路": 5,

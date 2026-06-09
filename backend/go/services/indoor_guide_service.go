@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +27,7 @@ type IndoorGuideStep struct {
 	ArrivalQuery   map[string]string `json:"arrivalQuery,omitempty"`
 	PhotoKey       string            `json:"photoKey,omitempty"`
 	PhotoURL       string            `json:"photoUrl,omitempty"`
+	PhotoSource    string            `json:"photoSource,omitempty"`
 }
 
 type IndoorGuideProgressStatus struct {
@@ -289,6 +291,26 @@ func ensureIndoorGuideDataLoaded() {
 			return
 		}
 	})
+	mergeMetroNetworkIntoIndoorGuideData()
+}
+
+func mergeMetroNetworkIntoIndoorGuideData() {
+	for lineID, stations := range metroNetworkLines {
+		lineName := metroNetworkLineNames[lineID]
+		if lineName == "" || len(stations) == 0 {
+			continue
+		}
+		names := make([]string, 0, len(stations))
+		for _, station := range stations {
+			names = append(names, station.Name)
+		}
+		metroLineStations[lineName] = names
+		if color := metroNetworkLineColors[lineID]; color != "" {
+			metroLineColors[lineName] = color
+		}
+		lineIDs[lineName] = "mock-line-" + lineID
+	}
+	metroLineColors["出站"] = "#008C4A"
 }
 
 func indoorGuideDataPaths() []string {
@@ -357,6 +379,7 @@ func BuildIndoorGuideWithOptions(from string, to string, options IndoorGuideOpti
 	}
 
 	steps := composeIndoorGuideSteps(route, from, to, options)
+	enrichIndoorGuidePhotos(steps, from, to, route.TransferStations)
 	transferStation := ""
 	if len(route.TransferStations) > 0 {
 		transferStation = route.TransferStations[0]
@@ -398,6 +421,7 @@ func buildSameStationIndoorPlan(from string, to string, options IndoorGuideOptio
 	}
 	if len(path.Steps) == 0 {
 		steps := []IndoorGuideStep{samePointIndoorStep(path, options)}
+		enrichIndoorGuidePhotos(steps, from, to, nil)
 		return IndoorGuidePlan{
 			From:    from,
 			To:      to,
@@ -407,6 +431,7 @@ func buildSameStationIndoorPlan(from string, to string, options IndoorGuideOptio
 	}
 
 	steps := guideStepsFromTopologyPath(path, "indoor", "站内通行", "#B07AB2")
+	enrichIndoorGuidePhotos(steps, from, to, nil)
 	return IndoorGuidePlan{
 		From:    from,
 		To:      to,
@@ -670,15 +695,15 @@ func composeIndoorGuideSteps(route metroRoute, from string, to string, options I
 	steps := []IndoorGuideStep{}
 	first := route.Segments[0]
 	steps = append(steps, entryStepsForStation(from, first.LineName, options)...)
-	steps = append(steps, platformStepForSegment(first, first.To))
-	steps = append(steps, rideStepForSegment(first, nextTransferTarget(route, 0)))
+	steps = append(steps, platformStepForSegment(first, nextTransferTarget(route, 0)))
+	steps = append(steps, rideStepForSegment(first, nextTransferTarget(route, 0), nextLineName(route, 0)))
 
 	for i := 1; i < len(route.Segments); i++ {
 		prev := route.Segments[i-1]
 		current := route.Segments[i]
 		transferStation := current.From
 		steps = append(steps, transferStepsForStation(transferStation, prev.LineName, current.LineName)...)
-		steps = append(steps, rideStepForSegment(current, nextTransferTarget(route, i)))
+		steps = append(steps, rideStepForSegment(current, nextTransferTarget(route, i), nextLineName(route, i)))
 	}
 
 	last := route.Segments[len(route.Segments)-1]
@@ -713,14 +738,18 @@ func entryStepsForStation(station string, line string, options IndoorGuideOption
 
 func platformStepForSegment(segment IndoorGuideRouteSegment, target string) IndoorGuideStep {
 	doorHint := doorHintForSegment(segment, target)
+	targetAction := "到" + segment.To + "下车"
+	if target != segment.To {
+		targetAction = "到" + target + "换乘"
+	}
 	step := guideStep(
 		"platform",
 		segment.LineName,
 		segment.LineColor,
-		"站到"+doorHint+"候车",
-		"这个位置下车后更靠近后续换乘或出站通道。",
-		segment.LineName+"站台中部",
-		"寻找"+doorHint+"地贴或屏蔽门编号",
+		"在"+segment.From+"乘"+segment.LineName,
+		"方向："+segment.DirectionName+"，"+targetAction+"；建议站到"+doorHint+"。",
+		segment.From+segment.LineName+"站台",
+		"确认列车方向为"+segment.DirectionName,
 		1,
 		"door",
 	)
@@ -728,20 +757,24 @@ func platformStepForSegment(segment IndoorGuideRouteSegment, target string) Indo
 	return step
 }
 
-func rideStepForSegment(segment IndoorGuideRouteSegment, target string) IndoorGuideStep {
+func rideStepForSegment(segment IndoorGuideRouteSegment, target string, nextLine string) IndoorGuideStep {
 	remainingStops := len(segment.Stops) - 1
 	if remainingStops < 1 {
 		remainingStops = 1
 	}
 	minutes := remainingStops * 2
+	nextAction := "下车后按出站口指引离站"
+	if nextLine != "" {
+		nextAction = "下车后换乘" + nextLine
+	}
 	step := guideStep(
 		"ride",
 		segment.LineName,
 		segment.LineColor,
-		"乘"+segment.LineName+"到"+segment.To,
-		"还有"+itoa(remainingStops)+"站下车，到站前提前靠近"+doorHintForSegment(segment, target)+"。",
-		segment.LineName+"车厢内提示",
-		"听到"+segment.To+"报站后准备下车",
+		"乘"+segment.LineName+"到"+segment.To+"下车",
+		"共"+itoa(remainingStops)+"站，听到"+segment.To+"报站后准备下车；"+nextAction+"，提前靠近"+doorHintForSegment(segment, target)+"。",
+		segment.LineName+"车厢线路图",
+		segment.From+" → "+segment.To+"，"+nextAction,
 		minutes,
 		"train",
 	)
@@ -769,8 +802,16 @@ func transferStepsForStation(station string, fromLine string, toLine string) []I
 	}
 	steps := stepsFromTemplates("transfer", toLine, lineColor, templates, context)
 	for i := range steps {
+		if i == 0 {
+			steps[i].Title = "在" + station + "下车换乘" + toLine
+			steps[i].Detail = "从" + fromLine + "列车下车后，跟随站内“" + toLine + "”换乘导向前进。"
+			steps[i].ImageTitle = station + "换乘通道"
+			steps[i].ImageSubtitle = fromLine + " → " + toLine
+		}
 		if i == len(steps)-1 {
 			steps[i].Stage = "transferWait"
+			steps[i].Title = "到达" + toLine + "站台候车"
+			steps[i].Detail = "确认方向牌后候车，下一段乘" + toLine + "继续前往目标站。"
 		}
 	}
 	return steps
@@ -857,6 +898,9 @@ func guideStepsFromTopologyPath(path *IndoorNavigationPath, stage string, lineNa
 		}
 		step.PhotoKey = topologyStep.PhotoKey
 		step.PhotoURL = topologyStep.PhotoURL
+		if step.PhotoURL != "" {
+			step.PhotoSource = "real"
+		}
 		steps = append(steps, step)
 	}
 	return steps
@@ -916,6 +960,150 @@ func guideStep(stage string, lineName string, lineColor string, title string, de
 		Minutes:       minutes,
 		IconKey:       iconKey,
 	}
+}
+
+func enrichIndoorGuidePhotos(steps []IndoorGuideStep, from string, to string, transferStations []string) {
+	transferStation := ""
+	if len(transferStations) > 0 {
+		transferStation = transferStations[0]
+	}
+	for i := range steps {
+		station := from
+		switch steps[i].Stage {
+		case "exit":
+			station = to
+		case "transfer", "transferWait":
+			if transferStation != "" {
+				station = transferStation
+			}
+		case "ride":
+			if steps[i].TargetStation != "" {
+				station = steps[i].TargetStation
+			}
+		}
+		if photoURL := realStationPhotoURL(station, steps[i].Stage); photoURL != "" {
+			steps[i].PhotoKey = realStationPhotoKey(station, steps[i].Stage)
+			steps[i].PhotoURL = photoURL
+			steps[i].PhotoSource = "real"
+			continue
+		}
+		if steps[i].PhotoURL == "" {
+			steps[i].PhotoKey = "generated_" + steps[i].Stage
+			steps[i].PhotoURL = generatedStationVisualURL(station, steps[i])
+			steps[i].PhotoSource = "generated"
+		}
+	}
+}
+
+func generatedStationVisualURL(station string, step IndoorGuideStep) string {
+	values := url.Values{}
+	values.Set("station", station)
+	values.Set("line", step.LineName)
+	values.Set("stage", step.Stage)
+	values.Set("color", strings.TrimPrefix(step.LineColor, "#"))
+	return "/api/station-visual?" + values.Encode()
+}
+
+func defaultRealPhotoForIndoorStage(stage string) (string, string) {
+	switch stage {
+	case "entry":
+		return "tongji_entry_real", "/static/stations/tongji_university/node_5_entrance_view_01.jpg"
+	case "exit":
+		return "tongji_exit_real", "/static/stations/tongji_university/node_1_entrance_view_01.jpg"
+	case "platform":
+		return "tongji_platform_real", "/static/stations/tongji_university/18_to_19_01.jpg"
+	case "transfer", "transferWait":
+		return "tongji_transfer_real", "/static/stations/tongji_university/7_out_to_8_01.jpg"
+	case "ride":
+		return "tongji_ride_real", "/static/stations/tongji_university/16_to_7_in_01.jpg"
+	default:
+		return "tongji_station_real", "/static/stations/tongji_university/8_to_9_01.jpg"
+	}
+}
+
+func realStationPhotoKey(station string, stage string) string {
+	return "real_" + strings.ReplaceAll(station, " ", "_") + "_" + stage
+}
+
+func realStationPhotoURL(station string, stage string) string {
+	station = normalizeIndoorStation(station, station)
+	stationPhotos := map[string]map[string]string{
+		"上海虹桥火车站": {
+			"entry":        commonsFilePath("The Concourse of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"platform":     commonsFilePath("The Line 10 Platform of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"ride":         commonsFilePath("The Line 10 Platform of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"transfer":     commonsFilePath("The Line 2&17 North Platform of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"transferWait": commonsFilePath("The Line 2&17 South Platform of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"exit":         commonsFilePath("Exit Gate of A Area Metro Hongqiao Railway Station in Shanghai.jpg"),
+		},
+		"虹桥火车站": {
+			"entry":        commonsFilePath("The Concourse of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"platform":     commonsFilePath("The Line 10 Platform of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"ride":         commonsFilePath("The Line 10 Platform of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"transfer":     commonsFilePath("The Line 2&17 North Platform of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"transferWait": commonsFilePath("The Line 2&17 South Platform of Metro Hongqiao Railway Station in Shanghai 2024.jpg"),
+			"exit":         commonsFilePath("Exit Gate of A Area Metro Hongqiao Railway Station in Shanghai.jpg"),
+		},
+		"人民广场": {
+			"entry":        commonsFilePath("View in People's Square Station 1.jpg"),
+			"platform":     commonsFilePath("The Line 8 Platform of People's Square Station in Shanghai 2025.jpg"),
+			"ride":         commonsFilePath("The Line 8 Platform of People's Square Station in Shanghai 2025.jpg"),
+			"transfer":     commonsFilePath("View in People's Square Station 3.jpg"),
+			"transferWait": commonsFilePath("View in People's Square Station 4.jpg"),
+			"exit":         commonsFilePath("Ticket booths at People's Square (Shanghai) 20240717.jpg"),
+		},
+		"陕西南路": {
+			"entry":        commonsFilePath("The Line 10 Concourse of South Shaanxi Road Station in Shanghai 2025.jpg"),
+			"platform":     commonsFilePath("The Line 1 Platform of South Shaanxi Road Station in Shanghai 2026.jpg"),
+			"ride":         commonsFilePath("South Shaanxi Road Station Line 10 Platform.jpg"),
+			"transfer":     commonsFilePath("The Line 1 Concourse of South Shaanxi Road Station in Shanghai 2026.jpg"),
+			"transferWait": commonsFilePath("The Line 12 Concourse of South Shaanxi Road Station in Shanghai 2025.jpg"),
+			"exit":         commonsFilePath("South Shaanxi Road station, mural near exit 4.jpeg"),
+		},
+		"南京东路": {
+			"entry":        commonsFilePath("Inside view of East Nanjing Road Station.JPG"),
+			"platform":     commonsFilePath("Line 10 East Nanjing Road.JPG"),
+			"ride":         commonsFilePath("Train of Shanghai Metro Line 2 arriving at East Nanjing Road Station.JPG"),
+			"transfer":     commonsFilePath("Inside view of East Nanjing Road Station.JPG"),
+			"transferWait": commonsFilePath("Platform of East Nanjing Road Station (Line 2) 2.jpg"),
+			"exit":         commonsFilePath("Exit 1 of East Nanjing Road Station in Shanghai.jpg"),
+		},
+		"徐家汇": {
+			"entry":        commonsFilePath("201609 Art Gallery of Shanghai Metro at Xujiahui Station.jpg"),
+			"platform":     commonsFilePath("Platform (to Xinzhuang) of Xujiahui Station of Shanghai Metro Line 1 20250831.jpg"),
+			"ride":         commonsFilePath("Platform (to Xinzhuang) of Xujiahui Station of Shanghai Metro Line 1 20250831.jpg"),
+			"transfer":     commonsFilePath("201609 Art Gallery of Shanghai Metro at Xujiahui Station.jpg"),
+			"transferWait": commonsFilePath("201609 Art Gallery of Shanghai Metro at Xujiahui Station.jpg"),
+			"exit":         commonsFilePath("201609 Art Gallery of Shanghai Metro at Xujiahui Station.jpg"),
+		},
+		"莘庄": {
+			"entry":        commonsFilePath("XinzhuangHall.jpg"),
+			"platform":     commonsFilePath("Platform (Terminal) of Xinzhuang Station of Shanghai Metro Line 5 20250130.jpg"),
+			"ride":         commonsFilePath("Line 1 Xinzhuang (terminal).jpg"),
+			"transfer":     commonsFilePath("XZSInner.jpg"),
+			"transferWait": commonsFilePath("XinzhuangHall.jpg"),
+			"exit":         commonsFilePath("No.1 North Exit of Xinzhuang Station in Shanghai 2024.jpg"),
+		},
+		"浦东国际机场": {
+			"entry":        commonsFilePath("Exit A of Pudong International Airport Station in Shanghai.jpg"),
+			"platform":     commonsFilePath("Map of Shanghai Metro Line 2 in Pudong International Airport Station.JPG"),
+			"ride":         commonsFilePath("Map of Shanghai Metro Line 2 in Pudong International Airport Station.JPG"),
+			"transfer":     commonsFilePath("Exit B of Pudong International Airport Station in Shanghai.jpg"),
+			"transferWait": commonsFilePath("Exit B of Pudong International Airport Station in Shanghai.jpg"),
+			"exit":         commonsFilePath("Exit A of Pudong International Airport Station in Shanghai.jpg"),
+		},
+	}
+	if photos, ok := stationPhotos[station]; ok {
+		if url := photos[stage]; url != "" {
+			return url
+		}
+		return photos["entry"]
+	}
+	return ""
+}
+
+func commonsFilePath(filename string) string {
+	return "https://commons.wikimedia.org/wiki/Special:FilePath/" + strings.ReplaceAll(filename, " ", "_") + "?width=1200"
 }
 
 func stepsFromTemplates(stage string, lineName string, lineColor string, templates []indoorStepTemplate, context map[string]string) []IndoorGuideStep {
@@ -1302,6 +1490,13 @@ func nextTransferTarget(route metroRoute, index int) string {
 		return route.Segments[index+1].From
 	}
 	return route.Segments[index].To
+}
+
+func nextLineName(route metroRoute, index int) string {
+	if index+1 < len(route.Segments) {
+		return route.Segments[index+1].LineName
+	}
+	return ""
 }
 
 func rideMinutesBetween(from string, to string) int {

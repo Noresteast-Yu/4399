@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +17,38 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+func GetStationVisual(c *gin.Context) {
+	lineColor := parseHexColor(c.Query("color"), color.RGBA{176, 122, 178, 255})
+	stageColor := visualStageColor(c.Query("stage"))
+	img := image.NewRGBA(image.Rect(0, 0, 1200, 760))
+
+	for y := 0; y < 760; y++ {
+		ratio := float64(y) / 759
+		base := blendColor(color.RGBA{238, 244, 255, 255}, color.RGBA{196, 207, 224, 255}, ratio)
+		for x := 0; x < 1200; x++ {
+			img.Set(x, y, base)
+		}
+	}
+
+	fillRect(img, 0, 510, 1200, 250, color.RGBA{112, 125, 142, 255})
+	fillRect(img, 0, 0, 1200, 18, lineColor)
+	fillRect(img, 110, 150, 980, 290, color.RGBA{245, 248, 252, 255})
+	fillRect(img, 150, 190, 240, 210, color.RGBA{198, 209, 222, 255})
+	fillRect(img, 430, 190, 260, 210, color.RGBA{186, 200, 216, 255})
+	fillRect(img, 730, 190, 280, 210, color.RGBA{198, 209, 222, 255})
+	fillRect(img, 0, 500, 1200, 10, color.RGBA{255, 255, 255, 255})
+
+	drawRail(img, 190, 735, 470, 510, lineColor)
+	drawRail(img, 1010, 735, 730, 510, lineColor)
+	fillRect(img, 0, 580, 1200, 28, stageColor)
+	fillCircle(img, 600, 594, 42, color.RGBA{255, 255, 255, 255})
+	fillCircle(img, 600, 594, 26, lineColor)
+
+	c.Header("Cache-Control", "public, max-age=86400")
+	c.Header("Content-Type", "image/png")
+	_ = png.Encode(c.Writer, img)
+}
 
 func PlanRoute(c *gin.Context) {
 	var req struct {
@@ -118,6 +153,93 @@ func GetStationFacilities(c *gin.Context) {
 	})
 }
 
+func parseHexColor(raw string, fallback color.RGBA) color.RGBA {
+	raw = strings.TrimPrefix(strings.TrimSpace(raw), "#")
+	if len(raw) != 6 {
+		return fallback
+	}
+	value, err := strconv.ParseUint(raw, 16, 32)
+	if err != nil {
+		return fallback
+	}
+	return color.RGBA{
+		R: uint8(value >> 16),
+		G: uint8(value >> 8),
+		B: uint8(value),
+		A: 255,
+	}
+}
+
+func visualStageColor(stage string) color.RGBA {
+	switch stage {
+	case "exit":
+		return color.RGBA{0, 140, 74, 255}
+	case "transfer", "transferWait":
+		return color.RGBA{229, 121, 0, 255}
+	case "ride":
+		return color.RGBA{47, 84, 150, 255}
+	default:
+		return color.RGBA{176, 122, 178, 255}
+	}
+}
+
+func blendColor(a color.RGBA, b color.RGBA, ratio float64) color.RGBA {
+	return color.RGBA{
+		R: uint8(float64(a.R)*(1-ratio) + float64(b.R)*ratio),
+		G: uint8(float64(a.G)*(1-ratio) + float64(b.G)*ratio),
+		B: uint8(float64(a.B)*(1-ratio) + float64(b.B)*ratio),
+		A: 255,
+	}
+}
+
+func fillRect(img *image.RGBA, x int, y int, width int, height int, c color.RGBA) {
+	for yy := y; yy < y+height && yy < img.Bounds().Dy(); yy++ {
+		for xx := x; xx < x+width && xx < img.Bounds().Dx(); xx++ {
+			if xx >= 0 && yy >= 0 {
+				img.Set(xx, yy, c)
+			}
+		}
+	}
+}
+
+func drawRail(img *image.RGBA, x1 int, y1 int, x2 int, y2 int, c color.RGBA) {
+	steps := absInt(x2 - x1)
+	if ySteps := absInt(y2 - y1); ySteps > steps {
+		steps = ySteps
+	}
+	if steps == 0 {
+		return
+	}
+	for i := 0; i <= steps; i++ {
+		x := x1 + (x2-x1)*i/steps
+		y := y1 + (y2-y1)*i/steps
+		fillCircle(img, x, y, 5, c)
+	}
+}
+
+func fillCircle(img *image.RGBA, cx int, cy int, radius int, c color.RGBA) {
+	r2 := radius * radius
+	for y := cy - radius; y <= cy+radius; y++ {
+		for x := cx - radius; x <= cx+radius; x++ {
+			if x < 0 || y < 0 || x >= img.Bounds().Dx() || y >= img.Bounds().Dy() {
+				continue
+			}
+			dx := x - cx
+			dy := y - cy
+			if dx*dx+dy*dy <= r2 {
+				img.Set(x, y, c)
+			}
+		}
+	}
+}
+
+func absInt(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
+}
+
 type stationExitResponse struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
@@ -179,6 +301,10 @@ func stationExitsFromDatabase(stationID string) []stationExitResponse {
 
 func defaultStationExits(stationID string) []stationExitResponse {
 	normalized := strings.ToLower(stationID)
+	stationName := services.MetroNetworkStationNameForID(stationID)
+	if stationName == "" {
+		stationName = stationID
+	}
 	switch {
 	case strings.Contains(normalized, "tongji") || strings.Contains(stationID, "同济"):
 		return stationExitChoices([][3]string{
@@ -200,12 +326,39 @@ func defaultStationExits(stationID string) []stationExitResponse {
 			{"4", "4号口", "万达广场"},
 			{"5", "5号口", "合生汇，大学路"},
 		})
-	default:
+	case strings.Contains(normalized, "shanghai_railway") || strings.Contains(stationID, "上海火车站"):
 		return stationExitChoices([][3]string{
-			{"1", "1号口", "默认出站口"},
-			{"2", "2号口", "备用出站口"},
+			{"1", "1号口", "南广场，铁路上海站"},
+			{"2", "2号口", "北广场，长途客运方向"},
+			{"3", "3号口", "1号线站厅，公交接驳"},
+			{"4", "4号口", "3/4号线换乘通道"},
+			{"5", "5号口", "出租车与网约车上客区"},
 		})
+	case strings.Contains(normalized, "pudong_airport") || strings.Contains(stationID, "浦东国际机场"):
+		return stationExitChoices([][3]string{
+			{"A", "A口", "T1航站楼，国内/国际出发"},
+			{"B", "B口", "T2航站楼，机场到达层"},
+			{"C", "C口", "磁浮列车与机场巴士换乘"},
+			{"D", "D口", "停车场与网约车接驳"},
+			{"E", "E口", "无障碍通道，行李旅客优先"},
+		})
+	default:
+		return generatedStationExits(stationName)
 	}
+}
+
+func generatedStationExits(stationName string) []stationExitResponse {
+	stationName = strings.TrimSpace(stationName)
+	if stationName == "" {
+		stationName = "本站"
+	}
+	return stationExitChoices([][3]string{
+		{"A", "A口", stationName + "站厅主通道，靠近进出站客流"},
+		{"B", "B口", stationName + "周边道路方向，适合步行离站"},
+		{"C", "C口", stationName + "公交与网约车接驳方向"},
+		{"D", "D口", stationName + "商业及公共服务设施方向"},
+		{"E", "E口", stationName + "无障碍优先通行方向"},
+	})
 }
 
 func stationExitChoices(items [][3]string) []stationExitResponse {
@@ -235,16 +388,13 @@ func GetAllStationsFacilities(c *gin.Context) {
 
 func GetLines(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusOK, defaultMetroLines())
+		c.JSON(http.StatusOK, services.MetroNetworkLineSummaries())
 		return
 	}
 
 	rows, err := database.DB.Query("SELECT line_id, line_name, color_hex FROM metro_lines")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "查询失败",
-		})
+		c.JSON(http.StatusOK, services.MetroNetworkLineSummaries())
 		return
 	}
 	defer rows.Close()
@@ -261,6 +411,10 @@ func GetLines(c *gin.Context) {
 			"name":  lineName,
 			"color": colorHex,
 		})
+	}
+	if len(lines) < 18 {
+		c.JSON(http.StatusOK, services.MetroNetworkLineSummaries())
+		return
 	}
 
 	c.JSON(http.StatusOK, lines)
@@ -574,12 +728,13 @@ func DeleteCommonRoute(c *gin.Context) {
 
 func ValidateData(c *gin.Context) {
 	if database.DB == nil {
+		networkCounts, networkErrors := services.MetroNetworkValidate()
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"success": false,
+			"success": len(networkErrors) == 0,
 			"data": gin.H{
 				"ok":     false,
-				"errors": []string{"database is not connected"},
-				"counts": gin.H{},
+				"errors": append([]string{"database is not connected, using in-memory metro network"}, networkErrors...),
+				"counts": networkCounts,
 			},
 		})
 		return
@@ -652,6 +807,15 @@ func ValidateData(c *gin.Context) {
 		if count > 0 {
 			errors = append(errors, check.Name+" has broken references")
 		}
+	}
+	networkCounts, networkErrors := services.MetroNetworkValidate()
+	for key, value := range networkCounts {
+		counts[key] = value
+	}
+	errors = append(errors, networkErrors...)
+
+	if count, ok := counts["network_lines"].(int); ok && count < 18 {
+		errors = append(errors, "network metro line coverage is incomplete")
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1003,10 +1167,7 @@ func GetTrainInfo(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    gin.H{"trainNumber": trainNumber, "info": "高铁信息查询功能待实现", "source": "mock"},
-	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": defaultTrainInfo(trainNumber)})
 }
 
 func getTrainInfoFromDB(trainNumber string) (gin.H, error) {
@@ -1100,15 +1261,7 @@ func GetTrainGuide(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": gin.H{
-			"trainNumber": req.TrainNumber,
-			"destination": req.Destination,
-			"guide":       "换乘引导功能待实现",
-			"source":      "mock",
-		},
-	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": defaultTrainGuide(req.TrainNumber, req.Destination, req.CurrentCarriage)})
 }
 
 func getTrainGuideFromDB(trainNumber, destination, currentCarriage string) (gin.H, error) {
@@ -1170,6 +1323,95 @@ func defaultDisplay(value, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func defaultTrainInfo(trainNumber string) gin.H {
+	if strings.TrimSpace(trainNumber) == "" {
+		trainNumber = "G7501"
+	}
+	sample := map[string]gin.H{
+		"G7501": {
+			"trainNumber":   "G7501",
+			"start":         "南京南",
+			"end":           "上海虹桥",
+			"departure":     "08:12",
+			"arrival":       "09:39",
+			"platform":      "上海虹桥到达层",
+			"doorDirection": "出站后按地铁2号线、10号线、17号线标识前往地铁换乘大厅",
+			"stations": []gin.H{
+				{"name": "南京南", "order": 1},
+				{"name": "镇江南", "order": 2},
+				{"name": "常州北", "order": 3},
+				{"name": "无锡东", "order": 4},
+				{"name": "苏州北", "order": 5},
+				{"name": "上海虹桥", "order": 6},
+			},
+			"carriages": []gin.H{
+				{"number": "01", "type": "商务/一等座", "distance": "靠近北侧扶梯，适合快速换乘地铁"},
+				{"number": "08", "type": "二等座", "distance": "到达后按中部通道出站"},
+				{"number": "16", "type": "二等座", "distance": "靠近南侧出口，行李较多建议走电梯"},
+			},
+			"source": "local-demo",
+		},
+		"G7347": {
+			"trainNumber":   "G7347",
+			"start":         "杭州东",
+			"end":           "上海虹桥",
+			"departure":     "17:05",
+			"arrival":       "18:02",
+			"platform":      "上海虹桥到达层",
+			"doorDirection": "出闸后优先看地铁换乘大厅指示牌",
+			"stations": []gin.H{
+				{"name": "杭州东", "order": 1},
+				{"name": "嘉兴南", "order": 2},
+				{"name": "松江南", "order": 3},
+				{"name": "上海虹桥", "order": 4},
+			},
+			"carriages": []gin.H{
+				{"number": "03", "type": "一等座", "distance": "靠近扶梯，适合赶时间用户"},
+				{"number": "09", "type": "二等座", "distance": "中部车厢，前往地铁换乘较均衡"},
+				{"number": "15", "type": "二等座", "distance": "行李较多建议跟随电梯标识"},
+			},
+			"source": "local-demo",
+		},
+	}
+	if train, ok := sample[strings.ToUpper(trainNumber)]; ok {
+		return train
+	}
+	train := sample["G7501"]
+	train["trainNumber"] = trainNumber
+	return train
+}
+
+func defaultTrainGuide(trainNumber, destination, currentCarriage string) gin.H {
+	train := defaultTrainInfo(trainNumber)
+	carriageHint := "中部通道"
+	for _, item := range train["carriages"].([]gin.H) {
+		if item["number"] == currentCarriage {
+			carriageHint = fmt.Sprint(item["distance"])
+			break
+		}
+	}
+	if strings.TrimSpace(destination) == "" {
+		destination = "上海虹桥"
+	}
+	tips := []string{
+		fmt.Sprintf("当前车厢%s：%s。", defaultDisplay(currentCarriage, "08"), carriageHint),
+		"下车后先跟随“地铁 / Metro”标识前往换乘大厅。",
+		"赶时间去10号线，可优先走中部扶梯；行李较多建议走无障碍电梯。",
+		fmt.Sprintf("目标站为%s，请留意站台电子屏和到站广播。", destination),
+	}
+	return gin.H{
+		"trainNumber":     train["trainNumber"],
+		"destination":     destination,
+		"currentCarriage": currentCarriage,
+		"platform":        train["platform"],
+		"doorDirection":   train["doorDirection"],
+		"stations":        train["stations"],
+		"tips":            tips,
+		"guide":           strings.Join(tips, " "),
+		"source":          "local-demo",
+	}
 }
 
 func GetTravelAlerts(c *gin.Context) {

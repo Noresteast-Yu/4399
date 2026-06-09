@@ -26,6 +26,8 @@ func SetupRouter() *gin.Engine {
 
 	api := r.Group("/api")
 	{
+		api.GET("/station-visual", handlers.GetStationVisual)
+
 		routePlan := api.Group("/route-plan")
 		{
 			routePlan.POST("/plan", handlers.PlanRoute)

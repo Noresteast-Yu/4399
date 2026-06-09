@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
+import 'package:smart_travel_app/data/shanghai_metro_data.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 
 class SubwayServicePage extends StatefulWidget {
@@ -26,11 +27,13 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
 
   Map<String, dynamic>? _facilityInfo;
   List<Map<String, dynamic>> _allFacilities = [];
+  List<Map<String, dynamic>> _metroLines = [];
   List<_StationReview> _reviews = [];
   bool _isLoading = true;
+  bool _isLineLoading = false;
   bool _isPathLoading = false;
   String? _error;
-  String _stationId = 'shaanxi_south_road';
+  String _stationId = 'tongji_university';
   int _expandedPanel = -1;
   int _draftRating = 5;
 
@@ -38,6 +41,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   void initState() {
     super.initState();
     _loadAllFacilities();
+    _loadMetroLines();
     _loadStationReviews();
   }
 
@@ -80,6 +84,79 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     }
 
     await _loadFromSingleApi();
+  }
+
+  Future<void> _loadMetroLines() async {
+    setState(() => _isLineLoading = true);
+
+    final response = await _apiService.getSubwayLines();
+    if (!mounted) return;
+
+    if (response.success && response.data != null) {
+      final lines = response.data!
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+      setState(() {
+        _metroLines = lines.isEmpty ? _localMetroLineSummaries() : lines;
+        _isLineLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _metroLines = _localMetroLineSummaries();
+      _isLineLoading = false;
+    });
+  }
+
+  List<Map<String, dynamic>> _localMetroLineSummaries() {
+    return ShanghaiMetroData.getAllLines().map((line) {
+      final stations = line.stations
+          .map((station) => {
+                'id': station.id,
+                'name': station.name,
+                'order': station.order,
+              })
+          .toList();
+      return {
+        'id': line.lineId,
+        'name': line.lineName,
+        'city': '上海',
+        'color': _lineColorHex(line.lineColor),
+        'directions': line.stations.length >= 2
+            ? [
+                '${line.stations.first.name} → ${line.stations.last.name}',
+                '${line.stations.last.name} → ${line.stations.first.name}',
+              ]
+            : <String>[],
+        'firstTrain':
+            line.lineId == '16' || line.lineId == '17' ? '06:00' : '05:30',
+        'lastTrain':
+            line.lineId == '16' || line.lineId == '17' ? '22:30' : '23:00',
+        'interval': line.lineId == '1' ||
+                line.lineId == '2' ||
+                line.lineId == '8' ||
+                line.lineId == '10'
+            ? '3-5分钟'
+            : line.lineId == '16' || line.lineId == '17'
+                ? '6-10分钟'
+                : '4-8分钟',
+        'crowdingLevel': line.lineId == '1' ||
+                line.lineId == '2' ||
+                line.lineId == '8' ||
+                line.lineId == '10'
+            ? '高峰较拥挤'
+            : '平峰平稳',
+        'stationCount': line.stations.length,
+        'stations': stations,
+      };
+    }).toList();
+  }
+
+  String _lineColorHex(Color color) {
+    final value = color.value & 0x00FFFFFF;
+    return '#${value.toRadixString(16).padLeft(6, '0').toUpperCase()}';
   }
 
   Map<String, dynamic>? _findFacility(
@@ -172,7 +249,10 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadAllFacilities,
+      onRefresh: () async {
+        await _loadAllFacilities();
+        await _loadMetroLines();
+      },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 108),
@@ -209,6 +289,8 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                 _buildTopologyNavigationSection(),
               ],
               const SizedBox(height: 22),
+              _buildLineOverviewSection(),
+              const SizedBox(height: 14),
               _facilityPanel(
                 index: 0,
                 icon: Icons.door_front_door_rounded,
@@ -473,6 +555,83 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLineOverviewSection() {
+    final lines = _metroLines;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.route_rounded, color: _line10, size: 23),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  '线路运营概览',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                lines.isEmpty ? '加载中' : '${lines.length} 条线路',
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_isLineLoading && lines.isEmpty)
+            const SizedBox(
+              height: 118,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else if (lines.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Text(
+                '暂时没有线路数据',
+                style: TextStyle(
+                  color: _muted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 172,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: lines.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  return _LineOverviewTile(line: lines[index]);
+                },
+              ),
+            ),
         ],
       ),
     );
@@ -1270,6 +1429,200 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       _ExitInfo('2', '周边地标'),
       _ExitInfo('3', '公交换乘'),
     ];
+  }
+}
+
+class _LineOverviewTile extends StatelessWidget {
+  final Map<String, dynamic> line;
+
+  const _LineOverviewTile({required this.line});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _parseLineColor(line['color']?.toString());
+    final name = _text('name', '地铁线路');
+    final directions = _directions;
+    final stations = _stations.take(5).toList();
+    final stationCount = (line['stationCount'] as num?)?.toInt() ??
+        (line['stations'] is List ? (line['stations'] as List).length : 0);
+
+    return Container(
+      width: 232,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 11,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _SubwayServicePageState._ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$stationCount 站 · ${_text('interval', '4-8分钟')}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _SubwayServicePageState._muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _LineMetaRow(
+            icon: Icons.schedule_rounded,
+            text:
+                '${_text('firstTrain', '--:--')} - ${_text('lastTrain', '--:--')}',
+          ),
+          const SizedBox(height: 7),
+          _LineMetaRow(
+            icon: Icons.groups_rounded,
+            text: _text('crowdingLevel', '平稳'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            directions.isEmpty ? '运营方向待补充' : directions.first,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _SubwayServicePageState._ink,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const Spacer(),
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: stations
+                .map(
+                  (station) => Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      station,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _text(String key, String fallback) {
+    final value = line[key]?.toString().trim();
+    return value == null || value.isEmpty ? fallback : value;
+  }
+
+  List<String> get _directions {
+    final raw = line['directions'];
+    if (raw is List) {
+      return raw
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
+  List<String> get _stations {
+    final raw = line['stations'];
+    if (raw is List) {
+      return raw
+          .whereType<Map>()
+          .map((item) => item['name']?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
+  static Color _parseLineColor(String? hex) {
+    final normalized = (hex ?? '').replaceAll('#', '').trim();
+    if (normalized.length == 6) {
+      final value = int.tryParse('FF$normalized', radix: 16);
+      if (value != null) return Color(value);
+    }
+    return _SubwayServicePageState._line10;
+  }
+}
+
+class _LineMetaRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _LineMetaRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: _SubwayServicePageState._muted, size: 15),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _SubwayServicePageState._muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

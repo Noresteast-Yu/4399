@@ -82,6 +82,11 @@ func TestGetLinesWithoutDatabaseReturnsDemoLines(t *testing.T) {
 	if !bytes.Contains(rec.Body.Bytes(), []byte(`"name":"10号线"`)) {
 		t.Fatalf("expected demo metro lines, got %s", rec.Body.String())
 	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"name":"18号线"`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"stations"`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"firstTrain"`)) {
+		t.Fatalf("expected full metro line summaries, got %s", rec.Body.String())
+	}
 }
 
 func TestGetStationExitsWithoutDatabaseReturnsDemoExits(t *testing.T) {
@@ -101,6 +106,52 @@ func TestGetStationExitsWithoutDatabaseReturnsDemoExits(t *testing.T) {
 	}
 	if !bytes.Contains(rec.Body.Bytes(), []byte(`"name":"5号口"`)) {
 		t.Fatalf("expected tongji demo exits, got %s", rec.Body.String())
+	}
+}
+
+func TestGetStationExitsGeneratesNetworkStationChoices(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/subway-service/station/:stationId/exits", GetStationExits)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/subway-service/station/shanghai_railway_1/exits", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"totalCount":5`)) {
+		t.Fatalf("expected generated exits, got %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte("默认出站口")) {
+		t.Fatalf("expected no default exit labels, got %s", rec.Body.String())
+	}
+}
+
+func TestGetStationVisualReturnsPNG(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.GET("/api/station-visual", GetStationVisual)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/station-visual?station=test&line=10号线&stage=ride&color=B07AB2", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	if rec.Header().Get("Content-Type") != "image/png" {
+		t.Fatalf("expected image/png content type, got %q", rec.Header().Get("Content-Type"))
+	}
+	body := rec.Body.Bytes()
+	if len(body) < 8 || string(body[:8]) != "\x89PNG\r\n\x1a\n" {
+		t.Fatalf("expected PNG body, got %d bytes", len(body))
 	}
 }
 
@@ -214,6 +265,31 @@ func TestValidateDataWithoutDatabaseReturnsServiceUnavailable(t *testing.T) {
 
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected status %d, got %d with body %s", http.StatusServiceUnavailable, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"network_lines":18`)) {
+		t.Fatalf("expected in-memory network validation counts, got %s", rec.Body.String())
+	}
+}
+
+func TestGetTrainInfoWithoutDatabaseReturnsDemoGuideData(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/high-speed-rail/train/:trainNumber", GetTrainInfo)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/high-speed-rail/train/G7501", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"platform"`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"carriages"`)) ||
+		bytes.Contains(rec.Body.Bytes(), []byte(`待实现`)) {
+		t.Fatalf("expected rich demo train data, got %s", rec.Body.String())
 	}
 }
 

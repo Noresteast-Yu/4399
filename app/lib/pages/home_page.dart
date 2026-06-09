@@ -501,6 +501,10 @@ class _HomePageState extends State<HomePage> {
         _AccessChoice('5', '5号口', '合生汇，大学路'),
       ];
     }
+    final generatedChoices = _generatedAccessChoicesFor(stationName);
+    if (generatedChoices.isNotEmpty) {
+      return generatedChoices;
+    }
     return forStart
         ? const [
             _AccessChoice('1', '1号口', '默认进站口'),
@@ -510,6 +514,37 @@ class _HomePageState extends State<HomePage> {
             _AccessChoice('1', '1号口', '默认出站口'),
             _AccessChoice('2', '2号口', '备用出站口'),
           ];
+  }
+
+  List<_AccessChoice> _generatedAccessChoicesFor(String stationName) {
+    final name = stationName.trim();
+    if (name.isEmpty) return const [];
+
+    _StationSuggestion? suggestion;
+    for (final item in _stationSuggestions) {
+      if (item.name == name) {
+        suggestion = item;
+        break;
+      }
+    }
+    if (suggestion == null) return const [];
+
+    final primaryLine =
+        suggestion.lineNames.isEmpty ? '地铁' : suggestion.lineNames.first;
+    final transferText = suggestion.lineNames.length > 1
+        ? '，可换乘${suggestion.lineNames.skip(1).join('、')}'
+        : '';
+    final details = <String>[
+      '$name站厅主通道，靠近$primaryLine进出站客流$transferText',
+      '$name周边道路方向，适合步行离站',
+      '$name公交/网约车接驳方向',
+      '$name商业及公共服务设施方向',
+      '$name无障碍优先通行方向',
+    ];
+    final labels = const ['A口', 'B口', 'C口', 'D口', 'E口'];
+    return List.generate(labels.length, (index) {
+      return _AccessChoice(labels[index], labels[index], details[index]);
+    });
   }
 
   double _dockMinHeight(Size size) => size.height < 720 ? 136 : 156;
