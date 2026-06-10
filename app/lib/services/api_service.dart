@@ -99,7 +99,7 @@ class ApiService {
 
   Future<ApiResponse<Map<String, dynamic>>> getBackendHealth() {
     return _handleApiCall<Map<String, dynamic>>(() async {
-      final response = await _networkManager.get('/health');
+      final response = await _networkManager.health();
       return Map<String, dynamic>.from(response.data);
     });
   }
@@ -270,31 +270,6 @@ class ApiService {
     });
   }
 
-  Future<ApiResponse<Map<String, dynamic>>> startTransfer({
-    required String from,
-    required String to,
-    int remainingTime = 300,
-  }) {
-    return _handleApiCall<Map<String, dynamic>>(() async {
-      final response =
-          await _networkManager.post('/transfer-time/start', data: {
-        'from': from,
-        'to': to,
-        'remainingTime': remainingTime,
-      });
-      return _unwrapDataMap(response.data);
-    });
-  }
-
-  Future<ApiResponse<Map<String, dynamic>>> getTransferUpdate(
-      String sessionId) {
-    return _handleApiCall<Map<String, dynamic>>(() async {
-      final response =
-          await _networkManager.get('/transfer-time/update/$sessionId');
-      return _unwrapDataMap(response.data);
-    });
-  }
-
   Future<ApiResponse<List<dynamic>>> getCommonRoutes(String userId) {
     return _handleApiCall<List<dynamic>>(() async {
       final response = await _networkManager.get('/common-routes/user/$userId');
@@ -306,12 +281,16 @@ class ApiService {
     required String userId,
     required String start,
     required String end,
+    String? time,
+    String? distance,
   }) {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response = await _networkManager.post('/common-routes/add', data: {
         'userId': userId,
         'start': start,
         'end': end,
+        if (time != null) 'time': time,
+        if (distance != null) 'distance': distance,
       });
       return _unwrapDataMap(response.data);
     });
@@ -321,6 +300,23 @@ class ApiService {
     return _handleApiCall<String>(() async {
       await _networkManager.delete('/common-routes/$routeId');
       return '删除成功';
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> validateData() {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.get('/data/validate');
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<List<dynamic>>> getStaticResources({String? type}) {
+    return _handleApiCall<List<dynamic>>(() async {
+      final path = type == null
+          ? '/data/static-resources'
+          : '/data/static-resources?type=${Uri.encodeComponent(type)}';
+      final response = await _networkManager.get(path);
+      return _unwrapDataList(response.data);
     });
   }
 

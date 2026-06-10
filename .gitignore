@@ -1,6 +1,7 @@
 # Secrets & API Keys — NEVER COMMIT
 **/.env
 **/.env.*
+!**/.env.example
 **/*-credentials.json
 **/*-service-account.json
 **/secrets.yaml
@@ -42,6 +43,7 @@ Thumbs.db
 
 # Go backend
 backend/go/.env
+.gocache/
 
 # Android signing keys
 *.jks

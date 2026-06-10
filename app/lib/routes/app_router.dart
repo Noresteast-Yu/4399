@@ -2,7 +2,6 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/pages/home_page.dart';
 import 'package:smart_travel_app/pages/route_plan_page.dart';
 import 'package:smart_travel_app/pages/subway_service_page.dart';
-import 'package:smart_travel_app/pages/transfer_time_page.dart';
 import 'package:smart_travel_app/pages/profile_page.dart';
 import 'package:smart_travel_app/pages/map_navigation_page.dart';
 import 'package:smart_travel_app/pages/settings/theme_settings_page.dart';
@@ -16,10 +15,17 @@ import 'package:smart_travel_app/pages/settings/help_center_page.dart';
 import 'package:smart_travel_app/pages/settings/user_agreement_page.dart';
 import 'package:smart_travel_app/pages/settings/api_settings_page.dart';
 import 'package:smart_travel_app/pages/ai_planning_page.dart';
+import 'package:smart_travel_app/pages/mini_game_page.dart';
+import 'package:smart_travel_app/pages/splash_page.dart';
 
 class AppRouter {
   static final router = GoRouter(
+    initialLocation: '/splash',
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       GoRoute(
         path: '/',
         builder: (context, state) => const HomePage(),
@@ -44,10 +50,6 @@ class AppRouter {
       GoRoute(
         path: '/subway-service',
         builder: (context, state) => const SubwayServicePage(),
-      ),
-      GoRoute(
-        path: '/transfer-time',
-        builder: (context, state) => const TransferTimePage(),
       ),
       GoRoute(
         path: '/profile',
@@ -100,6 +102,10 @@ class AppRouter {
         builder: (context, state) => const MapNavigationPage(),
       ),
       GoRoute(
+        path: '/mini-game',
+        builder: (context, state) => const MiniGamePage(),
+      ),
+      GoRoute(
         path: '/ai-planning',
         builder: (context, state) {
           final start = state.uri.queryParameters['start'];
@@ -107,6 +113,12 @@ class AppRouter {
           return AIPlanningPage(
             initialStartStation: start,
             initialEndStation: end,
+            initialStartEntranceId:
+                state.uri.queryParameters['startEntranceId'],
+            initialStartEntranceName:
+                state.uri.queryParameters['startEntranceName'],
+            initialEndExitId: state.uri.queryParameters['endExitId'],
+            initialEndExitName: state.uri.queryParameters['endExitName'],
           );
         },
       ),

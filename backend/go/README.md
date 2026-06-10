@@ -83,11 +83,24 @@ DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=你的MySQL密码
 DB_NAME=smart_travel
+OBJECT_STORAGE_PUBLIC_URL=http://10.0.2.2:9000
+OBJECT_STORAGE_BUCKET=station-media
 ```
 
 > 如果数据库连接失败，服务仍会以模拟模式启动，但数据将是空的。
 
-### 5. 安装依赖并启动
+### 5. 启动本地对象存储
+
+在仓库根目录运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\object-storage\start-minio.ps1
+```
+
+脚本会启动本地 MinIO、创建 `station-media` Bucket，并同步同济大学站
+的实景照片。管理控制台地址为 `http://127.0.0.1:9001`。
+
+### 6. 安装依赖并启动
 
 ```powershell
 cd backend/go
@@ -97,7 +110,7 @@ go run main.go
 
 服务将在 `http://localhost:3000` 启动。
 
-### 6. 连接 Flutter 应用
+### 7. 连接 Flutter 应用
 
 服务启动后，在 App 的 **AI 智能规划 → API配置 → 后端服务地址** 中输入你的后端地址：
 
@@ -111,7 +124,7 @@ go run main.go
 curl http://localhost:3000/health
 ```
 
-### 7. 编译为可执行文件（可选）
+### 8. 编译为可执行文件（可选）
 
 ```powershell
 go build -o smart-travel-server.exe
@@ -131,8 +144,6 @@ go build -o smart-travel-server.exe
 | GET | `/api/subway-service/lines` | 获取所有线路 |
 | GET | `/api/high-speed-rail/train/:number` | 获取高铁车次信息 |
 | POST | `/api/high-speed-rail/guide` | 获取高铁乘车指引 |
-| POST | `/api/transfer-time/start` | 开始换乘计时 |
-| GET | `/api/transfer-time/update/:sessionId` | 获取换乘更新 |
 | GET | `/api/common-routes/user/:userId` | 获取常用路线 |
 | POST | `/api/common-routes/add` | 添加常用路线 |
 | DELETE | `/api/common-routes/:id` | 删除常用路线 |

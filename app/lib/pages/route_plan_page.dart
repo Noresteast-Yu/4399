@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_travel_app/components/common/top_nav_bar.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/providers/user_preferences_provider.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
 import 'package:smart_travel_app/services/api_service.dart';
+import 'package:smart_travel_app/services/navigation_memory.dart';
 
 class RoutePlanPage extends StatefulWidget {
   final String? initialStartStation;
@@ -49,11 +51,42 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     if (widget.initialEndStation != null) {
       _endController.text = widget.initialEndStation!;
     }
+    _rememberRoutePlanLocation();
     if (widget.initialStartStation != null &&
         widget.initialEndStation != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _planRoute();
       });
+    }
+  }
+
+  void _rememberRoutePlanLocation() {
+    _rememberCurrentRoutePlanLocation(
+      start: widget.initialStartStation,
+      end: widget.initialEndStation,
+    );
+  }
+
+  void _rememberCurrentRoutePlanLocation({String? start, String? end}) {
+    final params = <String, String>{};
+
+    void addIfNotEmpty(String key, String? value) {
+      final text = value?.trim();
+      if (text != null && text.isNotEmpty) {
+        params[key] = text;
+      }
+    }
+
+    addIfNotEmpty('start', start);
+    addIfNotEmpty('end', end);
+    addIfNotEmpty('startEntranceId', widget.initialStartEntranceId);
+    addIfNotEmpty('startEntranceName', widget.initialStartEntranceName);
+    addIfNotEmpty('endExitId', widget.initialEndExitId);
+    addIfNotEmpty('endExitName', widget.initialEndExitName);
+
+    if (params.isNotEmpty) {
+      NavigationMemory.routePlanLocation =
+          Uri(path: '/route-plan', queryParameters: params).toString();
     }
   }
 
@@ -78,6 +111,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
 
     final start = _startController.text.trim();
     final end = _endController.text.trim();
+    _rememberCurrentRoutePlanLocation(start: start, end: end);
 
     try {
       setState(() {
@@ -144,34 +178,34 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       body: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppTheme.spacingM),
+            padding: EdgeInsets.all(AppTheme.spacingM),
             color: colorScheme.surfaceContainer,
             child: Column(
               children: [
                 TextField(
                   controller: _startController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '起点站',
                     hintText: '请输入起点站',
-                    prefixIcon: Icon(Icons.location_on),
+                    prefixIcon: const Icon(Icons.location_on),
                     border: OutlineInputBorder(
                       borderRadius: AppTheme.borderRadiusM,
                     ),
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacingM),
+                SizedBox(height: AppTheme.spacingM),
                 TextField(
                   controller: _endController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '终点站',
                     hintText: '请输入终点站',
-                    prefixIcon: Icon(Icons.location_off),
+                    prefixIcon: const Icon(Icons.location_off),
                     border: OutlineInputBorder(
                       borderRadius: AppTheme.borderRadiusM,
                     ),
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacingM),
+                SizedBox(height: AppTheme.spacingM),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -193,8 +227,8 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       backgroundColor: colorScheme.primary,
                       foregroundColor: colorScheme.onPrimary,
                       padding:
-                          const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
-                      shape: const RoundedRectangleBorder(
+                          EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+                      shape: RoundedRectangleBorder(
                         borderRadius: AppTheme.borderRadiusM,
                       ),
                     ),
@@ -210,13 +244,13 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                   if (_error != null)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(AppTheme.spacingS),
+                      padding: EdgeInsets.all(AppTheme.spacingS),
                       color: colorScheme.tertiaryContainer,
                       child: Row(
                         children: [
                           Icon(Icons.offline_bolt,
                               color: colorScheme.onTertiaryContainer),
-                          const SizedBox(width: AppTheme.spacingS),
+                          SizedBox(width: AppTheme.spacingS),
                           Expanded(
                             child: Text(
                               _error!,
@@ -240,7 +274,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                                   size: 64,
                                   color: colorScheme.onSurfaceVariant,
                                 ),
-                                const SizedBox(height: AppTheme.spacingM),
+                                SizedBox(height: AppTheme.spacingM),
                                 Text(
                                   '暂无路线数据',
                                   style: textTheme.bodyLarge?.copyWith(
@@ -257,7 +291,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             ),
         ],
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
+      bottomNavigationBar: BottomNavBar(currentIndex: 1),
     );
   }
 
@@ -266,7 +300,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return ListView.builder(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(AppTheme.spacingM),
       itemCount: _routePlans.length,
       itemBuilder: (context, index) {
         final plan = _routePlans[index];
@@ -278,7 +312,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
             });
           },
           child: Container(
-            margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
+            margin: EdgeInsets.only(bottom: AppTheme.spacingM),
             decoration: BoxDecoration(
               color: isSelected
                   ? colorScheme.primaryContainer
@@ -292,7 +326,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(AppTheme.spacingM),
+              padding: EdgeInsets.all(AppTheme.spacingM),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -304,7 +338,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                           children: [
                             if (index == 0)
                               Container(
-                                padding: const EdgeInsets.symmetric(
+                                padding: EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 2,
                                 ),
@@ -321,7 +355,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                                   ),
                                 ),
                               ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text(
                               plan['title'] ?? '路线 ${index + 1}',
                               style: textTheme.titleMedium?.copyWith(
@@ -338,7 +372,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                             Icons.access_time,
                             plan['time'] ?? '--',
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           _buildInfoChip(
                             context,
                             Icons.swap_horiz,
@@ -348,17 +382,17 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppTheme.spacingM),
+                  SizedBox(height: AppTheme.spacingM),
                   const Divider(height: 1),
-                  const SizedBox(height: AppTheme.spacingM),
+                  SizedBox(height: AppTheme.spacingM),
                   ..._buildSegments(context, plan),
                   if (_textOf(plan['aiAdvice']).isNotEmpty ||
                       _textOf(plan['description']).isNotEmpty) ...[
-                    const SizedBox(height: AppTheme.spacingS),
+                    SizedBox(height: AppTheme.spacingS),
                     Container(
-                      padding: const EdgeInsets.all(AppTheme.spacingS),
+                      padding: EdgeInsets.all(AppTheme.spacingS),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
+                        color: colorScheme.surfaceVariant,
                         borderRadius: AppTheme.borderRadiusM,
                       ),
                       child: Row(
@@ -369,7 +403,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                             size: 16,
                             color: colorScheme.primary,
                           ),
-                          const SizedBox(width: AppTheme.spacingS),
+                          SizedBox(width: AppTheme.spacingS),
                           Expanded(
                             child: Text(
                               _textOf(plan['aiAdvice']).isNotEmpty
@@ -384,24 +418,15 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: AppTheme.spacingM),
+                  SizedBox(height: AppTheme.spacingM),
                   Row(
                     children: [
                       if (plan['score'] != null)
                         _buildScoreBadge(context, plan['score']),
                       const Spacer(),
                       FilledButton.icon(
-                        onPressed: _isGuideLoading
-                            ? null
-                            : () => _showIndoorGuideSheet(plan),
-                        icon: _isGuideLoading
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.transfer_within_a_station),
+                        onPressed: () => _openIndoorGuide(plan),
+                        icon: const Icon(Icons.transfer_within_a_station),
                         label: const Text('站内指引'),
                       ),
                     ],
@@ -421,7 +446,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
-        const SizedBox(width: 4),
+        SizedBox(width: 4),
         Text(
           text,
           style: TextStyle(
@@ -452,6 +477,38 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
         ),
       ),
     );
+  }
+
+  void _openIndoorGuide(Map<String, dynamic> plan) {
+    final start = _startController.text.trim();
+    final end = _endController.text.trim();
+    if (start.isEmpty || end.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先输入起点和终点')),
+      );
+      return;
+    }
+
+    final params = <String, String>{
+      'start': start,
+      'end': end,
+    };
+
+    void addIfNotEmpty(String key, String? value) {
+      final text = value?.trim();
+      if (text != null && text.isNotEmpty) {
+        params[key] = text;
+      }
+    }
+
+    addIfNotEmpty('startEntranceId', widget.initialStartEntranceId);
+    addIfNotEmpty('startEntranceName', widget.initialStartEntranceName);
+    addIfNotEmpty('endExitId', widget.initialEndExitId);
+    addIfNotEmpty('endExitName', widget.initialEndExitName);
+    addIfNotEmpty('routeTitle', _textOf(plan['title']));
+    addIfNotEmpty('routeId', _textOf(plan['routeId']));
+
+    context.push(Uri(path: '/ai-planning', queryParameters: params).toString());
   }
 
   Future<void> _showIndoorGuideSheet(Map<String, dynamic> plan) async {
@@ -515,7 +572,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               ),
               child: ListView(
                 controller: controller,
-                padding: const EdgeInsets.fromLTRB(
+                padding: EdgeInsets.fromLTRB(
                   AppTheme.spacingM,
                   10,
                   AppTheme.spacingM,
@@ -532,21 +589,21 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spacingM),
+                  SizedBox(height: AppTheme.spacingM),
                   Text(
                     '站内一点通',
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spacingS),
+                  SizedBox(height: AppTheme.spacingS),
                   Text(
-                    '${_textOf(plan['title']).isEmpty ? '已选路线' : _textOf(plan['title'])} · $start → $end',
+                    '${_textOf(plan['title']).isEmpty ? '已选路线' : _textOf(plan['title'])} · ${start} → $end',
                     style: textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spacingM),
+                  SizedBox(height: AppTheme.spacingM),
                   ...List.generate(
                     steps.length,
                     (index) => _IndoorGuideStepTile(
@@ -582,7 +639,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       if (i > 0) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(left: 28),
+            padding: EdgeInsets.only(left: 28),
             child: Container(
               height: 20,
               width: 2,
@@ -599,7 +656,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: segmentColor.withValues(alpha: 0.16),
+                color: segmentColor.withOpacity(0.16),
                 borderRadius: AppTheme.borderRadiusS,
               ),
               child: Icon(
@@ -610,7 +667,7 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
                 color: segmentColor,
               ),
             ),
-            const SizedBox(width: AppTheme.spacingS),
+            SizedBox(width: AppTheme.spacingS),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,8 +755,8 @@ class _IndoorGuideStepTile extends StatelessWidget {
         _colorFromHex(step['lineColor']?.toString()) ?? colorScheme.primary;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      margin: EdgeInsets.only(bottom: AppTheme.spacingM),
+      padding: EdgeInsets.all(AppTheme.spacingM),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
         borderRadius: AppTheme.borderRadiusL,
@@ -715,7 +772,7 @@ class _IndoorGuideStepTile extends StatelessWidget {
                 height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: lineColor.withValues(alpha: 0.16),
+                  color: lineColor.withOpacity(0.16),
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -735,7 +792,7 @@ class _IndoorGuideStepTile extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(width: AppTheme.spacingM),
+          SizedBox(width: AppTheme.spacingM),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -752,7 +809,7 @@ class _IndoorGuideStepTile extends StatelessWidget {
                     ),
                     if (minutes != null)
                       Text(
-                        '$minutes分钟',
+                        '${minutes}分钟',
                         style: textTheme.labelMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -760,7 +817,7 @@ class _IndoorGuideStepTile extends StatelessWidget {
                   ],
                 ),
                 if (detail.isNotEmpty) ...[
-                  const SizedBox(height: AppTheme.spacingS),
+                  SizedBox(height: AppTheme.spacingS),
                   Text(
                     detail,
                     style: textTheme.bodyMedium?.copyWith(
@@ -769,12 +826,12 @@ class _IndoorGuideStepTile extends StatelessWidget {
                   ),
                 ],
                 if (imageTitle.isNotEmpty || imageSubtitle.isNotEmpty) ...[
-                  const SizedBox(height: AppTheme.spacingS),
+                  SizedBox(height: AppTheme.spacingS),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(AppTheme.spacingS),
+                    padding: EdgeInsets.all(AppTheme.spacingS),
                     decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withValues(alpha: 0.4),
+                      color: colorScheme.primaryContainer.withOpacity(0.4),
                       borderRadius: AppTheme.borderRadiusM,
                     ),
                     child: Column(

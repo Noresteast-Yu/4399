@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/components/home/line10_interactive_metro_map.dart';
+import 'package:smart_travel_app/data/shanghai_metro_data.dart';
 import 'package:smart_travel_app/services/api_service.dart';
+import 'package:smart_travel_app/services/navigation_memory.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,6 +28,8 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _startController =
       TextEditingController(text: '同济大学');
   final TextEditingController _endController = TextEditingController();
+  final FocusNode _startFocusNode = FocusNode();
+  final FocusNode _endFocusNode = FocusNode();
   final ApiService _apiService = ApiService();
 
   List<Map<String, dynamic>> _travelAlerts = [];
@@ -33,6 +38,8 @@ class _HomePageState extends State<HomePage> {
 
   String _selectedMetroStopId = 'mock-l10-tongji-university';
   String _selectedMetroStopName = '同济大学';
+  String _selectedMetroLineId = '10';
+  String _selectedMetroLineName = '10号线';
   String? _startStationId = 'mock-l10-tongji-university';
   String? _endStationId;
   _AccessChoice? _startEntrance;
@@ -44,9 +51,14 @@ class _HomePageState extends State<HomePage> {
   Timer? _arrivalTicker;
   DateTime? _arrivalFetchedAt;
 
+  late final List<_StationSuggestion> _stationSuggestions =
+      _buildStationSuggestions();
+
   @override
   void initState() {
     super.initState();
+    _startFocusNode.addListener(_handleRouteFieldFocusChanged);
+    _endFocusNode.addListener(_handleRouteFieldFocusChanged);
     _arrivalTicker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _metroArrival == null) return;
       setState(() {});
@@ -57,9 +69,21 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _arrivalTicker?.cancel();
+    _startFocusNode
+      ..removeListener(_handleRouteFieldFocusChanged)
+      ..dispose();
+    _endFocusNode
+      ..removeListener(_handleRouteFieldFocusChanged)
+      ..dispose();
     _startController.dispose();
     _endController.dispose();
     super.dispose();
+  }
+
+  void _handleRouteFieldFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadData() async {
@@ -73,6 +97,8 @@ class _HomePageState extends State<HomePage> {
         _apiService.getMetroArrival(
           stopId: _selectedMetroStopId,
           stopName: _selectedMetroStopName,
+          lineId: _arrivalLineId,
+          lineName: _selectedMetroLineName,
           direction: _selectedMetroDirection,
         ),
       ]).timeout(
@@ -114,6 +140,8 @@ class _HomePageState extends State<HomePage> {
     final response = await _apiService.getMetroArrival(
       stopId: _selectedMetroStopId,
       stopName: _selectedMetroStopName,
+      lineId: _arrivalLineId,
+      lineName: _selectedMetroLineName,
       direction: _selectedMetroDirection,
     );
 
@@ -133,11 +161,90 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _selectedMetroStopId = station.id;
       _selectedMetroStopName = station.name;
+      _selectedMetroLineId = station.lineId;
+      _selectedMetroLineName = _lineNameFor(station.lineId);
       if (_allowStationTapAutoExpand) {
         _arrivalDockHeight = _dockMaxHeight(size);
       }
     });
     _loadMetroArrival();
+  }
+
+  String get _arrivalLineId {
+    final lineId = _selectedMetroLineId == '3-4' ? '3' : _selectedMetroLineId;
+    return 'mock-line-$lineId';
+  }
+
+  static String _lineNameFor(String lineId) {
+    if (lineId == '3-4') return '3/4号线';
+    return '$lineId号线';
+  }
+
+  static Color _lineColorFor(String lineId) {
+    return ShanghaiMetroData.getLineColor(lineId == '3-4' ? '3' : lineId);
+  }
+
+  static List<_StationSuggestion> _buildStationSuggestions() {
+    final grouped = <String, _StationSuggestion>{};
+    for (final line in ShanghaiMetroData.getAllLines()) {
+      for (final station in line.stations) {
+        final existing = grouped[station.name];
+        if (existing == null) {
+          grouped[station.name] = _StationSuggestion(
+            id: station.id,
+            name: station.name,
+            lineNames: [line.lineName],
+            lineColors: [line.lineColor],
+          );
+        } else if (!existing.lineNames.contains(line.lineName)) {
+          existing.lineNames.add(line.lineName);
+          existing.lineColors.add(line.lineColor);
+        }
+      }
+    }
+    final suggestions = grouped.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    return suggestions;
+  }
+
+  List<_StationSuggestion> _matchedStations(String keyword) {
+    final query = keyword.trim();
+    if (query.isEmpty) return const [];
+
+    final matches = _stationSuggestions.where((station) {
+      return station.name.contains(query) ||
+          station.lineNames.any((line) => line.contains(query));
+    }).toList();
+
+    matches.sort((a, b) {
+      final aStarts = a.name.startsWith(query) ? 0 : 1;
+      final bStarts = b.name.startsWith(query) ? 0 : 1;
+      if (aStarts != bStarts) return aStarts.compareTo(bStarts);
+      final aIndex = a.name.indexOf(query);
+      final bIndex = b.name.indexOf(query);
+      if (aIndex != bIndex) return aIndex.compareTo(bIndex);
+      return a.name.length.compareTo(b.name.length);
+    });
+    return matches.take(6).toList();
+  }
+
+  Future<void> _selectSuggestedStation({
+    required _StationSuggestion station,
+    required bool forStart,
+  }) async {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      if (forStart) {
+        _startController.text = station.name;
+        _startStationId = station.id;
+        _startEntrance = null;
+      } else {
+        _endController.text = station.name;
+        _endStationId = station.id;
+        _endExit = null;
+      }
+    });
+    await _chooseAccessPoint(forStart: forStart);
   }
 
   void _disableStationTapAutoExpand() {
@@ -180,16 +287,16 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
-    context.go(
-      '/route-plan?start=${Uri.encodeComponent(start)}'
-      '&end=${Uri.encodeComponent(end)}'
-      '&startId=${Uri.encodeComponent(_startStationId ?? '')}'
-      '&endId=${Uri.encodeComponent(_endStationId ?? '')}'
-      '&startEntranceId=${Uri.encodeComponent(_startEntrance!.id)}'
-      '&startEntranceName=${Uri.encodeComponent(_startEntrance!.label)}'
-      '&endExitId=${Uri.encodeComponent(_endExit!.id)}'
-      '&endExitName=${Uri.encodeComponent(_endExit!.label)}',
-    );
+    final location = '/route-plan?start=${Uri.encodeComponent(start)}'
+        '&end=${Uri.encodeComponent(end)}'
+        '&startId=${Uri.encodeComponent(_startStationId ?? '')}'
+        '&endId=${Uri.encodeComponent(_endStationId ?? '')}'
+        '&startEntranceId=${Uri.encodeComponent(_startEntrance!.id)}'
+        '&startEntranceName=${Uri.encodeComponent(_startEntrance!.label)}'
+        '&endExitId=${Uri.encodeComponent(_endExit!.id)}'
+        '&endExitName=${Uri.encodeComponent(_endExit!.label)}';
+    NavigationMemory.routePlanLocation = location;
+    context.go(location);
   }
 
   Future<void> _chooseAccessPoint({required bool forStart}) async {
@@ -341,11 +448,11 @@ class _HomePageState extends State<HomePage> {
   }) {
     if (stationName.contains('同济大学')) {
       return const [
-        _AccessChoice('1', '1号口', '四平路，同济大学正门'),
+        _AccessChoice('1', '1号口', '同济联合广场'),
         _AccessChoice('2', '2号口', '彰武路，赤峰路'),
-        _AccessChoice('3', '3号口', '站厅北侧通道'),
-        _AccessChoice('4', '4号口', '站厅北侧通道'),
-        _AccessChoice('5', '5号口', '同济联合广场'),
+        _AccessChoice('3', '3号口', '站厅南侧通道'),
+        _AccessChoice('4', '4号口', '站厅南侧通道'),
+        _AccessChoice('5', '5号口', '四平路，同济大学正门'),
       ];
     }
     if (stationName.contains('虹桥')) {
@@ -526,10 +633,10 @@ class _HomePageState extends State<HomePage> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const _GlassPanel(
+        _GlassPanel(
           borderRadius: 18,
-          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: const Row(
             children: [
               Icon(Icons.subway_rounded, color: _line10, size: 20),
               SizedBox(width: 8),
@@ -558,7 +665,9 @@ class _HomePageState extends State<HomePage> {
                 icon: Icons.trip_origin_rounded,
                 iconColor: _green,
                 controller: _startController,
+                focusNode: _startFocusNode,
                 hintText: '选择起点',
+                forStart: true,
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
@@ -570,9 +679,11 @@ class _HomePageState extends State<HomePage> {
               ),
               _compactRouteField(
                 icon: Icons.location_on_outlined,
-                iconColor: const Color(0xFFFF4D5A),
+                iconColor: Color(0xFFFF4D5A),
                 controller: _endController,
+                focusNode: _endFocusNode,
                 hintText: '选择终点',
+                forStart: false,
               ),
               const SizedBox(width: 8),
               SizedBox(
@@ -594,9 +705,108 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+        _buildStationSuggestionPanel(),
         const SizedBox(height: 8),
         _buildAccessSummaryBar(),
       ],
+    );
+  }
+
+  Widget _buildStationSuggestionPanel() {
+    final forStart = _startFocusNode.hasFocus;
+    final forEnd = _endFocusNode.hasFocus;
+    if (!forStart && !forEnd) return const SizedBox.shrink();
+
+    final controller = forStart ? _startController : _endController;
+    final matches = _matchedStations(controller.text);
+    if (controller.text.trim().isEmpty || matches.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: _GlassPanel(
+        borderRadius: 20,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Column(
+          children: [
+            for (var i = 0; i < matches.length; i++) ...[
+              _stationSuggestionTile(matches[i], forStart: forStart),
+              if (i != matches.length - 1)
+                const Divider(height: 1, color: Color(0xFFE8DDEA)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stationSuggestionTile(
+    _StationSuggestion station, {
+    required bool forStart,
+  }) {
+    final mainColor =
+        station.lineColors.isEmpty ? _line10 : station.lineColors.first;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => _selectSuggestedStation(
+        station: station,
+        forStart: forStart,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: mainColor.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(
+                Icons.subway_rounded,
+                color: mainColor,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    station.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    station.lineNames.join(' / '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.north_west_rounded,
+              color: _muted,
+              size: 17,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -645,7 +855,7 @@ class _HomePageState extends State<HomePage> {
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 9),
         decoration: BoxDecoration(
-          color: active ? Colors.white.withValues(alpha: 0.78) : Colors.white38,
+          color: active ? Colors.white.withOpacity(0.78) : Colors.white38,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: active ? const Color(0xFFE7D8EA) : Colors.white54,
@@ -677,13 +887,15 @@ class _HomePageState extends State<HomePage> {
     required IconData icon,
     required Color iconColor,
     required TextEditingController controller,
+    required FocusNode focusNode,
     required String hintText,
+    required bool forStart,
   }) {
     return Expanded(
       child: Container(
         height: 42,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.55),
+          color: Colors.white.withOpacity(0.55),
           borderRadius: BorderRadius.circular(15),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 9),
@@ -694,6 +906,18 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: TextField(
                 controller: controller,
+                focusNode: focusNode,
+                onChanged: (_) {
+                  setState(() {
+                    if (forStart) {
+                      _startStationId = null;
+                      _startEntrance = null;
+                    } else {
+                      _endStationId = null;
+                      _endExit = null;
+                    }
+                  });
+                },
                 style: const TextStyle(
                   color: _ink,
                   fontSize: 14,
@@ -727,12 +951,11 @@ class _HomePageState extends State<HomePage> {
     final nextMinutes = _remainingMinutesFor('nextArriveMinutes')?.toString() ??
         arrival?['nextArriveMinutes']?.toString() ??
         '?';
-    final location = arrival?['trainLocation']?.toString() ?? '未知位置';
-    final nextStop =
-        arrival?['trainNextStop']?.toString() ?? _selectedMetroStopName;
-    final alertLabel = _travelAlerts.isEmpty
-        ? '运行正常'
-        : (_travelAlerts.first['title'] ?? '实时提醒').toString();
+    final location =
+        _cleanDisplayText(arrival?['trainLocation']?.toString() ?? '未知位置');
+    final nextStop = _cleanDisplayText(
+        arrival?['trainNextStop']?.toString() ?? _selectedMetroStopName);
+    final alertLabel = _displayAlertLabel();
     final size = MediaQuery.sizeOf(context);
     final expanded = _resolvedDockHeight(size) > _dockMaxHeight(size) - 28;
 
@@ -781,7 +1004,11 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          _pill('10号线', _line10, Colors.white),
+                          _pill(
+                            _selectedMetroLineName,
+                            _lineColorFor(_selectedMetroLineId),
+                            Colors.white,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -846,10 +1073,6 @@ class _HomePageState extends State<HomePage> {
                   _miniAction(Icons.elevator_rounded, '设施', () {
                     context.push('/subway-service');
                   }),
-                  const SizedBox(width: 8),
-                  _miniAction(Icons.timer_rounded, '计时', () {
-                    context.push('/transfer-time');
-                  }),
                 ],
               ),
             ] else
@@ -862,6 +1085,35 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  String _displayAlertLabel() {
+    if (_travelAlerts.isEmpty) return '10号线运行正常';
+    final rawTitle = (_travelAlerts.first['title'] ?? '实时提醒').toString();
+    final repaired = _cleanDisplayText(rawTitle);
+    if (_looksLikeMojibake(repaired) || repaired.trim().isEmpty) {
+      return '10号线运行正常';
+    }
+    return repaired;
+  }
+
+  String _cleanDisplayText(String value) {
+    if (!_looksLikeMojibake(value)) return value;
+    try {
+      final repaired = utf8.decode(latin1.encode(value));
+      return repaired.trim().isEmpty ? value : repaired;
+    } catch (_) {
+      return value;
+    }
+  }
+
+  bool _looksLikeMojibake(String value) {
+    return value.contains('Ã') ||
+        value.contains('Â') ||
+        value.contains('å') ||
+        value.contains('ç') ||
+        value.contains('æ') ||
+        value.contains('é');
   }
 
   Widget _compactArrivalSummary({
@@ -878,7 +1130,7 @@ class _HomePageState extends State<HomePage> {
     return Container(
       height: 42,
       decoration: BoxDecoration(
-        color: _surfaceBlue.withValues(alpha: 0.72),
+        color: _surfaceBlue.withOpacity(0.72),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFD7E3FF)),
       ),
@@ -923,7 +1175,7 @@ class _HomePageState extends State<HomePage> {
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.82),
+          color: Colors.white.withOpacity(0.82),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white),
         ),
@@ -954,7 +1206,7 @@ class _HomePageState extends State<HomePage> {
     return Container(
       height: 74,
       decoration: BoxDecoration(
-        color: _surfaceBlue.withValues(alpha: 0.9),
+        color: _surfaceBlue.withOpacity(0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFD7E3FF)),
       ),
@@ -1098,10 +1350,10 @@ class _HomePageState extends State<HomePage> {
     if (progress == null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(999),
-        child: const LinearProgressIndicator(
+        child: LinearProgressIndicator(
           minHeight: 6,
           color: _line10,
-          backgroundColor: Color(0xFFD1C2CD),
+          backgroundColor: const Color(0xFFD1C2CD),
         ),
       );
     }
@@ -1151,7 +1403,7 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(999),
                         boxShadow: [
                           BoxShadow(
-                            color: _line10.withValues(alpha: 0.28),
+                            color: _line10.withOpacity(0.28),
                             blurRadius: 8,
                           ),
                         ],
@@ -1170,7 +1422,7 @@ class _HomePageState extends State<HomePage> {
                         border: Border.all(color: _line10, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: _line10.withValues(alpha: 0.22),
+                            color: _line10.withOpacity(0.22),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1261,18 +1513,18 @@ class _MiniActionButtonState extends State<_MiniActionButton> {
         height: 42,
         decoration: BoxDecoration(
           color: _pressed
-              ? widget.color.withValues(alpha: 0.16)
-              : Colors.white.withValues(alpha: 0.62),
+              ? widget.color.withOpacity(0.16)
+              : Colors.white.withOpacity(0.62),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _pressed
-                ? widget.color.withValues(alpha: 0.42)
-                : Colors.white.withValues(alpha: 0.7),
+                ? widget.color.withOpacity(0.42)
+                : Colors.white.withOpacity(0.7),
           ),
           boxShadow: [
             if (!_pressed)
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.025),
+                color: Colors.black.withOpacity(0.025),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -1284,8 +1536,8 @@ class _MiniActionButtonState extends State<_MiniActionButton> {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            splashColor: widget.color.withValues(alpha: 0.16),
-            highlightColor: widget.color.withValues(alpha: 0.08),
+            splashColor: widget.color.withOpacity(0.16),
+            highlightColor: widget.color.withOpacity(0.08),
             onTap: widget.onTap,
             onTapDown: (_) => _setPressed(true),
             onTapUp: (_) => _setPressed(false),
@@ -1350,10 +1602,10 @@ class _MapReadabilityVeil extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.white.withValues(alpha: 0.28),
-            Colors.white.withValues(alpha: 0.02),
-            Colors.white.withValues(alpha: 0.0),
-            Colors.white.withValues(alpha: 0.42),
+            Colors.white.withOpacity(0.28),
+            Colors.white.withOpacity(0.02),
+            Colors.white.withOpacity(0.0),
+            Colors.white.withOpacity(0.42),
           ],
           stops: const [0, 0.28, 0.62, 1],
         ),
@@ -1368,7 +1620,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFCCDBF4).withValues(alpha: 0.34)
+      ..color = const Color(0xFFCCDBF4).withOpacity(0.34)
       ..strokeWidth = 1;
     const step = 42.0;
     for (var x = 0.0; x < size.width; x += step) {
@@ -1402,12 +1654,12 @@ class _GlassPanel extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.72),
+            color: Colors.white.withOpacity(0.72),
             borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+            border: Border.all(color: Colors.white.withOpacity(0.7)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7B4A7F).withValues(alpha: 0.08),
+                color: const Color(0xFF7B4A7F).withOpacity(0.08),
                 blurRadius: 26,
                 offset: const Offset(0, 12),
               ),
@@ -1429,4 +1681,18 @@ class _AccessChoice {
   const _AccessChoice(this.id, this.label, this.detail);
 
   String get shortLabel => id;
+}
+
+class _StationSuggestion {
+  final String id;
+  final String name;
+  final List<String> lineNames;
+  final List<Color> lineColors;
+
+  const _StationSuggestion({
+    required this.id,
+    required this.name,
+    required this.lineNames,
+    required this.lineColors,
+  });
 }

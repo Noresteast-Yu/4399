@@ -1,6 +1,6 @@
 name: smart_travel_app
 description: A smart travel app for subway and high-speed rail navigation.
-version: 1.0.2
+version: 1.0.3+3
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

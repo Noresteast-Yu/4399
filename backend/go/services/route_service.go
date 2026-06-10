@@ -399,7 +399,7 @@ func findStation(name string) (models.Station, error) {
 		fmt.Printf("[DEBUG-findStation] 数据库未找到站点，降级使用模拟站点: %v\n", err)
 	}
 
-	// 模拟数据 - 上海地铁2号线、10号线、11号线所有站点
+	// 模拟数据 - 当前首页简图覆盖的线路和换乘参考站
 	stations := map[string]models.Station{
 		// 2号线站点
 		"浦东国际机场":  {ID: 1, StationID: "pudong_airport", StationName: "浦东国际机场", City: "上海", StationType: "地铁站"},
@@ -457,13 +457,20 @@ func findStation(name string) (models.Station, error) {
 		"海伦路":      {ID: 52, StationID: "hai_lun_road", StationName: "海伦路", City: "上海", StationType: "地铁站"},
 		"四平路":      {ID: 53, StationID: "si_ping_road", StationName: "四平路", City: "上海", StationType: "地铁站"},
 		"同济大学":     {ID: 54, StationID: "tong_ji_university", StationName: "同济大学", City: "上海", StationType: "地铁站"},
-		"江湾新城":     {ID: 55, StationID: "jiang_wan_new_town", StationName: "江湾新城", City: "上海", StationType: "地铁站"},
-		"殷高东路":     {ID: 56, StationID: "weng_jing", StationName: "殷高东路", City: "上海", StationType: "地铁站"},
-		"新江湾城":     {ID: 57, StationID: "xin_jiang_wan_city", StationName: "新江湾城", City: "上海", StationType: "地铁站"},
-		"三门路":      {ID: 58, StationID: "shuang_jiang_road", StationName: "三门路", City: "上海", StationType: "地铁站"},
-		"殷行路":      {ID: 59, StationID: "hang_hai_road", StationName: "殷行路", City: "上海", StationType: "地铁站"},
-		"新园路":      {ID: 60, StationID: "xinquan_road", StationName: "新园路", City: "上海", StationType: "地铁站"},
-		"江湾镇":      {ID: 61, StationID: "shanghai_north_railway_station", StationName: "江湾镇", City: "上海", StationType: "地铁站"},
+		"国权路":      {ID: 55, StationID: "guoquan_road", StationName: "国权路", City: "上海", StationType: "地铁站"},
+		"五角场":      {ID: 56, StationID: "wujiaochang", StationName: "五角场", City: "上海", StationType: "地铁站"},
+		"江湾体育场":    {ID: 57, StationID: "jiangwan_stadium", StationName: "江湾体育场", City: "上海", StationType: "地铁站"},
+		"三门路":      {ID: 58, StationID: "sanmen_road", StationName: "三门路", City: "上海", StationType: "地铁站"},
+		"殷高东路":     {ID: 59, StationID: "yingao_east_road", StationName: "殷高东路", City: "上海", StationType: "地铁站"},
+		"新江湾城":     {ID: 60, StationID: "xin_jiang_wan_city", StationName: "新江湾城", City: "上海", StationType: "地铁站"},
+		"国帆路":      {ID: 91, StationID: "guofan_road", StationName: "国帆路", City: "上海", StationType: "地铁站"},
+		"双江路":      {ID: 92, StationID: "shuangjiang_road", StationName: "双江路", City: "上海", StationType: "地铁站"},
+		"高桥西":      {ID: 93, StationID: "gaoqiao_west", StationName: "高桥西", City: "上海", StationType: "地铁站"},
+		"高桥":       {ID: 94, StationID: "gaoqiao", StationName: "高桥", City: "上海", StationType: "地铁站"},
+		"港城路":      {ID: 95, StationID: "gangcheng_road", StationName: "港城路", City: "上海", StationType: "地铁站"},
+		"基隆路":      {ID: 96, StationID: "jilong_road", StationName: "基隆路", City: "上海", StationType: "地铁站"},
+		"抚顺路":      {ID: 61, StationID: "fushun_road", StationName: "抚顺路", City: "上海", StationType: "地铁站"},
+		"复旦大学":     {ID: 62, StationID: "fudan_university", StationName: "复旦大学", City: "上海", StationType: "地铁站"},
 
 		// 11号线站点
 		"花桥":     {ID: 62, StationID: "hua_qiao", StationName: "花桥", City: "上海", StationType: "地铁站"},
@@ -493,10 +500,20 @@ func findStation(name string) (models.Station, error) {
 		"东方体育中心": {ID: 86, StationID: "pujiang_zhen", StationName: "东方体育中心", City: "上海", StationType: "地铁站"},
 
 		// 其他常用站点
-		"淮海中路":   {ID: 87, StationID: "huaihai_mid_road", StationName: "淮海中路", City: "上海", StationType: "地铁站"},
-		"上海南站":   {ID: 88, StationID: "shanghai_south_railway_station", StationName: "上海南站", City: "上海", StationType: "地铁站"},
-		"上海火车站":  {ID: 89, StationID: "shanghai_railway_station", StationName: "上海火车站", City: "上海", StationType: "地铁站"},
-		"漕河泾开发区": {ID: 90, StationID: "caohexi_kfq", StationName: "漕河泾开发区", City: "上海", StationType: "地铁站"},
+		"淮海中路":    {ID: 87, StationID: "huaihai_mid_road", StationName: "淮海中路", City: "上海", StationType: "地铁站"},
+		"新天地":     {ID: 97, StationID: "xintiandi", StationName: "新天地", City: "上海", StationType: "地铁站"},
+		"马当路":     {ID: 98, StationID: "madang_road", StationName: "马当路", City: "上海", StationType: "地铁站"},
+		"延安西路":    {ID: 99, StationID: "yanan_west_road", StationName: "延安西路", City: "上海", StationType: "地铁站"},
+		"常熟路":     {ID: 100, StationID: "changshu_road", StationName: "常熟路", City: "上海", StationType: "地铁站"},
+		"黄陂南路":    {ID: 101, StationID: "huangpi_south_road", StationName: "黄陂南路", City: "上海", StationType: "地铁站"},
+		"嘉善路":     {ID: 102, StationID: "jiashan_road", StationName: "嘉善路", City: "上海", StationType: "地铁站"},
+		"大世界":     {ID: 103, StationID: "dashijie", StationName: "大世界", City: "上海", StationType: "地铁站"},
+		"外高桥保税区北": {ID: 104, StationID: "waigaoqiao_ftz_north", StationName: "外高桥保税区北", City: "上海", StationType: "地铁站"},
+		"外高桥保税区南": {ID: 105, StationID: "waigaoqiao_ftz_south", StationName: "外高桥保税区南", City: "上海", StationType: "地铁站"},
+		"诸光路":     {ID: 106, StationID: "zhuguang_road", StationName: "诸光路", City: "上海", StationType: "地铁站"},
+		"上海南站":    {ID: 88, StationID: "shanghai_south_railway_station", StationName: "上海南站", City: "上海", StationType: "地铁站"},
+		"上海火车站":   {ID: 89, StationID: "shanghai_railway_station", StationName: "上海火车站", City: "上海", StationType: "地铁站"},
+		"漕河泾开发区":  {ID: 90, StationID: "caohexi_kfq", StationName: "漕河泾开发区", City: "上海", StationType: "地铁站"},
 	}
 
 	fmt.Printf("[DEBUG-findStation] 模拟模式，stations map长度: %d, 查找name: '%s'\n", len(stations), name)
@@ -565,47 +582,43 @@ func findRoutes(start, end models.Station) ([]PlannedRoute, error) {
 
 		// 模拟线路数据
 		var green = "绿色"
+		var red = "红色"
 		var purple = "紫色"
 		var brown = "棕色"
+		var teal = "蓝绿色"
+		var gold = "金色"
+		var pink = "粉色"
+		var magenta = "品红色"
 		var unknown = "未知"
 
 		var shanghai = "上海"
-		var line2Desc = "上海地铁2号线"
-		var line10Desc = "上海地铁10号线"
-		var line11Desc = "上海地铁11号线"
 		var defaultDesc = "上海地铁" + lineID + "号线"
 
 		switch lineID {
+		case "1":
+			line = models.MetroLine{ID: 0, LineID: "1", LineName: "1号线", City: shanghai, ColorName: &red, ColorHex: stringPtr("#E4002B"), Description: &defaultDesc}
 		case "2":
-			line = models.MetroLine{
-				ID:          0,
-				LineID:      "2",
-				LineName:    "2号线",
-				City:        shanghai,
-				ColorName:   &green,
-				ColorHex:    stringPtr("#8CC63F"),
-				Description: &line2Desc,
-			}
+			line = models.MetroLine{ID: 0, LineID: "2", LineName: "2号线", City: shanghai, ColorName: &green, ColorHex: stringPtr("#8CC63F"), Description: &defaultDesc}
+		case "3":
+			line = models.MetroLine{ID: 0, LineID: "3", LineName: "3号线", City: shanghai, ColorName: &gold, ColorHex: stringPtr("#FFD100"), Description: &defaultDesc}
+		case "4":
+			line = models.MetroLine{ID: 0, LineID: "4", LineName: "4号线", City: shanghai, ColorName: &purple, ColorHex: stringPtr("#4B2E83"), Description: &defaultDesc}
+		case "6":
+			line = models.MetroLine{ID: 0, LineID: "6", LineName: "6号线", City: shanghai, ColorName: &magenta, ColorHex: stringPtr("#BE2D79"), Description: &defaultDesc}
 		case "10":
-			line = models.MetroLine{
-				ID:          0,
-				LineID:      "10",
-				LineName:    "10号线",
-				City:        shanghai,
-				ColorName:   &purple,
-				ColorHex:    stringPtr("#C5A3FF"),
-				Description: &line10Desc,
-			}
+			line = models.MetroLine{ID: 0, LineID: "10", LineName: "10号线", City: shanghai, ColorName: &purple, ColorHex: stringPtr("#C5A3FF"), Description: &defaultDesc}
 		case "11":
-			line = models.MetroLine{
-				ID:          0,
-				LineID:      "11",
-				LineName:    "11号线",
-				City:        shanghai,
-				ColorName:   &brown,
-				ColorHex:    stringPtr("#7A3E2F"),
-				Description: &line11Desc,
-			}
+			line = models.MetroLine{ID: 0, LineID: "11", LineName: "11号线", City: shanghai, ColorName: &brown, ColorHex: stringPtr("#7A3E2F"), Description: &defaultDesc}
+		case "12":
+			line = models.MetroLine{ID: 0, LineID: "12", LineName: "12号线", City: shanghai, ColorName: &teal, ColorHex: stringPtr("#00843D"), Description: &defaultDesc}
+		case "13":
+			line = models.MetroLine{ID: 0, LineID: "13", LineName: "13号线", City: shanghai, ColorName: &pink, ColorHex: stringPtr("#F49AC1"), Description: &defaultDesc}
+		case "14":
+			line = models.MetroLine{ID: 0, LineID: "14", LineName: "14号线", City: shanghai, ColorName: &gold, ColorHex: stringPtr("#A6A01D"), Description: &defaultDesc}
+		case "17":
+			line = models.MetroLine{ID: 0, LineID: "17", LineName: "17号线", City: shanghai, ColorName: &pink, ColorHex: stringPtr("#C490C0"), Description: &defaultDesc}
+		case "18":
+			line = models.MetroLine{ID: 0, LineID: "18", LineName: "18号线", City: shanghai, ColorName: &unknown, ColorHex: stringPtr("#00A3AD"), Description: &defaultDesc}
 		default:
 			line = models.MetroLine{
 				ID:          0,
@@ -695,9 +708,12 @@ func getLineStations(stationID string) ([]models.LineStation, error) {
 		"hongqiao_road": "虹桥路", "jiaotong_university": "交通大学", "shanghai_library": "上海图书馆",
 		"shaanxi_south_road": "陕西南路", "xin_tian_di": "一大会址·新天地", "lao_xi_men": "老西门",
 		"yu_yuan": "豫园", "tian_tong_road": "天潼路", "north_sichuan_road": "四川北路", "hai_lun_road": "海伦路",
-		"si_ping_road": "四平路", "tong_ji_university": "同济大学", "jiang_wan_new_town": "江湾新城",
-		"weng_jing": "殷高东路", "xin_jiang_wan_city": "新江湾城", "shuang_jiang_road": "三门路",
-		"hang_hai_road": "殷行路", "xinquan_road": "新园路", "shanghai_north_railway_station": "江湾镇",
+		"si_ping_road": "四平路", "tong_ji_university": "同济大学", "guoquan_road": "国权路",
+		"wujiaochang": "五角场", "jiangwan_stadium": "江湾体育场", "sanmen_road": "三门路",
+		"yingao_east_road": "殷高东路", "xin_jiang_wan_city": "新江湾城",
+		"guofan_road": "国帆路", "shuangjiang_road": "双江路", "gaoqiao_west": "高桥西", "gaoqiao": "高桥",
+		"gangcheng_road": "港城路", "jilong_road": "基隆路",
+		"fushun_road": "抚顺路", "fudan_university": "复旦大学",
 		"hua_qiao": "花桥", "jiading_new_town": "光明路", "bao_an_road": "兆丰路", "anting": "安亭",
 		"che_ding_zhen": "上海赛车场", "jiading_new_city": "嘉定新城", "jiading_old_town": "白银路",
 		"jiading_beilu": "嘉定北", "nan_xiang": "南翔", "ma_lu": "马陆", "jiang_su_road_11": "桃浦新村",
@@ -706,6 +722,10 @@ func getLineStations(stationID string) ([]models.LineStation, error) {
 		"zhi_pu_road": "肇嘉浜路", "yuyao_road": "宜山路", "long_hua": "龙华", "long_hua_middle": "龙华中路",
 		"lu_jia_bang_road": "龙耀路", "huating_road": "云锦路", "long_arcs": "龙腾大道", "pujiang_zhen": "东方体育中心",
 		"huaihai_mid_road": "淮海中路", "shanghai_south_railway_station": "上海南站",
+		"xintiandi": "新天地", "madang_road": "马当路", "yanan_west_road": "延安西路",
+		"changshu_road": "常熟路", "huangpi_south_road": "黄陂南路", "jiashan_road": "嘉善路",
+		"dashijie": "大世界", "waigaoqiao_ftz_north": "外高桥保税区北", "waigaoqiao_ftz_south": "外高桥保税区南",
+		"zhuguang_road":            "诸光路",
 		"shanghai_railway_station": "上海火车站", "caohexi_kfq": "漕河泾开发区",
 	}
 	stationName := stationID
@@ -726,12 +746,18 @@ func getLineStations(stationID string) ([]models.LineStation, error) {
 
 	// 10号线站点映射
 	line10Stations := map[string]int{
-		"上海虹桥火车站": 1, "虹桥1号航站楼": 2, "上海动物园": 3, "龙溪路": 4, "水城路": 5,
+		"上海虹桥火车站": 1, "虹桥火车站": 1, "虹桥1号航站楼": 2, "虹桥2号航站楼": 2, "上海动物园": 3, "龙溪路": 4, "水城路": 5,
 		"伊犁路": 6, "宋园路": 7, "虹桥路": 8, "交通大学": 9, "上海图书馆": 10,
-		"陕西南路": 11, "一大会址·新天地": 12, "老西门": 13, "豫园": 14, "天潼路": 15,
-		"四川北路": 16, "海伦路": 17, "四平路": 18, "同济大学": 19, "江湾新城": 20,
-		"殷高东路": 21, "新江湾城": 22, "三门路": 23, "殷行路": 24, "新园路": 25, "江湾镇": 26,
+		"陕西南路": 11, "一大会址·新天地": 12, "新天地": 12, "老西门": 13, "豫园": 14, "天潼路": 15,
+		"四川北路": 16, "海伦路": 17, "四平路": 18, "同济大学": 19, "国权路": 20,
+		"五角场": 21, "江湾体育场": 22, "三门路": 23, "殷高东路": 24, "新江湾城": 25,
+		"国帆路": 26, "双江路": 27, "高桥西": 28, "高桥": 29, "港城路": 30, "基隆路": 31,
 	}
+
+	line1Stations := map[string]int{"常熟路": 1, "陕西南路": 2, "黄陂南路": 3}
+	line3Stations := map[string]int{"延安西路": 1, "虹桥路": 2, "宜山路": 3}
+	line4Stations := map[string]int{"延安西路": 1, "虹桥路": 2, "宜山路": 3, "海伦路": 4}
+	line6Stations := map[string]int{"外高桥保税区北": 1, "港城路": 2, "外高桥保税区南": 3}
 
 	// 11号线站点映射
 	line11Stations := map[string]int{
@@ -742,45 +768,78 @@ func getLineStations(stationID string) ([]models.LineStation, error) {
 		"龙华中路": 21, "龙耀路": 22, "云锦路": 23, "龙腾大道": 24, "东方体育中心": 25,
 	}
 
+	line18Stations := map[string]int{
+		"抚顺路": 1, "国权路": 2, "复旦大学": 3,
+	}
+
+	line12Stations := map[string]int{"南京西路": 1, "陕西南路": 2, "嘉善路": 3, "天潼路": 4}
+	line13Stations := map[string]int{"淮海中路": 1, "新天地": 2, "一大会址·新天地": 2, "马当路": 3}
+	line14Stations := map[string]int{"大世界": 1, "豫园": 2, "陆家嘴": 3}
+	line17Stations := map[string]int{"虹桥火车站": 1, "诸光路": 2, "虹桥2号航站楼": 3}
+
 	var result []models.LineStation
 
-	// 检查站点是否属于2号线
-	if order, exists := line2Stations[stationName]; exists {
+	appendLineStation := func(lineID string, order int) {
 		result = append(result, models.LineStation{
 			ID:           0,
-			LineID:       "2",
+			LineID:       lineID,
 			StationID:    stationID,
 			Direction:    "both",
 			StationOrder: order,
 			IsTransfer:   false,
 			PlatformTip:  nil,
 		})
+	}
+
+	if order, exists := line1Stations[stationName]; exists {
+		appendLineStation("1", order)
+	}
+
+	// 检查站点是否属于2号线
+	if order, exists := line2Stations[stationName]; exists {
+		appendLineStation("2", order)
+	}
+
+	if order, exists := line3Stations[stationName]; exists {
+		appendLineStation("3", order)
+	}
+
+	if order, exists := line4Stations[stationName]; exists {
+		appendLineStation("4", order)
+	}
+
+	if order, exists := line6Stations[stationName]; exists {
+		appendLineStation("6", order)
 	}
 
 	// 检查站点是否属于10号线
 	if order, exists := line10Stations[stationName]; exists {
-		result = append(result, models.LineStation{
-			ID:           0,
-			LineID:       "10",
-			StationID:    stationID,
-			Direction:    "both",
-			StationOrder: order,
-			IsTransfer:   false,
-			PlatformTip:  nil,
-		})
+		appendLineStation("10", order)
 	}
 
 	// 检查站点是否属于11号线
 	if order, exists := line11Stations[stationName]; exists {
-		result = append(result, models.LineStation{
-			ID:           0,
-			LineID:       "11",
-			StationID:    stationID,
-			Direction:    "both",
-			StationOrder: order,
-			IsTransfer:   false,
-			PlatformTip:  nil,
-		})
+		appendLineStation("11", order)
+	}
+
+	if order, exists := line12Stations[stationName]; exists {
+		appendLineStation("12", order)
+	}
+
+	if order, exists := line13Stations[stationName]; exists {
+		appendLineStation("13", order)
+	}
+
+	if order, exists := line14Stations[stationName]; exists {
+		appendLineStation("14", order)
+	}
+
+	if order, exists := line17Stations[stationName]; exists {
+		appendLineStation("17", order)
+	}
+
+	if order, exists := line18Stations[stationName]; exists {
+		appendLineStation("18", order)
 	}
 
 	return result, nil
@@ -902,13 +961,53 @@ func findCommonTransferStations(lineID1, lineID2 string) ([]string, error) {
 			"10": {"虹桥火车站"}, // 2号线和10号线在虹桥火车站换乘
 			"11": {"江苏路"},   // 2号线和11号线在江苏路换乘
 		},
+		"1": map[string][]string{
+			"10": {"陕西南路"},
+			"12": {"陕西南路"},
+		},
+		"3": map[string][]string{
+			"10": {"虹桥路"},
+			"4":  {"虹桥路", "延安西路", "宜山路"},
+		},
+		"4": map[string][]string{
+			"10": {"虹桥路", "海伦路"},
+			"3":  {"虹桥路", "延安西路", "宜山路"},
+		},
+		"6": map[string][]string{
+			"10": {"港城路"},
+		},
 		"10": map[string][]string{
-			"2":  {"虹桥火车站"},
+			"1":  {"陕西南路"},
+			"2":  {"虹桥火车站", "南京东路"},
+			"3":  {"虹桥路"},
+			"4":  {"虹桥路", "海伦路"},
+			"6":  {"港城路"},
 			"11": {"交通大学"}, // 10号线和11号线在交通大学换乘
+			"12": {"陕西南路", "天潼路"},
+			"13": {"新天地"},
+			"14": {"豫园"},
+			"17": {"虹桥火车站"},
+			"18": {"国权路"},
 		},
 		"11": map[string][]string{
 			"2":  {"江苏路"},
 			"10": {"交通大学"},
+		},
+		"12": map[string][]string{
+			"1":  {"陕西南路"},
+			"10": {"陕西南路", "天潼路"},
+		},
+		"13": map[string][]string{
+			"10": {"新天地"},
+		},
+		"14": map[string][]string{
+			"10": {"豫园"},
+		},
+		"17": map[string][]string{
+			"10": {"虹桥火车站"},
+		},
+		"18": map[string][]string{
+			"10": {"国权路"},
 		},
 	}
 
@@ -978,6 +1077,9 @@ func buildTransferRoute(start, end models.Station, startLS, endLS models.LineSta
 	} else {
 		// 使用模拟数据 - 根据换乘站确定顺序
 		lineStations := map[string]map[string]int{
+			"1": map[string]int{
+				"常熟路": 1, "陕西南路": 2, "黄陂南路": 3,
+			},
 			"2": map[string]int{
 				"浦东国际机场": 1, "远东大道": 2, "凌空路": 3, "华夏东路": 4, "川沙": 5,
 				"华夏镇": 6, "创新中路": 7, "广兰路": 8, "唐镇": 9, "创新路": 10,
@@ -990,9 +1092,19 @@ func buildTransferRoute(start, end models.Station, startLS, endLS models.LineSta
 			"10": map[string]int{
 				"上海虹桥火车站": 1, "虹桥火车站": 1, "虹桥1号航站楼": 2, "上海动物园": 3, "龙溪路": 4, "水城路": 5,
 				"伊犁路": 6, "宋园路": 7, "虹桥路": 8, "交通大学": 9, "上海图书馆": 10,
-				"陕西南路": 11, "一大会址·新天地": 12, "老西门": 13, "豫园": 14, "天潼路": 15,
-				"四川北路": 16, "海伦路": 17, "四平路": 18, "同济大学": 19, "江湾新城": 20,
-				"殷高东路": 21, "新江湾城": 22, "三门路": 23, "殷行路": 24, "新园路": 25, "江湾镇": 26,
+				"陕西南路": 11, "一大会址·新天地": 12, "新天地": 12, "老西门": 13, "豫园": 14, "天潼路": 15,
+				"四川北路": 16, "海伦路": 17, "四平路": 18, "同济大学": 19, "国权路": 20,
+				"五角场": 21, "江湾体育场": 22, "三门路": 23, "殷高东路": 24, "新江湾城": 25,
+				"国帆路": 26, "双江路": 27, "高桥西": 28, "高桥": 29, "港城路": 30, "基隆路": 31,
+			},
+			"3": map[string]int{
+				"延安西路": 1, "虹桥路": 2, "宜山路": 3,
+			},
+			"4": map[string]int{
+				"延安西路": 1, "虹桥路": 2, "宜山路": 3, "海伦路": 4,
+			},
+			"6": map[string]int{
+				"外高桥保税区北": 1, "港城路": 2, "外高桥保税区南": 3,
 			},
 			"11": map[string]int{
 				"花桥": 1, "光明路": 2, "兆丰路": 3, "安亭": 4, "上海赛车场": 5,
@@ -1000,6 +1112,21 @@ func buildTransferRoute(start, end models.Station, startLS, endLS models.LineSta
 				"桃浦新村": 11, "武威路": 12, "祁连山路": 13, "曹杨路": 14, "江苏路": 15,
 				"隆德路": 16, "徐家汇": 17, "交通大学": 18, "上海游泳馆": 19, "肇嘉浜路": 20,
 				"宜山路": 21, "龙华": 22, "龙华中路": 23, "龙耀路": 24, "云锦路": 25, "龙腾大道": 26, "东方体育中心": 27,
+			},
+			"12": map[string]int{
+				"南京西路": 1, "陕西南路": 2, "嘉善路": 3, "天潼路": 4,
+			},
+			"13": map[string]int{
+				"淮海中路": 1, "新天地": 2, "一大会址·新天地": 2, "马当路": 3,
+			},
+			"14": map[string]int{
+				"大世界": 1, "豫园": 2, "陆家嘴": 3,
+			},
+			"17": map[string]int{
+				"虹桥火车站": 1, "诸光路": 2, "虹桥2号航站楼": 3,
+			},
+			"18": map[string]int{
+				"抚顺路": 1, "国权路": 2, "复旦大学": 3,
 			},
 		}
 
@@ -1072,6 +1199,9 @@ func mockTransferStation(transferID string) models.Station {
 
 func mockLineStationFor(lineID string, stationName string) (models.LineStation, bool) {
 	lineStations := map[string]map[string]int{
+		"1": {
+			"常熟路": 1, "陕西南路": 2, "黄陂南路": 3,
+		},
 		"2": {
 			"浦东国际机场": 1, "远东大道": 2, "凌空路": 3, "华夏东路": 4, "川沙": 5,
 			"华夏镇": 6, "创新中路": 7, "广兰路": 8, "唐镇": 9, "创新路": 10,
@@ -1084,9 +1214,19 @@ func mockLineStationFor(lineID string, stationName string) (models.LineStation, 
 		"10": {
 			"上海虹桥火车站": 1, "虹桥火车站": 1, "虹桥1号航站楼": 2, "上海动物园": 3, "龙溪路": 4, "水城路": 5,
 			"伊犁路": 6, "宋园路": 7, "虹桥路": 8, "交通大学": 9, "上海图书馆": 10,
-			"陕西南路": 11, "一大会址·新天地": 12, "老西门": 13, "豫园": 14, "天潼路": 15,
-			"四川北路": 16, "海伦路": 17, "四平路": 18, "同济大学": 19, "江湾新城": 20,
-			"殷高东路": 21, "新江湾城": 22, "三门路": 23, "殷行路": 24, "新园路": 25, "江湾镇": 26,
+			"陕西南路": 11, "一大会址·新天地": 12, "新天地": 12, "老西门": 13, "豫园": 14, "天潼路": 15,
+			"四川北路": 16, "海伦路": 17, "四平路": 18, "同济大学": 19, "国权路": 20,
+			"五角场": 21, "江湾体育场": 22, "三门路": 23, "殷高东路": 24, "新江湾城": 25,
+			"国帆路": 26, "双江路": 27, "高桥西": 28, "高桥": 29, "港城路": 30, "基隆路": 31,
+		},
+		"3": {
+			"延安西路": 1, "虹桥路": 2, "宜山路": 3,
+		},
+		"4": {
+			"延安西路": 1, "虹桥路": 2, "宜山路": 3, "海伦路": 4,
+		},
+		"6": {
+			"外高桥保税区北": 1, "港城路": 2, "外高桥保税区南": 3,
 		},
 		"11": {
 			"花桥": 1, "光明路": 2, "兆丰路": 3, "安亭": 4, "上海赛车场": 5,
@@ -1094,6 +1234,21 @@ func mockLineStationFor(lineID string, stationName string) (models.LineStation, 
 			"桃浦新村": 11, "武威路": 12, "祁连山路": 13, "曹杨路": 14, "江苏路": 15,
 			"隆德路": 16, "徐家汇": 17, "交通大学": 18, "上海游泳馆": 19, "肇嘉浜路": 20,
 			"宜山路": 21, "龙华": 22, "龙华中路": 23, "龙耀路": 24, "云锦路": 25, "龙腾大道": 26, "东方体育中心": 27,
+		},
+		"12": {
+			"南京西路": 1, "陕西南路": 2, "嘉善路": 3, "天潼路": 4,
+		},
+		"13": {
+			"淮海中路": 1, "新天地": 2, "一大会址·新天地": 2, "马当路": 3,
+		},
+		"14": {
+			"大世界": 1, "豫园": 2, "陆家嘴": 3,
+		},
+		"17": {
+			"虹桥火车站": 1, "诸光路": 2, "虹桥2号航站楼": 3,
+		},
+		"18": {
+			"抚顺路": 1, "国权路": 2, "复旦大学": 3,
 		},
 	}
 	order, ok := lineStations[lineID][stationName]

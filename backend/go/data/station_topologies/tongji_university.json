@@ -1,0 +1,1126 @@
+{
+  "stationId": "tongji_university",
+  "stationName": "同济大学",
+  "lineIds": [
+    "10"
+  ],
+  "graphName": "station_topology_shortest_path_v1",
+  "weightUnit": "seconds",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "5号口地面",
+      "type": "exit_ground",
+      "floor": "ground",
+      "photoKey": "node_1_entrance_view_01",
+      "x": 0,
+      "y": 30,
+      "area": "outside",
+      "description": "五号口地面",
+      "facilities": [
+        "自助扶梯上行",
+        "自助扶梯下行"
+      ]
+    },
+    {
+      "id": "2",
+      "name": "5号口地下",
+      "type": "exit_underground",
+      "floor": "B1",
+      "photoKey": "exit_5_underground",
+      "x": 0,
+      "y": 0,
+      "area": "unpaid",
+      "description": "五号口地下"
+    },
+    {
+      "id": "3",
+      "name": "5号口地下通道转向点",
+      "type": "passage_turn",
+      "floor": "B1",
+      "photoKey": "exit_5_turning_point",
+      "x": 0,
+      "y": -24,
+      "area": "unpaid",
+      "description": "由五号口地下继续向前后的通道节点"
+    },
+    {
+      "id": "4",
+      "name": "1号口地下",
+      "type": "exit_underground",
+      "floor": "B1",
+      "photoKey": "exit_1_underground",
+      "x": 36,
+      "y": 0,
+      "area": "unpaid",
+      "description": "一号口地下"
+    },
+    {
+      "id": "5",
+      "name": "1号口地面",
+      "type": "exit_ground",
+      "floor": "ground",
+      "photoKey": "node_5_entrance_view_01",
+      "x": 76,
+      "y": 0,
+      "area": "outside",
+      "description": "一号口地面"
+    },
+    {
+      "id": "6_out",
+      "name": "入站闸机口1外侧",
+      "type": "gate_outer",
+      "floor": "B1",
+      "photoKey": "gate_1_outside",
+      "x": 36,
+      "y": -12,
+      "area": "unpaid",
+      "description": "入站闸机口1"
+    },
+    {
+      "id": "6_in",
+      "name": "入站闸机口1内侧",
+      "type": "gate_inner",
+      "floor": "B1",
+      "photoKey": "gate_1_inside",
+      "x": 36,
+      "y": -18,
+      "area": "paid",
+      "description": "入站闸机口1"
+    },
+    {
+      "id": "7_out",
+      "name": "出站闸机外侧 / 服务中心 / 站厅侧",
+      "type": "exit_gate_outer",
+      "floor": "B1",
+      "photoKey": "service_center_hall",
+      "x": 22,
+      "y": -24,
+      "area": "unpaid",
+      "description": "出站闸机1、2，服务中心，站内无障碍电梯上方",
+      "facilities": [
+        "服务中心",
+        "出站闸机1",
+        "出站闸机2",
+        "无障碍电梯上"
+      ]
+    },
+    {
+      "id": "7_in",
+      "name": "出站闸机内侧 / 付费区侧",
+      "type": "exit_gate_inner",
+      "floor": "B1",
+      "photoKey": "exit_gate_inside",
+      "x": 28,
+      "y": -24,
+      "area": "paid",
+      "description": "出站闸机1、2，服务中心，站内无障碍电梯上方",
+      "facilities": [
+        "服务中心",
+        "出站闸机1",
+        "出站闸机2",
+        "无障碍电梯上"
+      ]
+    },
+    {
+      "id": "8",
+      "name": "3、4号出口地下分岔点",
+      "type": "passage_branch",
+      "floor": "B1",
+      "photoKey": "exit_3_4_junction",
+      "x": 22,
+      "y": -48,
+      "area": "unpaid",
+      "description": "3、4出口地下"
+    },
+    {
+      "id": "9",
+      "name": "3号口地下",
+      "type": "exit_underground",
+      "floor": "B1",
+      "photoKey": "exit_3_underground",
+      "x": 22,
+      "y": -86,
+      "area": "unpaid",
+      "description": "三号口地下"
+    },
+    {
+      "id": "10",
+      "name": "3号口地面",
+      "type": "exit_ground",
+      "floor": "ground",
+      "photoKey": "exit_3_ground",
+      "x": 68,
+      "y": -86,
+      "area": "outside",
+      "description": "三号口地面",
+      "facilities": [
+        "仅上行扶梯"
+      ]
+    },
+    {
+      "id": "11",
+      "name": "4号口地下",
+      "type": "exit_underground",
+      "floor": "B1",
+      "photoKey": "exit_4_underground",
+      "x": 22,
+      "y": -110,
+      "area": "unpaid",
+      "description": "四号口地下"
+    },
+    {
+      "id": "12",
+      "name": "4号口地面",
+      "type": "exit_ground",
+      "floor": "ground",
+      "photoKey": "exit_4_ground",
+      "x": 68,
+      "y": -110,
+      "area": "outside",
+      "description": "四号口地面",
+      "facilities": [
+        "仅上行扶梯"
+      ]
+    },
+    {
+      "id": "13",
+      "name": "2号口地下",
+      "type": "exit_underground",
+      "floor": "B1",
+      "photoKey": "exit_2_underground",
+      "x": 36,
+      "y": -48,
+      "area": "unpaid",
+      "description": "二号口地下"
+    },
+    {
+      "id": "14",
+      "name": "2号口地面",
+      "type": "exit_ground",
+      "floor": "ground",
+      "photoKey": "exit_2_ground",
+      "x": 70,
+      "y": -48,
+      "area": "outside",
+      "description": "二号口地面",
+      "facilities": [
+        "上行扶梯",
+        "下行扶梯"
+      ]
+    },
+    {
+      "id": "15_out",
+      "name": "入站闸机口2外侧",
+      "type": "gate_outer",
+      "floor": "B1",
+      "photoKey": "gate_2_outside",
+      "x": 36,
+      "y": -36,
+      "area": "unpaid",
+      "description": "入站闸机口2",
+      "facilities": [
+        "高峰期入站约30s"
+      ]
+    },
+    {
+      "id": "15_in",
+      "name": "入站闸机口2内侧",
+      "type": "gate_inner",
+      "floor": "B1",
+      "photoKey": "gate_2_inside",
+      "x": 36,
+      "y": -30,
+      "area": "paid",
+      "description": "入站闸机口2",
+      "facilities": [
+        "高峰期入站约30s"
+      ]
+    },
+    {
+      "id": "16",
+      "name": "站台通道1上端",
+      "type": "platform_access_upper",
+      "floor": "B1",
+      "photoKey": "platform_access_1_top",
+      "x": 24,
+      "y": -12,
+      "area": "paid",
+      "description": "站点通道1上，点6西侧相邻",
+      "facilities": [
+        "下行扶梯"
+      ]
+    },
+    {
+      "id": "17",
+      "name": "站台通道1下端 / 站台层",
+      "type": "platform_access_lower",
+      "floor": "B2",
+      "photoKey": "platform_access_1_bottom",
+      "x": 22,
+      "y": 0,
+      "area": "platform",
+      "description": "站点通道1下"
+    },
+    {
+      "id": "18",
+      "name": "站台通道2上端",
+      "type": "platform_access_upper",
+      "floor": "B1",
+      "photoKey": "platform_access_2_top",
+      "x": 24,
+      "y": -36,
+      "area": "paid",
+      "description": "站点通道2上，点15西侧相邻",
+      "facilities": [
+        "上行方向扶梯"
+      ]
+    },
+    {
+      "id": "19",
+      "name": "站台通道2下端 / 站台层",
+      "type": "platform_access_lower",
+      "floor": "B2",
+      "photoKey": "platform_access_2_bottom",
+      "x": 22,
+      "y": -48,
+      "area": "platform",
+      "description": "站点通道2下"
+    },
+    {
+      "id": "20",
+      "name": "无障碍电梯下端 / 站台层中点",
+      "type": "elevator_lower",
+      "floor": "B2",
+      "photoKey": "accessible_elevator_platform",
+      "x": 22,
+      "y": -24,
+      "area": "platform",
+      "description": "点17与点19之间中间点，无障碍电梯下方，正上方对应点7",
+      "facilities": [
+        "无障碍电梯下"
+      ]
+    },
+    {
+      "id": "21",
+      "name": "公共厕所",
+      "type": "facility",
+      "floor": "B1",
+      "photoKey": "public_toilet",
+      "x": 10,
+      "y": -110,
+      "area": "unpaid",
+      "description": "公共厕所",
+      "facilities": [
+        "厕所"
+      ]
+    },
+    {
+      "id": "control_1",
+      "name": "控制点1",
+      "type": "control_point",
+      "floor": "B1",
+      "photoKey": "paid_area_control_1",
+      "x": 36,
+      "y": -24,
+      "area": "paid",
+      "description": "点15入站后前往点6途中控制点"
+    }
+  ],
+  "edges": [
+    {
+      "from": "1",
+      "to": "2",
+      "time": 50,
+      "bidirectional": true,
+      "type": "passage",
+      "note": "五号口地面到五号口地下",
+      "photoKey": "exit_5_vertical",
+      "action": "向前向下",
+      "direction": "正南"
+    },
+    {
+      "from": "2",
+      "to": "3",
+      "time": 20,
+      "bidirectional": true,
+      "type": "passage",
+      "photoKey": "exit_5_passage",
+      "action": "直走",
+      "direction": "正南"
+    },
+    {
+      "from": "3",
+      "to": "7_out",
+      "time": 7,
+      "bidirectional": true,
+      "type": "passage",
+      "note": "连接5号口地下通道与出站闸机外侧",
+      "photoKey": "exit_5_to_hall",
+      "action": "左转90°后直走",
+      "direction": "正东"
+    },
+    {
+      "from": "7_out",
+      "to": "8",
+      "time": 20,
+      "bidirectional": true,
+      "type": "passage",
+      "photoKey": "hall_to_exit_3_4",
+      "action": "右转90°后直走",
+      "direction": "正南"
+    },
+    {
+      "from": "8",
+      "to": "9",
+      "time": 100,
+      "bidirectional": true,
+      "type": "passage",
+      "photoKey": "exit_3_long_passage",
+      "action": "直走",
+      "direction": "正南"
+    },
+    {
+      "from": "9",
+      "to": "11",
+      "time": 25,
+      "bidirectional": true,
+      "type": "passage",
+      "photoKey": "exit_3_to_exit_4",
+      "action": "直走",
+      "direction": "正南"
+    },
+    {
+      "from": "9",
+      "to": "10",
+      "time": 60,
+      "bidirectional": true,
+      "type": "vertical",
+      "upMode": "escalator",
+      "downMode": "stairs",
+      "note": "三号口地面，仅上行扶梯",
+      "photoKey": "exit_3_vertical",
+      "action": "左转90°后上楼",
+      "direction": "正东"
+    },
+    {
+      "from": "11",
+      "to": "12",
+      "time": 60,
+      "bidirectional": true,
+      "type": "vertical",
+      "upMode": "escalator",
+      "downMode": "stairs",
+      "note": "四号口地面，仅上行扶梯",
+      "photoKey": "exit_4_vertical",
+      "action": "左转90°后上楼",
+      "direction": "正东"
+    },
+    {
+      "from": "11",
+      "to": "21",
+      "time": 5,
+      "bidirectional": true,
+      "type": "facility",
+      "note": "公共厕所",
+      "photoKey": "toilet_near_exit_4",
+      "action": "右转90°",
+      "direction": "正西"
+    },
+    {
+      "from": "8",
+      "to": "13",
+      "time": 5,
+      "bidirectional": true,
+      "type": "passage",
+      "photoKey": "junction_to_exit_2",
+      "action": "左转90°",
+      "direction": "正东"
+    },
+    {
+      "from": "13",
+      "to": "14",
+      "time": 50,
+      "bidirectional": true,
+      "type": "vertical",
+      "upMode": "escalator",
+      "downMode": "escalator",
+      "note": "二号口地面，有上下行扶梯",
+      "photoKey": "exit_2_vertical",
+      "action": "继续直行",
+      "direction": "正东"
+    },
+    {
+      "from": "2",
+      "to": "4",
+      "time": 20,
+      "bidirectional": true,
+      "type": "passage",
+      "photoKey": "exit_5_to_exit_1",
+      "action": "左转90°",
+      "direction": "正东"
+    },
+    {
+      "from": "4",
+      "to": "5",
+      "time": 80,
+      "bidirectional": true,
+      "type": "vertical",
+      "note": "一号口地面",
+      "photoKey": "exit_1_vertical",
+      "action": "继续直走",
+      "direction": "正东"
+    },
+    {
+      "from": "4",
+      "to": "6_out",
+      "time": 5,
+      "bidirectional": true,
+      "type": "passage",
+      "note": "入站闸机口1",
+      "photoKey": "exit_1_to_gate_1",
+      "action": "右转90°",
+      "direction": "正南"
+    },
+    {
+      "from": "13",
+      "to": "15_out",
+      "time": 5,
+      "bidirectional": true,
+      "type": "passage",
+      "note": "到入站闸机口2；高峰期入站约30s",
+      "photoKey": "exit_2_to_gate_2",
+      "action": "左转90°",
+      "direction": "正北"
+    },
+    {
+      "from": "6_out",
+      "to": "6_in",
+      "time": 30,
+      "bidirectional": false,
+      "type": "entry_gate",
+      "note": "入站闸机口1，只能站外到站内",
+      "photoKey": "entry_gate_1"
+    },
+    {
+      "from": "15_out",
+      "to": "15_in",
+      "time": 30,
+      "bidirectional": false,
+      "type": "entry_gate",
+      "note": "入站闸机口2，只能站外到站内，高峰期约30秒",
+      "photoKey": "entry_gate_2"
+    },
+    {
+      "from": "7_in",
+      "to": "7_out",
+      "time": 30,
+      "bidirectional": false,
+      "type": "exit_gate",
+      "note": "出站闸机1、2，只能站内到站外",
+      "photoKey": "exit_gate"
+    },
+    {
+      "from": "6_in",
+      "to": "control_1",
+      "time": 15,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "入站闸机口1内侧到控制点1",
+      "photoKey": "gate_1_to_control",
+      "action": "继续直走",
+      "direction": "正北"
+    },
+    {
+      "from": "15_in",
+      "to": "control_1",
+      "time": 15,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "入站闸机口2内侧到控制点1",
+      "photoKey": "gate_2_to_control",
+      "action": "入站后直走",
+      "direction": "正北"
+    },
+    {
+      "from": "control_1",
+      "to": "7_in",
+      "time": 5,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "控制点1到出站闸机内侧",
+      "photoKey": "control_to_exit_gate",
+      "action": "左转90°后直走",
+      "direction": "正西"
+    },
+    {
+      "from": "16",
+      "to": "7_in",
+      "time": 10,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "站台通道1上端可直接前往点7内侧",
+      "photoKey": "platform_access_1_to_exit_gate_inside"
+    },
+    {
+      "from": "18",
+      "to": "7_in",
+      "time": 10,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "站台通道2上端可直接前往点7内侧",
+      "photoKey": "platform_access_2_to_exit_gate_inside"
+    },
+    {
+      "from": "6_in",
+      "to": "16",
+      "time": 5,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "点16在点6西侧，相邻",
+      "photoKey": "gate_1_to_platform_access_1",
+      "action": "过闸机后调头转入旁边通道",
+      "direction": "正西"
+    },
+    {
+      "from": "16",
+      "to": "17",
+      "time": 15,
+      "bidirectional": true,
+      "type": "vertical",
+      "upMode": "stairs",
+      "downMode": "escalator",
+      "note": "面朝北下行到站台层",
+      "photoKey": "platform_access_1_vertical",
+      "action": "进入站点通道1下行",
+      "direction": "下行"
+    },
+    {
+      "from": "15_in",
+      "to": "18",
+      "time": 5,
+      "bidirectional": true,
+      "type": "paid_area_passage",
+      "note": "点18在点15西侧，相邻",
+      "photoKey": "gate_2_to_platform_access_2",
+      "action": "过闸机后调头转入旁边通道",
+      "direction": "正西"
+    },
+    {
+      "from": "18",
+      "to": "19",
+      "time": 15,
+      "bidirectional": true,
+      "type": "vertical",
+      "upMode": "escalator",
+      "downMode": "stairs",
+      "note": "面朝南下行到站台层",
+      "photoKey": "platform_access_2_vertical",
+      "action": "进入站点通道2下行",
+      "direction": "下行"
+    },
+    {
+      "from": "17",
+      "to": "20",
+      "time": 30,
+      "bidirectional": true,
+      "type": "platform_passage",
+      "note": "站台层，通道1下端到无障碍电梯下端",
+      "photoKey": "platform_access_1_to_elevator",
+      "action": "继续沿站台层走",
+      "direction": "正北"
+    },
+    {
+      "from": "20",
+      "to": "19",
+      "time": 30,
+      "bidirectional": true,
+      "type": "platform_passage",
+      "note": "点17与点19中间点",
+      "photoKey": "elevator_to_platform_access_2",
+      "action": "沿站台层走",
+      "direction": "正北"
+    },
+    {
+      "from": "20",
+      "to": "7_in",
+      "time": 90,
+      "bidirectional": true,
+      "type": "elevator",
+      "note": "较慢；点20正上方为点7",
+      "photoKey": "accessible_elevator",
+      "action": "乘无障碍电梯上行",
+      "direction": "上行"
+    }
+  ],
+  "facilities": [
+    {
+      "id": "toilet_1",
+      "type": "toilet",
+      "name": "公共厕所",
+      "nodeId": "21",
+      "floor": "B1",
+      "photoKey": "public_toilet"
+    },
+    {
+      "id": "service_center_1",
+      "type": "service_center",
+      "name": "服务中心",
+      "nodeId": "7_out",
+      "floor": "B1",
+      "photoKey": "service_center_hall"
+    },
+    {
+      "id": "accessible_elevator_1",
+      "type": "elevator",
+      "name": "无障碍电梯",
+      "nodeId": "20",
+      "floor": "B2",
+      "photoKey": "accessible_elevator"
+    }
+  ],
+  "exits": [
+    {
+      "exitNo": "1",
+      "name": "1号口",
+      "nodeId": "5",
+      "landmarks": [],
+      "photoKey": "exit_1_ground"
+    },
+    {
+      "exitNo": "2",
+      "name": "2号口",
+      "nodeId": "14",
+      "landmarks": [
+        "上行扶梯",
+        "下行扶梯"
+      ],
+      "photoKey": "exit_2_ground"
+    },
+    {
+      "exitNo": "3",
+      "name": "3号口",
+      "nodeId": "10",
+      "landmarks": [
+        "仅上行扶梯"
+      ],
+      "photoKey": "exit_3_ground"
+    },
+    {
+      "exitNo": "4",
+      "name": "4号口",
+      "nodeId": "12",
+      "landmarks": [
+        "仅上行扶梯"
+      ],
+      "photoKey": "exit_4_ground"
+    },
+    {
+      "exitNo": "5",
+      "name": "5号口",
+      "nodeId": "1",
+      "landmarks": [
+        "自助扶梯上行",
+        "自助扶梯下行"
+      ],
+      "photoKey": "exit_5_ground"
+    }
+  ],
+  "photoSlots": [
+    {
+      "photoKey": "1_to_2_01",
+      "title": "5号口地面 → 5号口地下",
+      "objectKey": "stations/tongji_university/1_to_2_01.jpg"
+    },
+    {
+      "photoKey": "10_to_9_01",
+      "title": "3号口地面 → 3号口地下",
+      "objectKey": "stations/tongji_university/10_to_9_01.jpg"
+    },
+    {
+      "photoKey": "11_to_12_01",
+      "title": "4号口地下 → 4号口地面",
+      "objectKey": "stations/tongji_university/11_to_12_01.jpg"
+    },
+    {
+      "photoKey": "11_to_21_01",
+      "title": "4号口地下 → 公共厕所",
+      "objectKey": "stations/tongji_university/11_to_21_01.jpg"
+    },
+    {
+      "photoKey": "11_to_9_01",
+      "title": "4号口地下 → 3号口地下",
+      "objectKey": "stations/tongji_university/11_to_9_01.jpg"
+    },
+    {
+      "photoKey": "13_to_14_01",
+      "title": "2号口地下 → 2号口地面",
+      "objectKey": "stations/tongji_university/13_to_14_01.jpg"
+    },
+    {
+      "photoKey": "13_to_15_out_01",
+      "title": "2号口地下 → 入站闸机口2外侧",
+      "objectKey": "stations/tongji_university/13_to_15_out_01.jpg"
+    },
+    {
+      "photoKey": "13_to_8_01",
+      "title": "2号口地下 → 3、4号出口地下分岔点",
+      "objectKey": "stations/tongji_university/13_to_8_01.jpg"
+    },
+    {
+      "photoKey": "14_to_13_01",
+      "title": "2号口地面 → 2号口地下",
+      "objectKey": "stations/tongji_university/14_to_13_01.jpg"
+    },
+    {
+      "photoKey": "15_in_to_control_1_01",
+      "title": "入站闸机口2内侧 → 控制点1",
+      "objectKey": "stations/tongji_university/15_in_to_control_1_01.jpg"
+    },
+    {
+      "photoKey": "16_to_7_in_01",
+      "title": "站台通道1上端 → 出站闸机内侧 / 付费区侧",
+      "objectKey": "stations/tongji_university/16_to_7_in_01.jpg"
+    },
+    {
+      "photoKey": "17_to_16_01",
+      "title": "站台通道1下端 / 站台层 → 站台通道1上端",
+      "objectKey": "stations/tongji_university/17_to_16_01.jpg"
+    },
+    {
+      "photoKey": "18_to_19_01",
+      "title": "站台通道2上端 → 站台通道2下端 / 站台层",
+      "objectKey": "stations/tongji_university/18_to_19_01.jpg"
+    },
+    {
+      "photoKey": "18_to_7_in_01",
+      "title": "站台通道2上端 → 出站闸机内侧 / 付费区侧",
+      "objectKey": "stations/tongji_university/18_to_7_in_01.jpg"
+    },
+    {
+      "photoKey": "19_to_18_01",
+      "title": "站台通道2下端 / 站台层 → 站台通道2上端",
+      "objectKey": "stations/tongji_university/19_to_18_01.jpg"
+    },
+    {
+      "photoKey": "2_to_1_01",
+      "title": "5号口地下 → 5号口地面",
+      "objectKey": "stations/tongji_university/2_to_1_01.jpg"
+    },
+    {
+      "photoKey": "2_to_3_01",
+      "title": "5号口地下 → 5号口地下通道转向点",
+      "objectKey": "stations/tongji_university/2_to_3_01.jpg"
+    },
+    {
+      "photoKey": "2_to_4_01",
+      "title": "5号口地下 → 1号口地下",
+      "objectKey": "stations/tongji_university/2_to_4_01.jpg"
+    },
+    {
+      "photoKey": "21_to_11_01",
+      "title": "公共厕所 → 4号口地下",
+      "objectKey": "stations/tongji_university/21_to_11_01.jpg"
+    },
+    {
+      "photoKey": "3_to_2_01",
+      "title": "5号口地下通道转向点 → 5号口地下",
+      "objectKey": "stations/tongji_university/3_to_2_01.jpg"
+    },
+    {
+      "photoKey": "3_to_7_out_01",
+      "title": "5号口地下通道转向点 → 出站闸机外侧 / 服务中心 / 站厅侧",
+      "objectKey": "stations/tongji_university/3_to_7_out_01.jpg"
+    },
+    {
+      "photoKey": "4_to_2_01",
+      "title": "1号口地下 → 5号口地下",
+      "objectKey": "stations/tongji_university/4_to_2_01.jpg"
+    },
+    {
+      "photoKey": "4_to_5_01",
+      "title": "1号口地下 → 1号口地面",
+      "objectKey": "stations/tongji_university/4_to_5_01.jpg"
+    },
+    {
+      "photoKey": "4_to_6_out_01",
+      "title": "1号口地下 → 入站闸机口1外侧",
+      "objectKey": "stations/tongji_university/4_to_6_out_01.jpg"
+    },
+    {
+      "photoKey": "5_to_4_01",
+      "title": "1号口地面 → 1号口地下",
+      "objectKey": "stations/tongji_university/5_to_4_01.jpg"
+    },
+    {
+      "photoKey": "6_in_to_16_01",
+      "title": "入站闸机口1内侧 → 站台通道1上端",
+      "objectKey": "stations/tongji_university/6_in_to_16_01.jpg"
+    },
+    {
+      "photoKey": "6_in_to_control_1_01",
+      "title": "入站闸机口1内侧 → 控制点1",
+      "objectKey": "stations/tongji_university/6_in_to_control_1_01.jpg"
+    },
+    {
+      "photoKey": "6_out_to_4_01",
+      "title": "入站闸机口1外侧 → 1号口地下",
+      "objectKey": "stations/tongji_university/6_out_to_4_01.jpg"
+    },
+    {
+      "photoKey": "7_out_to_8_01",
+      "title": "出站闸机外侧 / 服务中心 / 站厅侧 → 3、4号出口地下分岔点",
+      "objectKey": "stations/tongji_university/7_out_to_8_01.jpg"
+    },
+    {
+      "photoKey": "8_to_13_01",
+      "title": "3、4号出口地下分岔点 → 2号口地下",
+      "objectKey": "stations/tongji_university/8_to_13_01.jpg"
+    },
+    {
+      "photoKey": "8_to_7_out_01",
+      "title": "3、4号出口地下分岔点 → 出站闸机外侧 / 服务中心 / 站厅侧",
+      "objectKey": "stations/tongji_university/8_to_7_out_01.jpg"
+    },
+    {
+      "photoKey": "8_to_9_01",
+      "title": "3、4号出口地下分岔点 → 3号口地下",
+      "objectKey": "stations/tongji_university/8_to_9_01.jpg"
+    },
+    {
+      "photoKey": "9_to_10_01",
+      "title": "3号口地下 → 3号口地面",
+      "objectKey": "stations/tongji_university/9_to_10_01.jpg"
+    },
+    {
+      "photoKey": "9_to_8_01",
+      "title": "3号口地下 → 3、4号出口地下分岔点",
+      "objectKey": "stations/tongji_university/9_to_8_01.jpg"
+    },
+    {
+      "photoKey": "control_1_to_15_in_01",
+      "title": "控制点1 → 入站闸机口2内侧",
+      "objectKey": "stations/tongji_university/control_1_to_15_in_01.jpg"
+    },
+    {
+      "photoKey": "control_1_to_6_in_01",
+      "title": "控制点1 → 入站闸机口1内侧",
+      "objectKey": "stations/tongji_university/control_1_to_6_in_01.jpg"
+    },
+    {
+      "photoKey": "control_1_to_7_in_01",
+      "title": "控制点1 → 出站闸机内侧 / 付费区侧",
+      "objectKey": "stations/tongji_university/control_1_to_7_in_01.jpg"
+    },
+    {
+      "photoKey": "node_1_entrance_view_01",
+      "title": "5号口地面入口环境",
+      "objectKey": "stations/tongji_university/node_1_entrance_view_01.jpg"
+    },
+    {
+      "photoKey": "node_5_entrance_view_01",
+      "title": "1号口地面入口环境",
+      "objectKey": "stations/tongji_university/node_5_entrance_view_01.jpg"
+    }
+  ],
+  "facilityReference": [
+    {
+      "group": "exits",
+      "point": "1",
+      "name": "五号口地面",
+      "notes": [
+        "自助扶梯上行",
+        "自助扶梯下行"
+      ]
+    },
+    {
+      "group": "exits",
+      "point": "2",
+      "name": "五号口地下",
+      "notes": []
+    },
+    {
+      "group": "exits",
+      "point": "4",
+      "name": "一号口地下",
+      "notes": []
+    },
+    {
+      "group": "exits",
+      "point": "5",
+      "name": "一号口地面",
+      "notes": []
+    },
+    {
+      "group": "exits",
+      "point": "8",
+      "name": "3/4出口地下",
+      "notes": []
+    },
+    {
+      "group": "exits",
+      "point": "9",
+      "name": "三号口地下",
+      "notes": []
+    },
+    {
+      "group": "exits",
+      "point": "10",
+      "name": "三号口地面",
+      "notes": [
+        "仅上行扶梯"
+      ]
+    },
+    {
+      "group": "exits",
+      "point": "11",
+      "name": "四号口地下",
+      "notes": []
+    },
+    {
+      "group": "exits",
+      "point": "12",
+      "name": "四号口地面",
+      "notes": [
+        "仅上行扶梯"
+      ]
+    },
+    {
+      "group": "exits",
+      "point": "13",
+      "name": "二号口地下",
+      "notes": []
+    },
+    {
+      "group": "exits",
+      "point": "14",
+      "name": "二号口地面",
+      "notes": [
+        "上行扶梯",
+        "下行扶梯"
+      ]
+    },
+    {
+      "group": "gates",
+      "point": "6",
+      "name": "入站闸机口1"
+    },
+    {
+      "group": "gates",
+      "point": "7",
+      "name": "出站闸机1、2"
+    },
+    {
+      "group": "gates",
+      "point": "15",
+      "name": "入站闸机口2",
+      "notes": [
+        "高峰期入站约30s"
+      ]
+    },
+    {
+      "group": "service_center",
+      "point": "7",
+      "name": "服务中心"
+    },
+    {
+      "group": "toilet",
+      "point": "21",
+      "name": "公共厕所"
+    },
+    {
+      "group": "accessible_elevator",
+      "upper_point": "7",
+      "lower_point": "20",
+      "notes": [
+        "点20正上方为点7",
+        "速度较慢"
+      ]
+    },
+    {
+      "group": "platform_access",
+      "upper_point": "16",
+      "lower_point": "17",
+      "notes": [
+        "通道1",
+        "上方有下行扶梯"
+      ]
+    },
+    {
+      "group": "platform_access",
+      "upper_point": "18",
+      "lower_point": "19",
+      "notes": [
+        "通道2",
+        "上方有上行方向扶梯"
+      ]
+    }
+  ],
+  "coordinateRule": {
+    "x_axis": "向东为正",
+    "y_axis": "向北为正",
+    "base_direction": "点1→点2 为正南方向",
+    "note": "时间均为参考时间，不是固定值。图中坐标已做美观化调整：极长路线适度压缩、极短路线适度拉开，但保持相对长短关系。"
+  },
+  "trainCarAssociations": {
+    "global_rule": {
+      "west_side": "虹桥火车站方向",
+      "east_side": "基隆路方向",
+      "note": "点17按面朝北理解；点19按面朝南理解。"
+    },
+    "point_17": {
+      "facing": "北",
+      "left_side": {
+        "global_side": "西侧",
+        "destination": "虹桥火车站方向",
+        "carriages_nearby": [
+          24,
+          25,
+          26
+        ]
+      },
+      "right_side": {
+        "global_side": "东侧",
+        "destination": "基隆路方向",
+        "carriages_nearby": [
+          7,
+          8,
+          9
+        ]
+      },
+      "forward_rule": {
+        "when_move_forward": "面朝北向前",
+        "west_side_car_number_change": "增大",
+        "east_side_car_number_change": "减小"
+      }
+    },
+    "point_19": {
+      "facing": "南",
+      "right_side": {
+        "global_side": "西侧",
+        "destination": "虹桥火车站方向",
+        "carriages_nearby": [
+          7,
+          8,
+          9
+        ]
+      },
+      "left_side": {
+        "global_side": "东侧",
+        "destination": "基隆路方向",
+        "carriages_nearby": [
+          24,
+          25,
+          26
+        ]
+      },
+      "forward_rule": {
+        "when_move_forward": "面朝南向前",
+        "west_side_car_number_change": "减小",
+        "east_side_car_number_change": "增大"
+      }
+    }
+  },
+  "dataVersion": "tongji_university_topology_merged_2026-06-04",
+  "photoObjectPrefix": "stations/tongji_university"
+}
