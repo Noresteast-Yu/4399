@@ -448,12 +448,24 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     return exitNode ?? '20';
   }
 
-  /// 从文本中提取出口号并映射到拓扑节点（如"5号口地下"→'1'）
+  /// 从文本中提取出口号并映射到拓扑节点
+  /// 支持"5号口""五号口地下"等中文数字和阿拉伯数字格式
+  static const Map<String, String> _cnDigitMap = {
+    '一': '1', '二': '2', '三': '3', '四': '4', '五': '5',
+    '六': '6', '七': '7', '八': '8', '九': '9',
+  };
+
   String? _exitMentionToNodeId(String text) {
-    final match = RegExp(r'(\d+)\s*号口').firstMatch(text);
+    // 先匹配阿拉伯数字: "5号口"
+    var match = RegExp(r'(\d+)\s*号口').firstMatch(text);
+    if (match != null && _tongjiExitNodeMap.containsKey(match.group(1)!)) {
+      return _tongjiExitNodeMap[match.group(1)!]!;
+    }
+    // 再匹配中文数字: "五号口"
+    match = RegExp(r'([一二三四五六七八九])\s*号口').firstMatch(text);
     if (match != null) {
-      final exitNo = match.group(1)!;
-      if (_tongjiExitNodeMap.containsKey(exitNo)) {
+      final exitNo = _cnDigitMap[match.group(1)!];
+      if (exitNo != null && _tongjiExitNodeMap.containsKey(exitNo)) {
         return _tongjiExitNodeMap[exitNo]!;
       }
     }
