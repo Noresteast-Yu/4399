@@ -23,7 +23,7 @@ class LoadingIndicator extends StatelessWidget {
         ),
         if (message != null)
           Padding(
-            padding: EdgeInsets.only(top: AppTheme.spacingM),
+            padding: const EdgeInsets.only(top: AppTheme.spacingM),
             child: Text(
               message!,
               style: Theme.of(context).textTheme.bodyMedium,
@@ -34,7 +34,7 @@ class LoadingIndicator extends StatelessWidget {
 
     if (fullScreen) {
       return Container(
-        color: Theme.of(context).colorScheme.background,
+        color: Theme.of(context).colorScheme.surface,
         child: content,
       );
     }

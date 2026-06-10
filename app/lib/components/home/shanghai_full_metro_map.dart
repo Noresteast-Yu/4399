@@ -46,7 +46,7 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
     const visibleHeight = 650.0;
 
     final scaleX = (containerWidth - 40) / contentWidth;
-    final scaleY = (visibleHeight - 40) / contentHeight;
+    const scaleY = (visibleHeight - 40) / contentHeight;
     final initialScale = (scaleX < scaleY ? scaleX : scaleY) * 0.75;
 
     final scaledWidth = contentWidth * initialScale;
@@ -72,7 +72,7 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
       PageRouteBuilder(
         opaque: false,
         barrierDismissible: true,
-        barrierColor: colorScheme.scrim.withOpacity(0.85),
+        barrierColor: colorScheme.scrim.withValues(alpha: 0.85),
         transitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (context, animation, secondaryAnimation) {
           return _FullScreenMetroMap(
@@ -324,7 +324,7 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
                       width: ShanghaiMetroData.canvasWidth,
                       height: ShanghaiMetroData.canvasHeight,
                       child: CustomPaint(
-                        size: Size(ShanghaiMetroData.canvasWidth,
+                        size: const Size(ShanghaiMetroData.canvasWidth,
                             ShanghaiMetroData.canvasHeight),
                         painter: _MetroLinePainter(
                           lines: _metroLines,
@@ -345,11 +345,11 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest
-                              .withOpacity(0.92),
+                              .withValues(alpha: 0.92),
                           borderRadius: BorderRadius.circular(8),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
+                              color: Colors.black.withValues(alpha: 0.15),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),
@@ -419,7 +419,7 @@ class _ShanghaiFullMetroMapState extends State<ShanghaiFullMetroMap> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.6),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -523,7 +523,7 @@ class _SelectedStationChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -566,7 +566,7 @@ class _MetroLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final highlightPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.5)
+      ..color = Colors.blue.withValues(alpha: 0.5)
       ..strokeWidth = 12
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -631,7 +631,7 @@ class _MetroLinePainter extends CustomPainter {
     for (final station in transferStations) {
       final isStart = station.name == startStation;
       final isEnd = station.name == endStation;
-      final radius = 14.0;
+      const radius = 14.0;
 
       canvas.drawCircle(
           Offset(station.x, station.y), radius + 3, outerRingPaint);
@@ -867,7 +867,7 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                   width: ShanghaiMetroData.canvasWidth,
                   height: ShanghaiMetroData.canvasHeight,
                   child: CustomPaint(
-                    size: Size(ShanghaiMetroData.canvasWidth,
+                    size: const Size(ShanghaiMetroData.canvasWidth,
                         ShanghaiMetroData.canvasHeight),
                     painter: _FullScreenMetroPainter(
                       lines: widget.metroLines,
@@ -893,7 +893,7 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                       color: colorScheme.onSurface, size: 28),
                   onPressed: () => Navigator.pop(context),
                   style: IconButton.styleFrom(
-                    backgroundColor: colorScheme.scrim.withOpacity(0.6),
+                    backgroundColor: colorScheme.scrim.withValues(alpha: 0.6),
                   ),
                 ),
                 Row(
@@ -914,7 +914,7 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                           ..scale(s);
                       },
                       style: IconButton.styleFrom(
-                        backgroundColor: colorScheme.scrim.withOpacity(0.6),
+                        backgroundColor: colorScheme.scrim.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -923,7 +923,7 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                           color: Colors.white, size: 24),
                       onPressed: _showStationSearchSheet,
                       style: IconButton.styleFrom(
-                        backgroundColor: colorScheme.scrim.withOpacity(0.6),
+                        backgroundColor: colorScheme.scrim.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -937,7 +937,7 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                         });
                       },
                       style: IconButton.styleFrom(
-                        backgroundColor: colorScheme.scrim.withOpacity(0.6),
+                        backgroundColor: colorScheme.scrim.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -991,7 +991,7 @@ class _FullScreenMetroMapState extends State<_FullScreenMetroMap> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withOpacity(0.9),
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -1058,7 +1058,7 @@ class _FullScreenMetroPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final highlightPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.5)
+      ..color = Colors.blue.withValues(alpha: 0.5)
       ..strokeWidth = 14
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -1123,7 +1123,7 @@ class _FullScreenMetroPainter extends CustomPainter {
     for (final station in transferStations) {
       final isStart = station.name == startStation;
       final isEnd = station.name == endStation;
-      final radius = 16.0;
+      const radius = 16.0;
 
       canvas.drawCircle(
           Offset(station.x, station.y), radius + 4, outerRingPaint);
@@ -1145,7 +1145,7 @@ class _FullScreenMetroPainter extends CustomPainter {
       final textPainter = TextPainter(
         text: TextSpan(
           text: station.name,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.black87,
             fontSize: 12,
             fontWeight: FontWeight.w500,
@@ -1500,7 +1500,7 @@ class _FilterChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
+            color: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isSelected ? color : Colors.grey.shade300,

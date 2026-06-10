@@ -38,11 +38,11 @@ class CommonButton extends StatelessWidget {
           side: isPrimary
               ? null
               : BorderSide(color: Theme.of(context).colorScheme.outline),
-          padding: EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: AppTheme.spacingL,
             vertical: AppTheme.spacingM,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppTheme.borderRadiusM,
           ),
         ),

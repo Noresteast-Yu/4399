@@ -95,7 +95,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       body: _isLoadingSettings
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -155,7 +155,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               ],
             ),
-            SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingL),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -180,7 +180,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               ],
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             ..._notifications.map((notification) => _buildNotificationCard(
                   context,
                   notification,
@@ -206,9 +206,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(height: AppTheme.spacingM),
+        const SizedBox(height: AppTheme.spacingM),
         Card(
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppTheme.borderRadiusL,
           ),
           child: Column(
@@ -282,12 +282,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
 
     return Card(
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: AppTheme.borderRadiusM,
       ),
-      margin: EdgeInsets.only(bottom: AppTheme.spacingM),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
       child: Padding(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -295,7 +295,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
+                color: iconColor.withValues(alpha: 0.1),
                 borderRadius: AppTheme.borderRadiusM,
               ),
               child: Icon(
@@ -304,7 +304,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 size: 20,
               ),
             ),
-            SizedBox(width: AppTheme.spacingM),
+            const SizedBox(width: AppTheme.spacingM),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,7 +331,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         ),
                     ],
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     notification['content'],
                     style: textTheme.bodySmall?.copyWith(
@@ -340,11 +340,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     notification['time'],
                     style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
                   ),

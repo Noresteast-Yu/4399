@@ -47,6 +47,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   late final String _startEntranceName;
   late final String _endExitName;
   late final bool _hasRoute;
+  late final String _entranceNodeId; // 用户进站口的拓扑节点 ID
   int _stepIndex = 0;
   _ProgressStatus? _stepStatus;
   _RouteSummary? _summary;
@@ -65,9 +66,59 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     _startEntranceName = widget.initialStartEntranceName?.trim() ?? '';
     _endExitName = widget.initialEndExitName?.trim() ?? '';
     _hasRoute = _startStation.isNotEmpty && _endStation.isNotEmpty;
+
+    // 将当前 AI 规划页路由写入 NavigationMemory，确保底部导航栏切换
+    // "规划"标签页时回到当前页面而非重新创建 route_plan_page
+    final params = <String, String>{};
+    void add(String k, String v) {
+      if (v.isNotEmpty) params[k] = v;
+    }
+
+    add('start', _startStation);
+    add('end', _endStation);
+    add('startEntranceId', _startEntranceId);
+    add('startEntranceName', _startEntranceName);
+    add('endExitId', _endExitId);
+    add('endExitName', _endExitName);
+    if (params.isNotEmpty) {
+      NavigationMemory.routePlanLocation =
+          Uri(path: '/ai-planning', queryParameters: params).toString();
+    }
+
+    // 同步站内位置上下文，供服务页自动定位站点与节点
+    final stationName = '$_startStation$_endStation';
+    if (stationName.contains('同济大学')) {
+      // 根据用户选择的进站口解析到拓扑节点（同济大学出口→节点映射）
+      _entranceNodeId = _resolveEntranceToNodeId(
+        _startEntranceId,
+        _startEntranceName,
+      );
+      NavigationMemory.updateStationContext(
+        stationId: 'tong_ji_university', // 匹配设施数据中的 stationId
+        stationName: '同济大学',
+        // 若服务页已通过"已到达"更新了位置则保留，否则用进站口节点
+        nodeId: NavigationMemory.currentNodeId ?? _entranceNodeId,
+      );
+      // 恢复上次导航步进位置（切 Tab 回来后从同一进度继续）
+      _stepIndex = NavigationMemory.lastStepIndex;
+    } else {
+      _entranceNodeId = '20';
+    }
+
     if (_hasRoute) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadIndoorGuide());
     }
+  }
+
+  @override
+  void dispose() {
+    _statusRefreshTimer?.cancel();
+    super.dispose();
+    // note: do NOT clear NavigationMemory station context here —
+    // dispose() also fires on tab switch via context.go(), which
+    // would race ahead of the service page initState and wipe the
+    // station ID before the service page can read it.
+    // clearStationContext() is called only in _returnToRoutePlan().
   }
 
   Future<void> _refreshStepStatus() async {
@@ -143,11 +194,13 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
           _stepIndex = _guideSteps.length - 1;
         }
       });
+      _syncStepIndexOnly();
       await _refreshStepStatus();
       _startStatusRefreshTimer();
     } catch (_) {
       if (!mounted) return;
       _useOfflineGuide('站内指引加载超时，已切换为本地演示指引');
+      _syncStepIndexOnly();
     }
   }
 
@@ -207,6 +260,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       _stepIndex = 0;
       _stepStatus = _fallbackStatusFor(_guideSteps.first, _guideSteps);
     });
+    _syncStepIndexOnly();
   }
 
   void _startStatusRefreshTimer() {
@@ -215,12 +269,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       const Duration(seconds: 30),
       (_) => _refreshStepStatus(),
     );
-  }
-
-  @override
-  void dispose() {
-    _statusRefreshTimer?.cancel();
-    super.dispose();
   }
 
   @override
@@ -318,6 +366,13 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  if (_supportsServiceNavigation)
+                    _ServiceQuickBar(
+                      onTap: (targetType, targetId, label) {
+                        _navigateToFacility(targetType, targetId, label);
+                      },
+                    ),
+                  const SizedBox(height: 12),
                   _StepControls(
                     canGoBack: _stepIndex > 0,
                     isLast: _stepIndex == steps.length - 1,
@@ -326,6 +381,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                         _stepIndex--;
                         _stepStatus = null;
                       });
+                      _syncStationNodeContext();
                       _refreshStepStatus();
                     },
                     onNext: () {
@@ -334,6 +390,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                           _stepIndex++;
                           _stepStatus = null;
                         });
+                        _syncStationNodeContext();
                         _refreshStepStatus();
                       }
                     },
@@ -365,12 +422,279 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   bool get _hasAccessSelection =>
       _startEntranceName.isNotEmpty || _endExitName.isNotEmpty;
 
+  bool get _supportsServiceNavigation {
+    final station = _currentStationId;
+    return station != null && station.isNotEmpty;
+  }
+
+  String? get _currentStationId {
+    final name = '$_startStation$_endStation';
+    if (name.contains('同济大学')) return 'tongji_university';
+    return null;
+  }
+
+  String _currentNodeId() {
+    if (_guideSteps.isEmpty) {
+      return _entranceNodeId;
+    }
+    final step = _guideSteps[_stepIndex];
+    if (step.nodeId != null && step.nodeId!.isNotEmpty) return step.nodeId!;
+    // 优先从步骤标题/详情提取出口号（处理"五号口地下"等非entry步骤）
+    final exitNode = _exitMentionToNodeId(step.title) ??
+        _exitMentionToNodeId(step.detail);
+    if (exitNode != null) return exitNode;
+    // 回退到 stage 映射：entry→进站口节点，其他→站台中心
+    if (step.stage == _StepStage.entry) {
+      return _entranceNodeId;
+    }
+    return '20';
+  }
+
+  /// 从文本中提取出口号并映射到拓扑节点
+  /// 支持"5号口""五号口地下"等中文数字和阿拉伯数字格式
+  static const Map<String, String> _cnDigitMap = {
+    '一': '1', '二': '2', '三': '3', '四': '4', '五': '5',
+    '六': '6', '七': '7', '八': '8', '九': '9',
+  };
+
+  String? _exitMentionToNodeId(String text) {
+    // 先匹配阿拉伯数字: "5号口"
+    var match = RegExp(r'(\d+)\s*号口').firstMatch(text);
+    if (match != null && _tongjiExitNodeMap.containsKey(match.group(1)!)) {
+      return _tongjiExitNodeMap[match.group(1)!]!;
+    }
+    // 再匹配中文数字: "五号口"
+    match = RegExp(r'([一二三四五六七八九])\s*号口').firstMatch(text);
+    if (match != null) {
+      final exitNo = _cnDigitMap[match.group(1)!];
+      if (exitNo != null && _tongjiExitNodeMap.containsKey(exitNo)) {
+        return _tongjiExitNodeMap[exitNo]!;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _navigateToFacility(
+    String targetType,
+    String targetId,
+    String label,
+  ) async {
+    final stationId = _currentStationId;
+    if (stationId == null) return;
+    // 始终从规划页当前所在进站口位置出发，查看路线不改变实际位置
+    final fromNodeId = NavigationMemory.currentNodeId ?? '20';
+
+    final response = await _apiService.getIndoorNavigationPath(
+      stationId: stationId,
+      fromNodeId: fromNodeId,
+      targetType: targetType,
+      targetId: targetId,
+    );
+
+    if (!mounted || !response.success || response.data == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.error ?? '暂时无法生成站内路径')),
+        );
+      }
+      return;
+    }
+
+    final toNodeData = response.data!['toNode'];
+    final destNodeId = toNodeData is Map ? toNodeData['id']?.toString() : null;
+
+    await _showServicePathSheet(label, response.data!);
+    if (!mounted) return;
+
+    final targetName =
+        (response.data!['targetName'] ?? response.data!['toNodeName'] ?? label)
+            .toString();
+    final arrived = await _askArrivedAtFacility(targetName);
+    if (arrived == true && destNodeId != null && destNodeId.isNotEmpty) {
+      NavigationMemory.currentNodeId = destNodeId;
+    }
+  }
+
+  Future<void> _showServicePathSheet(String label, Map<String, dynamic> path) {
+    final steps = ((path['steps'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final totalSeconds = (path['totalSeconds'] as num?)?.toInt() ?? 0;
+    final targetName =
+        (path['targetName'] ?? path['toNodeName'] ?? label).toString();
+    final minutes = (totalSeconds / 60).ceil().clamp(1, 999);
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.72,
+          minChildSize: 0.42,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Container(
+                    width: 46,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6DDE8),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFECE3F1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.navigation_rounded,
+                            color: _line10,
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                targetName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _ink,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                '预计 $minutes 分钟 · ${steps.length} 步',
+                                style: const TextStyle(
+                                  color: _muted,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      itemCount: steps.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        return _ServicePathStepCard(
+                          step: steps[index],
+                          index: index,
+                          isLast: index == steps.length - 1,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// 同济大学出口号→拓扑节点 ID 映射
+  static const Map<String, String> _tongjiExitNodeMap = {
+    '1': '5',
+    '2': '14',
+    '3': '10',
+    '4': '12',
+    '5': '1',
+  };
+
+  /// 根据进站口 ID/名称解析到同济大学站内拓扑节点
+  String _resolveEntranceToNodeId(String entranceId, String entranceName) {
+    // 先从入口 ID 直接匹配
+    if (_tongjiExitNodeMap.containsKey(entranceId)) {
+      return _tongjiExitNodeMap[entranceId]!;
+    }
+    // 再从入口名称提取数字（如 "1号口" → "1", "1号口地下" → "1"）
+    final match = RegExp(r'(\d+)').firstMatch(entranceName);
+    if (match != null && _tongjiExitNodeMap.containsKey(match.group(1))) {
+      return _tongjiExitNodeMap[match.group(1)!]!;
+    }
+    // 回退到站台中心
+    return '20';
+  }
+
+  /// 仅同步步进索引（页面加载/重建时），不覆盖已确认的站内位置
+  void _syncStepIndexOnly() {
+    if (_currentStationId != null) {
+      NavigationMemory.lastStepIndex = _stepIndex;
+    }
+  }
+
+  /// 步进时同步索引和拓扑节点（用户主动前进/后退，位置确实变了）
+  void _syncStationNodeContext() {
+    if (_currentStationId == null) return;
+    // 根据当前步骤确定用户所在拓扑节点：
+    //   entry 步骤 → 进站口的拓扑节点
+    //   其他步骤 → 站台中心（用户已进入站内）
+    final nodeId = _currentNodeId();
+    NavigationMemory.updateStationContext(nodeId: nodeId);
+    NavigationMemory.lastStepIndex = _stepIndex;
+  }
+
+  Future<bool?> _askArrivedAtFacility(String targetName) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('已到达？'),
+        content: Text('您是否已到达「$targetName」？\n到达后当前位置将同步至此。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('未到达'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('已到达'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _returnToRoutePlan() {
+    // 返回路线规划页前，将 NavigationMemory 路由重置为规划页，
+    // 确保底部导航栏"规划"标签切换回规划页而非已销毁的 AI 规划页
+    NavigationMemory.routePlanLocation = '/route-plan';
+    NavigationMemory.clearStationContext();
     if (context.canPop()) {
       context.pop();
       return;
     }
-    context.go(NavigationMemory.routePlanLocation ?? '/route-plan');
+    context.go('/route-plan');
   }
 }
 
@@ -1441,6 +1765,7 @@ class _NavStep {
   final Map<String, dynamic> arrivalQuery;
   final String photoKey;
   final String photoUrl;
+  final String? nodeId;
   final String photoSource;
 
   const _NavStep({
@@ -1460,6 +1785,7 @@ class _NavStep {
     this.doorHint = '车门',
     this.photoKey = '',
     this.photoUrl = '',
+    this.nodeId,
     this.photoSource = '',
   });
 
@@ -1487,6 +1813,7 @@ class _NavStep {
       doorHint: json['doorHint']?.toString() ?? '车门',
       photoKey: json['photoKey']?.toString() ?? '',
       photoUrl: json['photoUrl']?.toString() ?? '',
+      nodeId: json['nodeId']?.toString(),
       photoSource: json['photoSource']?.toString() ?? '',
     );
   }
@@ -1697,4 +2024,272 @@ double _doubleFromJson(dynamic value, double fallback) {
   if (value is int) return value.toDouble();
   if (value is num) return value.toDouble();
   return double.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+// -- 中途服务导航组件 -------------------------------------------------
+
+class _ServiceQuickBar extends StatelessWidget {
+  final void Function(String targetType, String targetId, String label) onTap;
+
+  const _ServiceQuickBar({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.92),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          _QuickIcon(
+            icon: Icons.door_front_door_rounded,
+            label: '出入口',
+            onTap: () => onTap('exit', '5', '出入口'),
+          ),
+          _QuickIcon(
+            icon: Icons.elevator_rounded,
+            label: '电梯',
+            onTap: () =>
+                onTap('facility', 'accessible_elevator_1', '无障碍电梯'),
+          ),
+          _QuickIcon(
+            icon: Icons.wc_rounded,
+            label: '洗手间',
+            onTap: () => onTap('facility', 'toilet_1', '公共厕所'),
+          ),
+          _QuickIcon(
+            icon: Icons.support_agent_rounded,
+            label: '服务中心',
+            onTap: () => onTap('facility', 'service_center_1', '服务中心'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickIcon extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickIcon({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFECE3F1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: _AIPlanningPageState._line10,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: _AIPlanningPageState._muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 将后端返回的相对路径（如 /static/...）补全为完整 HTTP URL
+String _resolveStaticPhotoUrl(String rawUrl) {
+  final value = rawUrl.trim();
+  if (value.isEmpty ||
+      value.startsWith('http://') ||
+      value.startsWith('https://')) {
+    return value;
+  }
+  try {
+    final baseUri = Uri.parse(NetworkManager().baseUrl);
+    final path = value.startsWith('/') ? value : '/$value';
+    return baseUri.replace(path: path, query: '').toString();
+  } catch (_) {
+    return value;
+  }
+}
+
+class _ServicePathStepCard extends StatelessWidget {
+  final Map<String, dynamic> step;
+  final int index;
+  final bool isLast;
+
+  const _ServicePathStepCard({
+    required this.step,
+    required this.index,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final title = step['title']?.toString().trim();
+    final instruction = step['instruction']?.toString().trim();
+    final seconds = (step['seconds'] as num?)?.toInt() ?? 0;
+    final rawPhotoUrl = step['photoUrl']?.toString().trim() ?? '';
+    final photoUrl = _resolveStaticPhotoUrl(rawPhotoUrl);
+    final timeText = seconds <= 0 ? '' : '约 ${(seconds / 60).ceil()} 分钟';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE8E5EC)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFECE3F1),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    color: _AIPlanningPageState._line10,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 48,
+                  color: const Color(0xFFE1DCE8),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title == null || title.isEmpty ? '站内指引' : title,
+                        style: const TextStyle(
+                          color: _AIPlanningPageState._ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    if (timeText.isNotEmpty)
+                      Text(
+                        timeText,
+                        style: const TextStyle(
+                          color: _AIPlanningPageState._muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  instruction == null || instruction.isEmpty
+                      ? '按站内导向前进'
+                      : instruction,
+                  style: const TextStyle(
+                    color: _AIPlanningPageState._muted,
+                    fontSize: 14,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (photoUrl != null && photoUrl.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 7,
+                      child: Image.network(
+                        photoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.white,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            alignment: Alignment.centerLeft,
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.add_photo_alternate_rounded,
+                                  color: _AIPlanningPageState._line10,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '照片加载失败',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: _AIPlanningPageState._muted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

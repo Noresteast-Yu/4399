@@ -79,7 +79,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
         showBack: true,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Form(
           key: _formKey,
           child: Column(
@@ -91,7 +91,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: AppTheme.spacingS),
+              const SizedBox(height: AppTheme.spacingS),
               Wrap(
                 spacing: AppTheme.spacingS,
                 runSpacing: AppTheme.spacingS,
@@ -112,7 +112,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 }).toList(),
               ),
 
-              SizedBox(height: AppTheme.spacingL),
+              const SizedBox(height: AppTheme.spacingL),
 
               Text(
                 '问题描述 *',
@@ -120,7 +120,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: AppTheme.spacingS),
+              const SizedBox(height: AppTheme.spacingS),
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 6,
@@ -141,7 +141,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                       width: 2.0,
                     ),
                   ),
-                  contentPadding: EdgeInsets.all(AppTheme.spacingM),
+                  contentPadding: const EdgeInsets.all(AppTheme.spacingM),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -154,7 +154,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 },
               ),
 
-              SizedBox(height: AppTheme.spacingL),
+              const SizedBox(height: AppTheme.spacingL),
 
               Text(
                 '联系方式（可选）',
@@ -162,7 +162,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: AppTheme.spacingS),
+              const SizedBox(height: AppTheme.spacingS),
               TextFormField(
                 controller: _contactController,
                 keyboardType: TextInputType.emailAddress,
@@ -181,14 +181,14 @@ class _FeedbackPageState extends State<FeedbackPage> {
                       width: 2.0,
                     ),
                   ),
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppTheme.spacingM,
                     vertical: AppTheme.spacingM,
                   ),
                 ),
               ),
 
-              SizedBox(height: AppTheme.spacingXL),
+              const SizedBox(height: AppTheme.spacingXL),
 
               SizedBox(
                 width: double.infinity,
@@ -197,10 +197,10 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
                     foregroundColor: colorScheme.onPrimary,
-                    padding: EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       vertical: AppTheme.spacingM,
                     ),
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusM,
                     ),
                   ),
@@ -223,16 +223,16 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 ),
               ),
 
-              SizedBox(height: AppTheme.spacingXL),
+              const SizedBox(height: AppTheme.spacingXL),
 
               Card(
                 elevation: 0,
                 color: colorScheme.surfaceContainerLow,
-                shape: RoundedRectangleBorder(
+                shape: const RoundedRectangleBorder(
                   borderRadius: AppTheme.borderRadiusL,
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(AppTheme.spacingM),
+                  padding: const EdgeInsets.all(AppTheme.spacingM),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -242,7 +242,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                             Icons.mail_outline,
                             color: colorScheme.primary,
                           ),
-                          SizedBox(width: AppTheme.spacingS),
+                          const SizedBox(width: AppTheme.spacingS),
                           Text(
                             '联系我们',
                             style: textTheme.titleMedium?.copyWith(
@@ -251,14 +251,14 @@ class _FeedbackPageState extends State<FeedbackPage> {
                           ),
                         ],
                       ),
-                      SizedBox(height: AppTheme.spacingS),
+                      const SizedBox(height: AppTheme.spacingS),
                       Text(
                         '如果您有其他问题或需要帮助，请通过以下邮箱联系我们：',
                         style: textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      SizedBox(height: AppTheme.spacingS),
+                      const SizedBox(height: AppTheme.spacingS),
                       SelectableText(
                         _supportEmail,
                         style: textTheme.bodyLarge?.copyWith(

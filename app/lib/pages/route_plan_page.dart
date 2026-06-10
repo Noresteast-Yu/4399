@@ -97,6 +97,40 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     super.dispose();
   }
 
+  /// 同济大学出口号→拓扑节点 ID 映射
+  static const Map<String, String> _tongjiExitNodeMap = {
+    '1': '5',
+    '2': '14',
+    '3': '10',
+    '4': '12',
+    '5': '1',
+  };
+
+  /// 根据进站口信息解析到同济大学站内拓扑节点
+  String _resolveEntranceNodeId() {
+    final id = widget.initialStartEntranceId?.trim() ?? '';
+    if (_tongjiExitNodeMap.containsKey(id)) return _tongjiExitNodeMap[id]!;
+    final name = widget.initialStartEntranceName?.trim() ?? '';
+    final match = RegExp(r'(\d+)').firstMatch(name);
+    if (match != null && _tongjiExitNodeMap.containsKey(match.group(1))) {
+      return _tongjiExitNodeMap[match.group(1)!]!;
+    }
+    return '20'; // 回退到站台中心
+  }
+
+  /// 将当前起终点中的站内拓扑站点信息同步到 NavigationMemory，
+  /// 确保服务页能自动定位到用户当前所在站点
+  void _syncStationContextToMemory(String start, String end) {
+    final combined = '$start$end';
+    if (combined.contains('同济大学')) {
+      NavigationMemory.updateStationContext(
+        stationId: 'tong_ji_university', // 匹配设施数据中的 stationId
+        stationName: '同济大学',
+        nodeId: _resolveEntranceNodeId(), // 用户选择的进站口拓扑节点
+      );
+    }
+  }
+
   Future<void> _planRoute() async {
     if (_startController.text.trim().isEmpty ||
         _endController.text.trim().isEmpty) {
@@ -488,6 +522,9 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       );
       return;
     }
+
+    // 同步站内位置上下文到 NavigationMemory，供服务页自动定位
+    _syncStationContextToMemory(start, end);
 
     final params = <String, String>{
       'start': start,

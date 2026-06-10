@@ -17,7 +17,7 @@ class AbilitySettingsPage extends StatelessWidget {
       body: Consumer<UserPreferencesProvider>(
         builder: (context, preferences, child) {
           return SingleChildScrollView(
-            padding: EdgeInsets.all(AppTheme.spacingM),
+            padding: const EdgeInsets.all(AppTheme.spacingM),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -48,7 +48,7 @@ class AbilitySettingsPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: AppTheme.spacingL),
+                const SizedBox(height: AppTheme.spacingL),
                 _buildSection(
                   context,
                   '设施需求',
@@ -76,7 +76,7 @@ class AbilitySettingsPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: AppTheme.spacingL),
+                const SizedBox(height: AppTheme.spacingL),
                 _buildSection(
                   context,
                   '步行距离限制',
@@ -115,9 +115,9 @@ class AbilitySettingsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(height: AppTheme.spacingM),
+        const SizedBox(height: AppTheme.spacingM),
         Card(
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppTheme.borderRadiusL,
           ),
           child: Column(
@@ -203,7 +203,7 @@ class AbilitySettingsPage extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: EdgeInsets.all(AppTheme.spacingM),
+      padding: const EdgeInsets.all(AppTheme.spacingM),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -230,7 +230,7 @@ class AbilitySettingsPage extends StatelessWidget {
                 ),
               ),
               Text(
-                '${value}米',
+                '$value米',
                 style: textTheme.titleMedium?.copyWith(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.w600,
@@ -238,13 +238,13 @@ class AbilitySettingsPage extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: AppTheme.spacingM),
+          const SizedBox(height: AppTheme.spacingM),
           Slider(
             value: value.toDouble(),
             min: min.toDouble(),
             max: max.toDouble(),
             divisions: (max - min) ~/ 50,
-            label: '${value}米',
+            label: '$value米',
             onChanged: (newValue) => onChanged(newValue.round()),
           ),
         ],

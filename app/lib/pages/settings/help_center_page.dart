@@ -91,16 +91,16 @@ class HelpCenterPage extends StatelessWidget {
         showBack: true,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Padding(
-                padding: EdgeInsets.all(AppTheme.spacingM),
+                padding: const EdgeInsets.all(AppTheme.spacingM),
                 child: Column(
                   children: [
                     Icon(
@@ -108,14 +108,14 @@ class HelpCenterPage extends StatelessWidget {
                       size: 48,
                       color: colorScheme.primary,
                     ),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     Text(
                       '常见问题',
                       style: textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: AppTheme.spacingS),
+                    const SizedBox(height: AppTheme.spacingS),
                     Text(
                       '以下是用户最常遇到的问题及解答',
                       style: textTheme.bodyMedium?.copyWith(
@@ -127,18 +127,18 @@ class HelpCenterPage extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingL),
             ..._faqCategories.map((category) => _buildCategorySection(
                   context,
                   category,
                 )),
-            SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingL),
             Card(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Padding(
-                padding: EdgeInsets.all(AppTheme.spacingM),
+                padding: const EdgeInsets.all(AppTheme.spacingM),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -148,7 +148,7 @@ class HelpCenterPage extends StatelessWidget {
                           Icons.contact_support,
                           color: colorScheme.primary,
                         ),
-                        SizedBox(width: AppTheme.spacingS),
+                        const SizedBox(width: AppTheme.spacingS),
                         Text(
                           '联系客服',
                           style: textTheme.titleMedium?.copyWith(
@@ -157,12 +157,12 @@ class HelpCenterPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     Text(
                       '如果您还有其他问题，不欢迎通过以下方式联系我们：',
                       style: textTheme.bodyMedium,
                     ),
-                    SizedBox(height: AppTheme.spacingM),
+                    const SizedBox(height: AppTheme.spacingM),
                     _buildContactItem(
                       context,
                       Icons.email,
@@ -207,7 +207,7 @@ class HelpCenterPage extends StatelessWidget {
               size: 20,
               color: Theme.of(context).colorScheme.primary,
             ),
-            SizedBox(width: AppTheme.spacingS),
+            const SizedBox(width: AppTheme.spacingS),
             Text(
               category['title'] as String,
               style: textTheme.titleMedium?.copyWith(
@@ -216,11 +216,11 @@ class HelpCenterPage extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(height: AppTheme.spacingM),
+        const SizedBox(height: AppTheme.spacingM),
         ...List<Map<String, String>>.from(category['questions']).map(
           (faq) => _buildFaqItem(context, faq),
         ),
-        SizedBox(height: AppTheme.spacingL),
+        const SizedBox(height: AppTheme.spacingL),
       ],
     );
   }
@@ -243,7 +243,7 @@ class HelpCenterPage extends StatelessWidget {
       collapsedIconColor: colorScheme.onSurfaceVariant,
       children: [
         Padding(
-          padding: EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: AppTheme.spacingM,
             vertical: AppTheme.spacingS,
           ),
@@ -268,7 +268,7 @@ class HelpCenterPage extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: AppTheme.spacingS),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingS),
       child: Row(
         children: [
           Icon(
@@ -276,7 +276,7 @@ class HelpCenterPage extends StatelessWidget {
             size: 20,
             color: colorScheme.primary,
           ),
-          SizedBox(width: AppTheme.spacingM),
+          const SizedBox(width: AppTheme.spacingM),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

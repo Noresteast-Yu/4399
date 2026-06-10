@@ -79,164 +79,164 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line1() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '1',
       lineName: '1号线',
       lineColor: line1Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'fujin_road', name: '富锦路', x: 1380, y: 60, order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'youyi_west',
             name: '友谊西路',
             x: 1380,
             y: 120,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'baoan_highway',
             name: '宝安公路',
             x: 1380,
             y: 180,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'gongfu_xincun',
             name: '共富新村',
             x: 1380,
             y: 240,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'hulan_road', name: '呼兰路', x: 1380, y: 310, order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'tonghe_xincun',
             name: '通河新村',
             x: 1380,
             y: 380,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'gongkang_road',
             name: '共康路',
             x: 1380,
             y: 450,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'pengpu_xincun',
             name: '彭浦新村',
             x: 1380,
             y: 520,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'wenxi_road', name: '汶水路', x: 1380, y: 590, order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_circus',
             name: '上海马戏城',
             x: 1380,
             y: 660,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'yanchang_road',
             name: '延长路',
             x: 1380,
             y: 730,
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'zhongshan_north',
             name: '中山北路',
             x: 1380,
             y: 800,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_railway_1',
             name: '上海火车站',
             x: 1380,
             y: 880,
             transferLines: ['3', '4'],
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'hanzhong_road',
             name: '汉中路',
             x: 1380,
             y: 940,
             transferLines: ['12', '13'],
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'xinzha_road', name: '新闸路', x: 1380, y: 1000, order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'peoples_square',
             name: '人民广场',
             x: 1380,
             y: 1060,
             transferLines: ['2', '8'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'huangpi_south_1',
             name: '黄陂南路',
             x: 1330,
             y: 1100,
             transferLines: ['14'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'shaanxi_south_1',
             name: '陕西南路',
             x: 1280,
             y: 1140,
             transferLines: ['10', '12'],
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'changshu_road_1',
             name: '常熟路',
             x: 1230,
             y: 1180,
             transferLines: ['7'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'hengshan_road',
             name: '衡山路',
             x: 1180,
             y: 1220,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'xujiahui',
             name: '徐家汇',
             x: 1130,
             y: 1260,
             transferLines: ['9', '11'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_indoor',
             name: '上海体育馆',
             x: 1080,
             y: 1300,
             transferLines: ['4'],
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'caobao_road_1',
             name: '漕宝路',
             x: 1030,
             y: 1340,
             transferLines: ['12'],
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_south_1',
             name: '上海南站',
             x: 980,
             y: 1380,
             transferLines: ['3', '15'],
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'jinjiang_park',
             name: '锦江乐园',
             x: 930,
             y: 1420,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'lianhua_road',
             name: '莲花路',
             x: 900,
             y: 1460,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'waihuanlu', name: '外环路', x: 870, y: 1500, order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'xinzhuang',
             name: '莘庄',
             x: 840,
@@ -248,143 +248,143 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line2() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '2',
       lineName: '2号线',
       lineColor: line2Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'east_xujing', name: '徐泾东', x: 660, y: 1000, order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'hongqiao_railway_2',
             name: '虹桥火车站',
             x: 740,
             y: 1000,
             transferLines: ['10', '17'],
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'hongqiao_t2_2',
             name: '虹桥2号航站楼',
             x: 820,
             y: 1000,
             transferLines: ['10'],
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'songhong_road',
             name: '淞虹路',
             x: 900,
             y: 1000,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'beixinjing', name: '北新泾', x: 970, y: 1000, order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'weining_road', name: '威宁路', x: 1030, y: 1000, order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'loushanguan_2',
             name: '娄山关路',
             x: 1090,
             y: 1000,
             transferLines: ['15'],
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'zhongshan_park_2',
             name: '中山公园',
             x: 1150,
             y: 1000,
             transferLines: ['3', '4'],
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'jiangsu_road_2',
             name: '江苏路',
             x: 1210,
             y: 1000,
             transferLines: ['11'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'jingan_temple_2',
             name: '静安寺',
             x: 1270,
             y: 1000,
             transferLines: ['7', '14'],
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'nanjing_west_2',
             name: '南京西路',
             x: 1330,
             y: 1000,
             transferLines: ['12', '13'],
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'peoples_square_2',
             name: '人民广场',
             x: 1380,
             y: 1060,
             transferLines: ['1', '8'],
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'nanjing_east_2',
             name: '南京东路',
             x: 1450,
             y: 1060,
             transferLines: ['10'],
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'lujiazui_2', name: '陆家嘴', x: 1540, y: 1060, order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'dongchang_road_2',
             name: '东昌路',
             x: 1610,
             y: 1060,
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'century_avenue_2',
             name: '世纪大道',
             x: 1680,
             y: 1060,
             transferLines: ['4', '6', '9'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_sci_2',
             name: '上海科技馆',
             x: 1750,
             y: 1060,
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'century_park',
             name: '世纪公园',
             x: 1820,
             y: 1060,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'longyang_road_2',
             name: '龙阳路',
             x: 1890,
             y: 1060,
             transferLines: ['7', '16', '18'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'zhangjiang_high',
             name: '张江高科',
             x: 1960,
             y: 1060,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'jinke_road_2',
             name: '金科路',
             x: 2030,
             y: 1060,
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'guanglan_road_2',
             name: '广兰路',
             x: 2100,
             y: 1060,
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'tangzhen', name: '唐镇', x: 2180, y: 1060, order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'chuansha_2', name: '川沙', x: 2280, y: 1060, order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'pudong_airport_2',
             name: '浦东国际机场',
             x: 2480,
@@ -395,173 +395,173 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line3() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '3',
       lineName: '3号线',
       lineColor: line3Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'north_jiangyang',
             name: '江杨北路',
             x: 1520,
             y: 200,
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'tieli_road', name: '铁力路', x: 1500, y: 260, order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'youyi_road_3',
             name: '友谊路',
             x: 1480,
             y: 320,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'baoyang_road', name: '宝杨路', x: 1460, y: 380, order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'shuichan_road',
             name: '水产路',
             x: 1440,
             y: 440,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'songbin_road', name: '淞滨路', x: 1420, y: 500, order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'zhanghuabang',
             name: '张华浜',
             x: 1400,
             y: 560,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'songfa_road', name: '淞发路', x: 1390, y: 620, order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'changjiang_south',
             name: '长江南路',
             x: 1385,
             y: 680,
             transferLines: ['18'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'west_yingao',
             name: '殷高西路',
             x: 1380,
             y: 740,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'jiangwan_town_3',
             name: '江湾镇',
             x: 1375,
             y: 800,
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'dabaishu_3',
             name: '大柏树',
             x: 1370,
             y: 850,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'chifeng_road_3',
             name: '赤峰路',
             x: 1365,
             y: 900,
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'hongkou_football_3',
             name: '虹口足球场',
             x: 1360,
             y: 950,
             transferLines: ['8'],
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'dongbaoxing_road',
             name: '东宝兴路',
             x: 1355,
             y: 1000,
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'baoshan_road_3',
             name: '宝山路',
             x: 1350,
             y: 1050,
             transferLines: ['4'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_railway_3',
             name: '上海火车站',
             x: 1380,
             y: 880,
             transferLines: ['1', '4'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'zhongtan_road_3',
             name: '中潭路',
             x: 1330,
             y: 1120,
             transferLines: ['4'],
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'zhenping_road_3',
             name: '镇坪路',
             x: 1280,
             y: 1160,
             transferLines: ['4', '7'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'caoyang_road_3',
             name: '曹杨路',
             x: 1230,
             y: 1200,
             transferLines: ['4', '11', '14'],
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'jinshajiang_road_3',
             name: '金沙江路',
             x: 1180,
             y: 1240,
             transferLines: ['4', '13'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'zhongshan_park_3',
             name: '中山公园',
             x: 1150,
             y: 1000,
             transferLines: ['2', '4'],
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'yanan_west_road',
             name: '延安西路',
             x: 1080,
             y: 1300,
             transferLines: ['4'],
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'hongqiao_road_3',
             name: '虹桥路',
             x: 1030,
             y: 1340,
             transferLines: ['4', '10'],
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'yishan_road_3',
             name: '宜山路',
             x: 980,
             y: 1380,
             transferLines: ['4', '9'],
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'caoxi_road', name: '漕溪路', x: 960, y: 1420, order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'longcao_road_3',
             name: '龙漕路',
             x: 940,
             y: 1460,
             transferLines: ['12'],
             order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'shilong_road',
             name: '石龙路',
             x: 930,
             y: 1500,
             order: 28),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_south_3',
             name: '上海南站',
             x: 980,
@@ -573,172 +573,172 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line4() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '4',
       lineName: '4号线（环线）',
       lineColor: line4Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'yishan_road_4',
             name: '宜山路',
             x: 980,
             y: 1380,
             transferLines: ['3', '9'],
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'hongqiao_road_4',
             name: '虹桥路',
             x: 1030,
             y: 1340,
             transferLines: ['3', '10'],
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'yanan_west_4',
             name: '延安西路',
             x: 1080,
             y: 1300,
             transferLines: ['3'],
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'zhongshan_park_4',
             name: '中山公园',
             x: 1150,
             y: 1000,
             transferLines: ['2', '3'],
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'jinshajiang_road_4',
             name: '金沙江路',
             x: 1180,
             y: 1240,
             transferLines: ['3', '13'],
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'caoyang_road_4',
             name: '曹杨路',
             x: 1230,
             y: 1200,
             transferLines: ['3', '11', '14'],
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'zhenping_road_4',
             name: '镇坪路',
             x: 1280,
             y: 1160,
             transferLines: ['3', '7'],
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'zhongtan_road_4',
             name: '中潭路',
             x: 1330,
             y: 1120,
             transferLines: ['3'],
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_railway_4',
             name: '上海火车站',
             x: 1380,
             y: 880,
             transferLines: ['1', '3'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'baoshan_road_4',
             name: '宝山路',
             x: 1350,
             y: 1050,
             transferLines: ['3'],
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'hailun_road_4',
             name: '海伦路',
             x: 1420,
             y: 1020,
             transferLines: ['10'],
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'linping_road',
             name: '临平路',
             x: 1480,
             y: 1000,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'dalian_road_4',
             name: '大连路',
             x: 1540,
             y: 980,
             transferLines: ['12'],
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'yangshupu_road',
             name: '杨树浦路',
             x: 1600,
             y: 960,
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'pudong_avenue_4',
             name: '浦东大道',
             x: 1640,
             y: 1000,
             transferLines: ['14'],
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'century_avenue_4',
             name: '世纪大道',
             x: 1680,
             y: 1060,
             transferLines: ['2', '6', '9'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'pudian_road_4',
             name: '浦电路',
             x: 1680,
             y: 1130,
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'lancun_road_4',
             name: '蓝村路',
             x: 1680,
             y: 1190,
             transferLines: ['6'],
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'tangqiao', name: '塘桥', x: 1650, y: 1250, order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'nanpu_bridge',
             name: '南浦大桥',
             x: 1600,
             y: 1300,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'xizang_south_4',
             name: '西藏南路',
             x: 1520,
             y: 1340,
             transferLines: ['8'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'luban_road', name: '鲁班路', x: 1460, y: 1370, order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'damuqiao_road_4',
             name: '大木桥路',
             x: 1380,
             y: 1400,
             transferLines: ['12'],
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'dongan_road_4',
             name: '东安路',
             x: 1320,
             y: 1430,
             transferLines: ['7'],
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_stadium_4',
             name: '上海体育场',
             x: 880,
             y: 1360,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_indoor_4',
             name: '上海体育馆',
             x: 1080,
@@ -750,61 +750,61 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line5() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '5',
       lineName: '5号线',
       lineColor: line5Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'xinzhuang_5',
             name: '莘庄',
             x: 840,
             y: 1540,
             transferLines: ['1'],
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'chunshen_road',
             name: '春申路',
             x: 810,
             y: 1620,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'yindu_road', name: '银都路', x: 780, y: 1700, order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'zhuanqiao', name: '颛桥', x: 750, y: 1780, order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'beiqiao', name: '北桥', x: 720, y: 1860, order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'jianchuan_road',
             name: '剑川路',
             x: 690,
             y: 1940,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'dongchuan_road_5',
             name: '东川路',
             x: 660,
             y: 2020,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'jinping_road',
             name: '金平路',
             x: 630,
             y: 2100,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'huaning_road',
             name: '华宁路',
             x: 600,
             y: 2180,
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'wenjing_road',
             name: '文井路',
             x: 570,
             y: 2260,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'minhang_dev',
             name: '闵行开发区',
             x: 540,
@@ -815,181 +815,181 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line6() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '6',
       lineName: '6号线',
       lineColor: line6Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'gangcheng_road',
             name: '港城路',
             x: 1800,
             y: 500,
             transferLines: ['10'],
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'north_waigaoqiao',
             name: '外高桥保税区北',
             x: 1780,
             y: 560,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'hangjin_road',
             name: '航津路',
             x: 1760,
             y: 620,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'south_waigaoqiao',
             name: '外高桥保税区南',
             x: 1740,
             y: 680,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'zhouhai_road',
             name: '洲海路',
             x: 1730,
             y: 740,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'wuzhou_avenue',
             name: '五洲大道',
             x: 1720,
             y: 800,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'dongjing_road',
             name: '东靖路',
             x: 1710,
             y: 860,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'jufeng_road',
             name: '巨峰路',
             x: 1705,
             y: 920,
             transferLines: ['12'],
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'wulian_road',
             name: '五莲路',
             x: 1700,
             y: 980,
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'boxing_road',
             name: '博兴路',
             x: 1695,
             y: 1040,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'jinqiao_road_6',
             name: '金桥路',
             x: 1690,
             y: 1100,
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'yunshan_road',
             name: '云山路',
             x: 1685,
             y: 1160,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'deping_road',
             name: '德平路',
             x: 1680,
             y: 1220,
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'beiyangjing_road',
             name: '北洋泾路',
             x: 1675,
             y: 1280,
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'minsheng_road',
             name: '民生路',
             x: 1670,
             y: 1340,
             transferLines: ['18'],
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'yuanshen_stadium',
             name: '源深体育中心',
             x: 1665,
             y: 1400,
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'century_avenue_6',
             name: '世纪大道',
             x: 1680,
             y: 1060,
             transferLines: ['2', '4', '9'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'pudian_road_6',
             name: '浦电路',
             x: 1680,
             y: 1130,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'lancun_road_6',
             name: '蓝村路',
             x: 1680,
             y: 1190,
             transferLines: ['4'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_children',
             name: '上海儿童医学中心',
             x: 1680,
             y: 1260,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'linyi_xincun',
             name: '临沂新村',
             x: 1670,
             y: 1330,
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'gaoke_west_6',
             name: '高科西路',
             x: 1660,
             y: 1400,
             transferLines: ['7'],
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'dongming_road_6',
             name: '东明路',
             x: 1650,
             y: 1470,
             transferLines: ['13'],
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'gaoqing_road',
             name: '高青路',
             x: 1640,
             y: 1540,
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'west_huaxia',
             name: '华夏西路',
             x: 1630,
             y: 1610,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'shangnan_road_6',
             name: '上南路',
             x: 1620,
             y: 1680,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'lingyan_south',
             name: '灵岩南路',
             x: 1610,
             y: 1750,
             order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'oriental_sports_6',
             name: '东方体育中心',
             x: 1500,
@@ -1001,200 +1001,200 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line7() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '7',
       lineName: '7号线',
       lineColor: line7Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'meilan_lake',
             name: '美兰湖',
             x: 1200,
             y: 280,
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'luonan_xincun',
             name: '罗南新村',
             x: 1210,
             y: 350,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'panguang_road',
             name: '潘广路',
             x: 1220,
             y: 420,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'liuhang', name: '刘行', x: 1230, y: 490, order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'gucun_park_7',
             name: '顾村公园',
             x: 1240,
             y: 560,
             transferLines: ['15'],
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'qihua_road', name: '祁华路', x: 1250, y: 630, order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_univ',
             name: '上海大学',
             x: 1260,
             y: 700,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'nanchen_road',
             name: '南陈路',
             x: 1270,
             y: 770,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'shangda_road',
             name: '上大路',
             x: 1280,
             y: 840,
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'changzhong_road',
             name: '场中路',
             x: 1290,
             y: 910,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'dachang_town',
             name: '大场镇',
             x: 1300,
             y: 980,
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'xingzhi_road',
             name: '行知路',
             x: 1310,
             y: 1050,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'dahuasan_road',
             name: '大华三路',
             x: 1320,
             y: 1100,
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'xincun_road_7',
             name: '新村路',
             x: 1300,
             y: 1140,
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'langui_road',
             name: '岚皋路',
             x: 1290,
             y: 1160,
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'zhenping_road_7',
             name: '镇坪路',
             x: 1280,
             y: 1160,
             transferLines: ['3', '4'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'changshou_road_7',
             name: '长寿路',
             x: 1270,
             y: 1140,
             transferLines: ['13'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'changping_road',
             name: '昌平路',
             x: 1260,
             y: 1120,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'jingan_temple_7',
             name: '静安寺',
             x: 1270,
             y: 1000,
             transferLines: ['2', '14'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'changshu_road_7',
             name: '常熟路',
             x: 1230,
             y: 1180,
             transferLines: ['1'],
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'zhaojiabang_road_7',
             name: '肇嘉浜路',
             x: 1210,
             y: 1220,
             transferLines: ['9'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'dongan_road_7',
             name: '东安路',
             x: 1320,
             y: 1430,
             transferLines: ['4'],
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'longhua_mid_7',
             name: '龙华中路',
             x: 1300,
             y: 1500,
             transferLines: ['12'],
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'houtan', name: '后滩', x: 1350, y: 1580, order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'changqing_road_7',
             name: '长清路',
             x: 1400,
             y: 1640,
             transferLines: ['13'],
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'yaohua_road_7',
             name: '耀华路',
             x: 1450,
             y: 1700,
             transferLines: ['8'],
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'yuntai_road', name: '云台路', x: 1500, y: 1700, order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'gaoke_west_7',
             name: '高科西路',
             x: 1660,
             y: 1400,
             transferLines: ['6'],
             order: 28),
-        const MetroStation(
+        MetroStation(
             id: 'yanggao_south_7',
             name: '杨高南路',
             x: 1700,
             y: 1350,
             order: 29),
-        const MetroStation(
+        MetroStation(
             id: 'jinxiu_road_7',
             name: '锦绣路',
             x: 1750,
             y: 1300,
             order: 30),
-        const MetroStation(
+        MetroStation(
             id: 'fanghua_road',
             name: '芳华路',
             x: 1800,
             y: 1250,
             order: 31),
-        const MetroStation(
+        MetroStation(
             id: 'longyang_road_7',
             name: '龙阳路',
             x: 1890,
             y: 1060,
             transferLines: ['2', '16', '18'],
             order: 32),
-        const MetroStation(
+        MetroStation(
             id: 'huamu_road',
             name: '花木路',
             x: 1950,
@@ -1205,188 +1205,188 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line8() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '8',
       lineName: '8号线',
       lineColor: line8Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'shiguang_road',
             name: '市光路',
             x: 1600,
             y: 700,
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'nenjiang_road',
             name: '嫩江路',
             x: 1580,
             y: 760,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'xiangyin_road',
             name: '翔殷路',
             x: 1560,
             y: 820,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'huangxing_park',
             name: '黄兴公园',
             x: 1540,
             y: 880,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'yanji_mid_road',
             name: '延吉中路',
             x: 1520,
             y: 940,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'huangxing_road',
             name: '黄兴路',
             x: 1500,
             y: 1000,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'jiangpu_road_8',
             name: '江浦路',
             x: 1480,
             y: 1060,
             transferLines: ['18'],
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'anshan_xincun',
             name: '鞍山新村',
             x: 1460,
             y: 1120,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'siping_road_8',
             name: '四平路',
             x: 1440,
             y: 1180,
             transferLines: ['10'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'quyang_road_8',
             name: '曲阳路',
             x: 1420,
             y: 1240,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'hongkou_football_8',
             name: '虹口足球场',
             x: 1360,
             y: 950,
             transferLines: ['3'],
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'xizang_north',
             name: '西藏北路',
             x: 1380,
             y: 1120,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'zhongxing_road',
             name: '中兴路',
             x: 1380,
             y: 1160,
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'qufu_road_8',
             name: '曲阜路',
             x: 1380,
             y: 1200,
             transferLines: ['12'],
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'peoples_square_8',
             name: '人民广场',
             x: 1380,
             y: 1060,
             transferLines: ['1', '2'],
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'dashijie_8',
             name: '大世界',
             x: 1380,
             y: 1280,
             transferLines: ['14'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'laoximen_8',
             name: '老西门',
             x: 1440,
             y: 1320,
             transferLines: ['10'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'lujiabang_road_8',
             name: '陆家浜路',
             x: 1500,
             y: 1350,
             transferLines: ['9'],
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'xizang_south_8',
             name: '西藏南路',
             x: 1520,
             y: 1340,
             transferLines: ['4'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'yaohua_road_8',
             name: '耀华路',
             x: 1450,
             y: 1700,
             transferLines: ['7'],
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'chengshan_road',
             name: '成山路',
             x: 1480,
             y: 1760,
             transferLines: ['13'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'yangsi_8', name: '杨思', x: 1500, y: 1800, order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'oriental_sports_8',
             name: '东方体育中心',
             x: 1500,
             y: 1700,
             transferLines: ['6', '11'],
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'lingzhao_xincun',
             name: '凌兆新村',
             x: 1520,
             y: 1880,
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'luheng_road',
             name: '芦恒路',
             x: 1540,
             y: 1960,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'pujiang_town_8',
             name: '浦江镇',
             x: 1560,
             y: 2040,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'jiangyue_road',
             name: '江月路',
             x: 1580,
             y: 2120,
             order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'lianhang_road',
             name: '联航路',
             x: 1600,
             y: 2200,
             order: 28),
-        const MetroStation(
+        MetroStation(
             id: 'shendu_highway_8',
             name: '沈杜公路',
             x: 1620,
@@ -1397,401 +1397,401 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line9() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '9',
       lineName: '9号线',
       lineColor: line9Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'songjiang_south_9',
             name: '松江南站',
             x: 400,
             y: 1400,
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'zuibaichi_park',
             name: '醉白池',
             x: 480,
             y: 1380,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'songjiang_sports',
             name: '松江体育中心',
             x: 560,
             y: 1360,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'songjiang_xincheng',
             name: '松江新城',
             x: 640,
             y: 1340,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'songjiang_univ',
             name: '松江大学城',
             x: 720,
             y: 1320,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'dongjing_9',
             name: '洞泾',
             x: 800,
             y: 1300,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'sheshan', name: '佘山', x: 860, y: 1280, order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'sijing', name: '泗泾', x: 920, y: 1260, order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'jiuting', name: '九亭', x: 980, y: 1280, order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'zhongchun_road',
             name: '中春路',
             x: 1020,
             y: 1300,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'qibao', name: '七宝', x: 1060, y: 1320, order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'xingzhong_road',
             name: '星中路',
             x: 1100,
             y: 1300,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'hechuan_road',
             name: '合川路',
             x: 1120,
             y: 1280,
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'caohejing_dev',
             name: '漕河泾开发区',
             x: 1100,
             y: 1340,
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'guilin_road_9',
             name: '桂林路',
             x: 1060,
             y: 1360,
             transferLines: ['15'],
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'yishan_road_9',
             name: '宜山路',
             x: 980,
             y: 1380,
             transferLines: ['3', '4'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'xujiahui_9',
             name: '徐家汇',
             x: 1130,
             y: 1260,
             transferLines: ['1', '11'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'zhaojiabang_road_9',
             name: '肇嘉浜路',
             x: 1210,
             y: 1220,
             transferLines: ['7'],
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'jiashan_road_9',
             name: '嘉善路',
             x: 1280,
             y: 1180,
             transferLines: ['12'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'dapuqiao_9',
             name: '打浦桥',
             x: 1340,
             y: 1200,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'malu_road_9',
             name: '马当路',
             x: 1400,
             y: 1220,
             transferLines: ['13'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'lujiabang_road_9',
             name: '陆家浜路',
             x: 1500,
             y: 1350,
             transferLines: ['8'],
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'xiaonanmen',
             name: '小南门',
             x: 1560,
             y: 1300,
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'shangcheng_road_9',
             name: '商城路',
             x: 1640,
             y: 1220,
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'century_avenue_9',
             name: '世纪大道',
             x: 1680,
             y: 1060,
             transferLines: ['2', '4', '6'],
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'middle_yanggao_9',
             name: '杨高中路',
             x: 1760,
             y: 1020,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'fangdian_road',
             name: '芳甸路',
             x: 1830,
             y: 1000,
             order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'biyun_road',
             name: '碧云路',
             x: 1900,
             y: 1000,
             order: 28),
-        const MetroStation(
+        MetroStation(
             id: 'pingdu_road',
             name: '平度路',
             x: 1970,
             y: 1000,
             order: 29),
-        const MetroStation(
+        MetroStation(
             id: 'jinqiao_9',
             name: '金桥',
             x: 2040,
             y: 1000,
             order: 30),
-        const MetroStation(
+        MetroStation(
             id: 'jinji_road_9',
             name: '金吉路',
             x: 2110,
             y: 1000,
             order: 31),
-        const MetroStation(
+        MetroStation(
             id: 'jinhai_road_9',
             name: '金海路',
             x: 2180,
             y: 1000,
             transferLines: ['12'],
             order: 32),
-        const MetroStation(
+        MetroStation(
             id: 'gutang_road',
             name: '顾唐路',
             x: 2250,
             y: 1000,
             order: 33),
-        const MetroStation(
+        MetroStation(
             id: 'minlei_road',
             name: '民雷路',
             x: 2320,
             y: 1000,
             order: 34),
-        const MetroStation(
+        MetroStation(
             id: 'caolu_9', name: '曹路', x: 2390, y: 1000, order: 35),
       ],
     );
   }
 
   static MetroLine _line10() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '10',
       lineName: '10号线',
       lineColor: line10Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'hangzhong_road',
             name: '航中路',
             x: 580,
             y: 1080,
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'ziteng_road',
             name: '紫藤路',
             x: 640,
             y: 1080,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'longbai_xincun',
             name: '龙柏新村',
             x: 700,
             y: 1080,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_zoo_10',
             name: '上海动物园',
             x: 760,
             y: 1100,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'longxi_road_10',
             name: '龙溪路',
             x: 820,
             y: 1080,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'shuicheng_road_10',
             name: '水城路',
             x: 880,
             y: 1060,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'yili_road_10',
             name: '伊犁路',
             x: 940,
             y: 1040,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'songyuan_road_10',
             name: '宋园路',
             x: 980,
             y: 1020,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'hongqiao_road_10',
             name: '虹桥路',
             x: 1030,
             y: 1340,
             transferLines: ['3', '4'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'jiaotong_univ_10',
             name: '交通大学',
             x: 1080,
             y: 1100,
             transferLines: ['11'],
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_library_10',
             name: '上海图书馆',
             x: 1140,
             y: 1120,
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'shaanxi_south_10',
             name: '陕西南路',
             x: 1280,
             y: 1140,
             transferLines: ['1', '12'],
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'xintiandi_10',
             name: '新天地',
             x: 1360,
             y: 1160,
             transferLines: ['13'],
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'laoximen_10',
             name: '老西门',
             x: 1440,
             y: 1320,
             transferLines: ['8'],
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'yuyuan_10', name: '豫园', x: 1500, y: 1080, order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'nanjing_east_10',
             name: '南京东路',
             x: 1450,
             y: 1060,
             transferLines: ['2'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'tiantong_road_10',
             name: '天潼路',
             x: 1500,
             y: 1020,
             transferLines: ['12'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'north_sichuan_road_10',
             name: '四川北路',
             x: 1520,
             y: 980,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'hailun_road_10',
             name: '海伦路',
             x: 1420,
             y: 1020,
             transferLines: ['4'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'youdian_xincun',
             name: '邮电新村',
             x: 1460,
             y: 1040,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'siping_road_10',
             name: '四平路',
             x: 1440,
             y: 1180,
             transferLines: ['8'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'tongji_university_10',
             name: '同济大学',
             x: 1480,
             y: 1220,
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'guoquan_road',
             name: '国权路',
             x: 1520,
             y: 1260,
             transferLines: ['18'],
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'wujiaochang_10',
             name: '五角场',
             x: 1560,
             y: 1300,
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'jiangwan_stadium_10',
             name: '江湾体育场',
             x: 1600,
             y: 1340,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'sanmen_road_10',
             name: '三门路',
             x: 1640,
             y: 1380,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'yingao_east_road',
             name: '殷高东路',
             x: 1680,
             y: 1420,
             order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'xinjiangwancheng',
             name: '新江湾城',
             x: 1720,
             y: 1460,
             order: 28),
-        const MetroStation(
+        MetroStation(
             id: 'jilong_road_10',
             name: '基隆路',
             x: 1780,
             y: 620,
             order: 29),
-        const MetroStation(
+        MetroStation(
             id: 'gangcheng_road_10',
             name: '港城路',
             x: 1800,
@@ -1803,172 +1803,172 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line11() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '11',
       lineName: '11号线',
       lineColor: line11Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'jiading_north_11',
             name: '嘉定北',
             x: 680,
             y: 300,
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'jiading_west_11',
             name: '嘉定西',
             x: 720,
             y: 360,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_circuit_11',
             name: '上海赛车场',
             x: 780,
             y: 440,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'antaing_11',
             name: '安亭',
             x: 840,
             y: 520,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'nanxiang_11',
             name: '南翔',
             x: 920,
             y: 600,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'malu_11', name: '马陆', x: 960, y: 660, order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'jiading_newcity_11',
             name: '嘉定新城',
             x: 1000,
             y: 720,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'zhenxin_xincun',
             name: '真新新村',
             x: 1060,
             y: 800,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'qilianshan_road_11',
             name: '祁连山路',
             x: 1100,
             y: 860,
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'wuwei_road',
             name: '武威路',
             x: 1140,
             y: 920,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'caoyang_road_11',
             name: '曹杨路',
             x: 1230,
             y: 1200,
             transferLines: ['3', '4', '14'],
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'fengqiao_road',
             name: '枫桥路',
             x: 1200,
             y: 1040,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'zhenru_11',
             name: '真如',
             x: 1180,
             y: 1080,
             transferLines: ['14'],
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'longde_road_11',
             name: '隆德路',
             x: 1220,
             y: 1050,
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'jiangsu_road_11',
             name: '江苏路',
             x: 1210,
             y: 1000,
             transferLines: ['2'],
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'jiaotong_univ_11',
             name: '交通大学',
             x: 1080,
             y: 1100,
             transferLines: ['10'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'xujiahui_11',
             name: '徐家汇',
             x: 1130,
             y: 1260,
             transferLines: ['1', '9'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'longhua_11',
             name: '龙华',
             x: 1180,
             y: 1320,
             transferLines: ['12'],
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'yunjin_road_11',
             name: '云锦路',
             x: 1240,
             y: 1380,
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'longyao_road_11',
             name: '龙耀路',
             x: 1280,
             y: 1440,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'oriental_sports_11',
             name: '东方体育中心',
             x: 1500,
             y: 1700,
             transferLines: ['6', '8'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'sanlin_11',
             name: '三林',
             x: 1540,
             y: 1780,
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'pujian_road_11',
             name: '浦建路',
             x: 1580,
             y: 1860,
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'luoshan_road_11',
             name: '罗山路',
             x: 1650,
             y: 1750,
             transferLines: ['16'],
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'xiuyan_road',
             name: '秀沿路',
             x: 1720,
             y: 1860,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'kangxin_highway',
             name: '康新公路',
             x: 1800,
             y: 1960,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'disney_resort',
             name: '迪士尼',
             x: 1900,
@@ -1979,207 +1979,207 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line12() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '12',
       lineName: '12号线',
       lineColor: line12Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'qixin_road',
             name: '七莘路',
             x: 900,
             y: 750,
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'hongxin_road',
             name: '虹莘路',
             x: 960,
             y: 760,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'gudai_road',
             name: '顾戴路',
             x: 1020,
             y: 770,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'donglan_road',
             name: '东兰路',
             x: 1080,
             y: 780,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'hongmei_road',
             name: '虹梅路',
             x: 1140,
             y: 790,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'guilin_road_12',
             name: '桂林路',
             x: 1190,
             y: 800,
             transferLines: ['15'],
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'caobao_road_12',
             name: '漕宝路',
             x: 1030,
             y: 1340,
             transferLines: ['1'],
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'longcao_road_12',
             name: '龙漕路',
             x: 940,
             y: 1460,
             transferLines: ['3'],
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'longhua_12',
             name: '龙华',
             x: 1180,
             y: 1320,
             transferLines: ['11'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'longhua_mid_12',
             name: '龙华中路',
             x: 1300,
             y: 1500,
             transferLines: ['7'],
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'damuqiao_road_12',
             name: '大木桥路',
             x: 1380,
             y: 1400,
             transferLines: ['4'],
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'jiashan_road_12',
             name: '嘉善路',
             x: 1280,
             y: 1180,
             transferLines: ['9'],
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'shaanxi_south_12',
             name: '陕西南路',
             x: 1280,
             y: 1140,
             transferLines: ['1', '10'],
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'nanjing_west_12',
             name: '南京西路',
             x: 1330,
             y: 1000,
             transferLines: ['2', '13'],
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'hanzhong_road_12',
             name: '汉中路',
             x: 1380,
             y: 940,
             transferLines: ['1', '13'],
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'qufu_road_12',
             name: '曲阜路',
             x: 1380,
             y: 1200,
             transferLines: ['8'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'tiantong_road_12',
             name: '天潼路',
             x: 1500,
             y: 1020,
             transferLines: ['10'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'guoji_ferry',
             name: '国际客运中心',
             x: 1540,
             y: 940,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'tilanqiao',
             name: '提篮桥',
             x: 1540,
             y: 960,
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'dalian_road_12',
             name: '大连路',
             x: 1540,
             y: 980,
             transferLines: ['4'],
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'jiangpu_park_12',
             name: '江浦公园',
             x: 1560,
             y: 940,
             transferLines: ['18'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'ningguo_road_12',
             name: '宁国路',
             x: 1600,
             y: 920,
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'longchang_road_12',
             name: '隆昌路',
             x: 1640,
             y: 900,
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'aiguo_road',
             name: '爱国路',
             x: 1680,
             y: 880,
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'fuxing_island_12',
             name: '复兴岛',
             x: 1720,
             y: 860,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'donglu_road',
             name: '东陆路',
             x: 1760,
             y: 840,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'jufeng_road_12',
             name: '巨峰路',
             x: 1705,
             y: 920,
             transferLines: ['6'],
             order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'yanggao_north_12',
             name: '杨高北路',
             x: 1820,
             y: 820,
             order: 28),
-        const MetroStation(
+        MetroStation(
             id: 'jinjing_road',
             name: '金京路',
             x: 1880,
             y: 800,
             order: 29),
-        const MetroStation(
+        MetroStation(
             id: 'shenjiang_road_12',
             name: '申江路',
             x: 1940,
             y: 800,
             order: 30),
-        const MetroStation(
+        MetroStation(
             id: 'jinhai_road_12',
             name: '金海路',
             x: 2180,
@@ -2191,198 +2191,198 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line13() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '13',
       lineName: '13号线',
       lineColor: line13Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'jinyun_road',
             name: '金运路',
             x: 700,
             y: 870,
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'baisha_road',
             name: '金沙江西路',
             x: 780,
             y: 880,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'fengzhuang',
             name: '丰庄',
             x: 860,
             y: 890,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'qilianshan_south_13',
             name: '祁连山南路',
             x: 940,
             y: 900,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'zhenbei_road',
             name: '真北路',
             x: 1020,
             y: 910,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'daduhui_road',
             name: '大渡河路',
             x: 1100,
             y: 920,
             transferLines: ['15'],
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'jinshajiang_road_13',
             name: '金沙江路',
             x: 1180,
             y: 1240,
             transferLines: ['3', '4'],
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'longde_road_13',
             name: '隆德路',
             x: 1220,
             y: 940,
             transferLines: ['11'],
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'wuning_road',
             name: '武宁路',
             x: 1260,
             y: 950,
             transferLines: ['14'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'changshou_road_13',
             name: '长寿路',
             x: 1270,
             y: 1140,
             transferLines: ['7'],
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'jiangning_road',
             name: '江宁路',
             x: 1300,
             y: 1020,
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'hanzhong_road_13',
             name: '汉中路',
             x: 1380,
             y: 940,
             transferLines: ['1', '12'],
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'natural_history',
             name: '自然博物馆',
             x: 1380,
             y: 1020,
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'nanjing_west_13',
             name: '南京西路',
             x: 1330,
             y: 1000,
             transferLines: ['2', '12'],
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'huaihai_mid_road',
             name: '淮海中路',
             x: 1340,
             y: 1100,
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'xintiandi_13',
             name: '新天地',
             x: 1360,
             y: 1160,
             transferLines: ['10'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'malu_road_13',
             name: '马当路',
             x: 1400,
             y: 1220,
             transferLines: ['9'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'shibo_avenue',
             name: '世博大道',
             x: 1460,
             y: 1300,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'shibo_museum',
             name: '世博会博物馆',
             x: 1500,
             y: 1380,
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'changqing_road_13',
             name: '长清路',
             x: 1400,
             y: 1640,
             transferLines: ['7'],
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'chengshan_road_13',
             name: '成山路',
             x: 1480,
             y: 1760,
             transferLines: ['8'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'dongming_road_13',
             name: '东明路',
             x: 1650,
             y: 1470,
             transferLines: ['6'],
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'huapeng_road',
             name: '华鹏路',
             x: 1700,
             y: 1550,
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'xianan_road',
             name: '下南路',
             x: 1750,
             y: 1600,
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'beicai_13',
             name: '北蔡',
             x: 1800,
             y: 1650,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'chenchun_road',
             name: '陈春路',
             x: 1850,
             y: 1700,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'lianxi_road',
             name: '莲溪路',
             x: 1900,
             y: 1750,
             order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'zhongke_road',
             name: '中科路',
             x: 1960,
             y: 1700,
             order: 28),
-        const MetroStation(
+        MetroStation(
             id: 'xuelin_road',
             name: '学林路',
             x: 2020,
             y: 1650,
             order: 29),
-        const MetroStation(
+        MetroStation(
             id: 'zhangjiang_road_13',
             name: '张江路',
             x: 2080,
@@ -2393,168 +2393,168 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line14() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '14',
       lineName: '14号线',
       lineColor: line14Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'fengbang', name: '封浜', x: 560, y: 600, order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'lexiu_road',
             name: '乐秀路',
             x: 640,
             y: 580,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'lintao_road',
             name: '临洮路',
             x: 720,
             y: 560,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'jiayi_road',
             name: '嘉怡路',
             x: 800,
             y: 560,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'dingbian_road',
             name: '定边路',
             x: 880,
             y: 580,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'zhenxin_xincun_14',
             name: '真新新村',
             x: 960,
             y: 600,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'zhenguang_road',
             name: '真光路',
             x: 1020,
             y: 610,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'tongchuan_road_14',
             name: '铜川路',
             x: 1080,
             y: 620,
             transferLines: ['15'],
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'zhenru_14',
             name: '真如',
             x: 1180,
             y: 1080,
             transferLines: ['11'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'zhongning_road',
             name: '中宁路',
             x: 1220,
             y: 1020,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'caoyang_road_14',
             name: '曹杨路',
             x: 1230,
             y: 1200,
             transferLines: ['3', '4', '11'],
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'wuning_road_14',
             name: '武宁路',
             x: 1260,
             y: 950,
             transferLines: ['13'],
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'wuding_road',
             name: '武定路',
             x: 1280,
             y: 970,
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'jingan_temple_14',
             name: '静安寺',
             x: 1270,
             y: 1000,
             transferLines: ['2', '7'],
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'huangpi_south_14',
             name: '黄陂南路',
             x: 1330,
             y: 1100,
             transferLines: ['1'],
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'dashijie_14',
             name: '大世界',
             x: 1380,
             y: 1280,
             transferLines: ['8'],
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'yuyuan_14',
             name: '豫园',
             x: 1500,
             y: 1080,
             transferLines: ['10'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'lujiazui_14',
             name: '陆家嘴',
             x: 1540,
             y: 1060,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'pudong_avenue_14',
             name: '浦东大道',
             x: 1640,
             y: 1000,
             transferLines: ['4'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'yuanshen_road_14',
             name: '源深路',
             x: 1700,
             y: 1030,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'changyi_road',
             name: '昌邑路',
             x: 1760,
             y: 1050,
             transferLines: ['18'],
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'yunshan_road_14',
             name: '云山路',
             x: 1820,
             y: 1070,
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'lantian_road_14',
             name: '蓝天路',
             x: 1880,
             y: 1080,
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'huangyang_road',
             name: '黄杨路',
             x: 1940,
             y: 1090,
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'jinqiao_14',
             name: '金桥',
             x: 2000,
             y: 1100,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'guiqiao_road',
             name: '桂桥路',
             x: 2080,
@@ -2565,186 +2565,186 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line15() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '15',
       lineName: '15号线',
       lineColor: line15Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'gucun_park_15',
             name: '顾村公园',
             x: 1240,
             y: 560,
             transferLines: ['7'],
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'jinqiu_road',
             name: '锦秋路',
             x: 1220,
             y: 620,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'fengxiang_road',
             name: '丰翔路',
             x: 1200,
             y: 680,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'nanda_road',
             name: '南大路',
             x: 1180,
             y: 740,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'qilianshan_road_15',
             name: '祁安路',
             x: 1160,
             y: 800,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'gulang_road',
             name: '古浪路',
             x: 1140,
             y: 860,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'wunan_road',
             name: '武南路',
             x: 1120,
             y: 920,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_west_15',
             name: '上海西站',
             x: 1100,
             y: 980,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'tongchuan_road_15',
             name: '铜川路',
             x: 1080,
             y: 620,
             transferLines: ['14'],
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'meiling_north',
             name: '梅岭北路',
             x: 1100,
             y: 1100,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'daduhui_road_15',
             name: '大渡河路',
             x: 1100,
             y: 920,
             transferLines: ['13'],
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'changfeng_park',
             name: '长风公园',
             x: 1080,
             y: 960,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'loushanguan_15',
             name: '娄山关路',
             x: 1090,
             y: 1000,
             transferLines: ['2'],
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'hongbaoshi_road',
             name: '红宝石路',
             x: 1060,
             y: 1060,
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'yaohong_road',
             name: '姚虹路',
             x: 1040,
             y: 1120,
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'wuzhong_road',
             name: '吴中路',
             x: 1030,
             y: 1180,
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'guilin_road_15',
             name: '桂林路',
             x: 1060,
             y: 1360,
             transferLines: ['9'],
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'guilin_park',
             name: '桂林公园',
             x: 1020,
             y: 1300,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_south_15',
             name: '上海南站',
             x: 980,
             y: 1380,
             transferLines: ['1', '3'],
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'huadong_univ',
             name: '华东理工大学',
             x: 960,
             y: 1460,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'luoxiu_road',
             name: '罗秀路',
             x: 940,
             y: 1540,
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'zhumei_road',
             name: '朱梅路',
             x: 920,
             y: 1620,
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'hongmei_south',
             name: '虹梅南路',
             x: 900,
             y: 1700,
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'jingxi_road',
             name: '景西路',
             x: 880,
             y: 1780,
             order: 24),
-        const MetroStation(
+        MetroStation(
             id: 'shuguang_road',
             name: '曙建路',
             x: 860,
             y: 1860,
             order: 25),
-        const MetroStation(
+        MetroStation(
             id: 'shuangbai_road',
             name: '双柏路',
             x: 840,
             y: 1940,
             order: 26),
-        const MetroStation(
+        MetroStation(
             id: 'yuanjiang_road',
             name: '元江路',
             x: 820,
             y: 2020,
             order: 27),
-        const MetroStation(
+        MetroStation(
             id: 'yongde_road',
             name: '永德路',
             x: 800,
             y: 2100,
             order: 28),
-        const MetroStation(
+        MetroStation(
             id: 'zizhu_zone',
             name: '紫竹高新区',
             x: 780,
@@ -2755,83 +2755,83 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line16() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '16',
       lineName: '16号线',
       lineColor: line16Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'longyang_road_16',
             name: '龙阳路',
             x: 1890,
             y: 1060,
             transferLines: ['2', '7', '18'],
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'huaxia_mid',
             name: '华夏中路',
             x: 1960,
             y: 1400,
             transferLines: ['13'],
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'luoshan_road_16',
             name: '罗山路',
             x: 1650,
             y: 1750,
             transferLines: ['11'],
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'zhoupudong',
             name: '周浦东',
             x: 1800,
             y: 1940,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'heshahangcheng',
             name: '鹤沙航城',
             x: 1850,
             y: 2020,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'hangtou_east',
             name: '航头东',
             x: 1900,
             y: 2100,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'xinchang_16',
             name: '新场',
             x: 1950,
             y: 2180,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'wild_animal_park',
             name: '野生动物园',
             x: 2000,
             y: 2260,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'huinan_16',
             name: '惠南',
             x: 2050,
             y: 2340,
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'huinan_east',
             name: '惠南东',
             x: 2100,
             y: 2400,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'shuyuan', name: '书院', x: 2150, y: 2400, order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'lingang_avenue',
             name: '临港大道',
             x: 2220,
             y: 2380,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'dishui_lake',
             name: '滴水湖',
             x: 2300,
@@ -2842,85 +2842,85 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line17() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '17',
       lineName: '17号线',
       lineColor: line17Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'hongqiao_railway_17',
             name: '虹桥火车站',
             x: 740,
             y: 1000,
             transferLines: ['2', '10'],
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'zhuguang_road',
             name: '诸光路',
             x: 660,
             y: 940,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'panlong_road',
             name: '蟠龙路',
             x: 600,
             y: 900,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'xuying_road',
             name: '徐盈路',
             x: 540,
             y: 860,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'xujing_beicheng',
             name: '徐泾北城',
             x: 480,
             y: 820,
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'jiading_zhonglu',
             name: '嘉松中路',
             x: 420,
             y: 780,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'zhaoxiang',
             name: '赵巷',
             x: 360,
             y: 740,
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'huijin_road',
             name: '汇金路',
             x: 300,
             y: 700,
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'qingpu_xincheng',
             name: '青浦新城',
             x: 240,
             y: 660,
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'caoying_road',
             name: '漕盈路',
             x: 180,
             y: 620,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'dianshanhu_avenue',
             name: '淀山湖大道',
             x: 120,
             y: 580,
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'zhujiajiao',
             name: '朱家角',
             x: 60,
             y: 540,
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'oriental_land',
             name: '东方绿舟',
             x: 30,
@@ -2931,157 +2931,157 @@ class ShanghaiMetroData {
   }
 
   static MetroLine _line18() {
-    return MetroLine(
+    return const MetroLine(
       lineId: '18',
       lineName: '18号线',
       lineColor: line18Color,
       stations: [
-        const MetroStation(
+        MetroStation(
             id: 'changjiang_south_18',
             name: '长江南路',
             x: 1385,
             y: 680,
             transferLines: ['3'],
             order: 1),
-        const MetroStation(
+        MetroStation(
             id: 'yingao_road_18',
             name: '殷高路',
             x: 1420,
             y: 740,
             order: 2),
-        const MetroStation(
+        MetroStation(
             id: 'shanghai_finance_univ',
             name: '上海财经大学',
             x: 1460,
             y: 800,
             order: 3),
-        const MetroStation(
+        MetroStation(
             id: 'fudan_univ',
             name: '复旦大学',
             x: 1500,
             y: 860,
             order: 4),
-        const MetroStation(
+        MetroStation(
             id: 'guoquan_road_18',
             name: '国权路',
             x: 1520,
             y: 1260,
             transferLines: ['10'],
             order: 5),
-        const MetroStation(
+        MetroStation(
             id: 'fushun_road',
             name: '抚顺路',
             x: 1500,
             y: 1360,
             order: 6),
-        const MetroStation(
+        MetroStation(
             id: 'jiangpu_road_18',
             name: '江浦路',
             x: 1480,
             y: 1060,
             transferLines: ['8'],
             order: 7),
-        const MetroStation(
+        MetroStation(
             id: 'jiangpu_park_18',
             name: '江浦公园',
             x: 1560,
             y: 940,
             transferLines: ['12'],
             order: 8),
-        const MetroStation(
+        MetroStation(
             id: 'pingliang_road',
             name: '平凉路',
             x: 1600,
             y: 1030,
             order: 9),
-        const MetroStation(
+        MetroStation(
             id: 'danyang_road',
             name: '丹阳路',
             x: 1640,
             y: 1030,
             order: 10),
-        const MetroStation(
+        MetroStation(
             id: 'changyi_road_18',
             name: '昌邑路',
             x: 1760,
             y: 1050,
             transferLines: ['14'],
             order: 11),
-        const MetroStation(
+        MetroStation(
             id: 'minsheng_road_18',
             name: '民生路',
             x: 1670,
             y: 1340,
             transferLines: ['6'],
             order: 12),
-        const MetroStation(
+        MetroStation(
             id: 'yanggao_mid_18',
             name: '杨高中路',
             x: 1780,
             y: 1360,
             order: 13),
-        const MetroStation(
+        MetroStation(
             id: 'yingchun_road',
             name: '迎春路',
             x: 1820,
             y: 1380,
             order: 14),
-        const MetroStation(
+        MetroStation(
             id: 'longyang_road_18',
             name: '龙阳路',
             x: 1890,
             y: 1060,
             transferLines: ['2', '7', '16'],
             order: 15),
-        const MetroStation(
+        MetroStation(
             id: 'fangxin_road',
             name: '芳芯路',
             x: 1920,
             y: 1320,
             order: 16),
-        const MetroStation(
+        MetroStation(
             id: 'beizhong_road',
             name: '北中路',
             x: 1950,
             y: 1380,
             order: 17),
-        const MetroStation(
+        MetroStation(
             id: 'lianxi_road_18',
             name: '莲溪路',
             x: 1980,
             y: 1440,
             order: 18),
-        const MetroStation(
+        MetroStation(
             id: 'yulan_road',
             name: '御兰路',
             x: 2000,
             y: 1520,
             order: 19),
-        const MetroStation(
+        MetroStation(
             id: 'kangqiao_18',
             name: '康桥',
             x: 1980,
             y: 1600,
             order: 20),
-        const MetroStation(
+        MetroStation(
             id: 'zhoudong',
             name: '周东路',
             x: 1950,
             y: 1680,
             order: 21),
-        const MetroStation(
+        MetroStation(
             id: 'shenmei_road',
             name: '沈梅路',
             x: 1920,
             y: 1760,
             order: 22),
-        const MetroStation(
+        MetroStation(
             id: 'xiasha',
             name: '下沙',
             x: 1900,
             y: 1840,
             order: 23),
-        const MetroStation(
+        MetroStation(
             id: 'hangtou_18',
             name: '航头',
             x: 1880,
