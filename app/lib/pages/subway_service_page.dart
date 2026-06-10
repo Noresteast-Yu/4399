@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/navigation_memory.dart';
+import 'package:smart_travel_app/utils/network_manager.dart';
 
 class SubwayServicePage extends StatefulWidget {
   const SubwayServicePage({super.key});
@@ -385,6 +386,22 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     );
   }
 
+
+  static String _resolvePhotoUrl(String rawUrl) {
+    final value = rawUrl.trim();
+    if (value.isEmpty ||
+        value.startsWith('http://') ||
+        value.startsWith('https://')) {
+      return value;
+    }
+    try {
+      final baseUri = Uri.parse(NetworkManager().baseUrl);
+      final path = value.startsWith('/') ? value : '/$value';
+      return baseUri.replace(path: path, query: '').toString();
+    } catch (_) {
+      return value;
+    }
+  }
 
   Future<void> _openTopologyPath({
     required String label,
@@ -934,7 +951,9 @@ class _TopologyStepCard extends StatelessWidget {
     final title = step['title']?.toString().trim();
     final instruction = step['instruction']?.toString().trim();
     final seconds = (step['seconds'] as num?)?.toInt() ?? 0;
-    final photoUrl = step['photoUrl']?.toString().trim();
+    final rawPhotoUrl = step['photoUrl']?.toString().trim() ?? '';
+    final photoUrl =
+        rawPhotoUrl.isEmpty ? '' : _SubwayServicePageState._resolvePhotoUrl(rawPhotoUrl);
     final timeText = seconds <= 0 ? '' : '约 ${(seconds / 60).ceil()} 分钟';
 
     return Container(

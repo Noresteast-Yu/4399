@@ -2038,6 +2038,23 @@ class _QuickIcon extends StatelessWidget {
   }
 }
 
+/// 将后端返回的相对路径（如 /static/...）补全为完整 HTTP URL
+String _resolveStaticPhotoUrl(String rawUrl) {
+  final value = rawUrl.trim();
+  if (value.isEmpty ||
+      value.startsWith('http://') ||
+      value.startsWith('https://')) {
+    return value;
+  }
+  try {
+    final baseUri = Uri.parse(NetworkManager().baseUrl);
+    final path = value.startsWith('/') ? value : '/$value';
+    return baseUri.replace(path: path, query: '').toString();
+  } catch (_) {
+    return value;
+  }
+}
+
 class _ServicePathStepCard extends StatelessWidget {
   final Map<String, dynamic> step;
   final int index;
@@ -2054,7 +2071,8 @@ class _ServicePathStepCard extends StatelessWidget {
     final title = step['title']?.toString().trim();
     final instruction = step['instruction']?.toString().trim();
     final seconds = (step['seconds'] as num?)?.toInt() ?? 0;
-    final photoUrl = step['photoUrl']?.toString().trim();
+    final rawPhotoUrl = step['photoUrl']?.toString().trim() ?? '';
+    final photoUrl = _resolveStaticPhotoUrl(rawPhotoUrl);
     final timeText = seconds <= 0 ? '' : '约 ${(seconds / 60).ceil()} 分钟';
 
     return Container(
