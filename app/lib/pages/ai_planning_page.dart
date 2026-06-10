@@ -435,19 +435,29 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
   String _currentNodeId() {
     if (_guideSteps.isEmpty) {
-      // 步骤尚未加载，使用已解析的进站口节点
       return _entranceNodeId;
     }
     final step = _guideSteps[_stepIndex];
     if (step.nodeId != null && step.nodeId!.isNotEmpty) return step.nodeId!;
-    switch (step.stage) {
-      case _StepStage.entry:
-        // 进站步骤：使用用户实际选择的进站口拓扑节点
-        return _entranceNodeId;
-      default:
-        // 已进入站内：站台中心
-        return '20';
+    if (step.stage == _StepStage.entry) {
+      return _entranceNodeId;
     }
+    // 尝试从步骤标题中提取出口号（如"五号口地下"→5号口→节点'1'）
+    final exitNode = _exitMentionToNodeId(step.title) ??
+        _exitMentionToNodeId(step.detail);
+    return exitNode ?? '20';
+  }
+
+  /// 从文本中提取出口号并映射到拓扑节点（如"5号口地下"→'1'）
+  String? _exitMentionToNodeId(String text) {
+    final match = RegExp(r'(\d+)\s*号口').firstMatch(text);
+    if (match != null) {
+      final exitNo = match.group(1)!;
+      if (_tongjiExitNodeMap.containsKey(exitNo)) {
+        return _tongjiExitNodeMap[exitNo]!;
+      }
+    }
+    return null;
   }
 
   Future<void> _navigateToFacility(
