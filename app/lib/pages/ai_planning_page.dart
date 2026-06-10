@@ -65,9 +65,50 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     _startEntranceName = widget.initialStartEntranceName?.trim() ?? '';
     _endExitName = widget.initialEndExitName?.trim() ?? '';
     _hasRoute = _startStation.isNotEmpty && _endStation.isNotEmpty;
+
+    // 将当前 AI 规划页路由写入 NavigationMemory，确保底部导航栏切换
+    // "规划"标签页时回到当前页面而非重新创建 route_plan_page
+    final params = <String, String>{};
+    void add(String k, String v) {
+      if (v.isNotEmpty) params[k] = v;
+    }
+
+    add('start', _startStation);
+    add('end', _endStation);
+    add('startEntranceId', _startEntranceId);
+    add('startEntranceName', _startEntranceName);
+    add('endExitId', _endExitId);
+    add('endExitName', _endExitName);
+    if (params.isNotEmpty) {
+      NavigationMemory.routePlanLocation =
+          Uri(path: '/ai-planning', queryParameters: params).toString();
+    }
+
+    // 同步站内位置上下文，供服务页自动定位站点与节点
+    final stationName = '$_startStation$_endStation';
+    if (stationName.contains('同济大学')) {
+      NavigationMemory.updateStationContext(
+        stationId: 'tong_ji_university', // 匹配设施数据中的 stationId
+        stationName: '同济大学',
+      );
+      // 恢复上次导航步进位置（切 Tab 回来后从同一进度继续）
+      _stepIndex = NavigationMemory.lastStepIndex;
+    }
+
     if (_hasRoute) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadIndoorGuide());
     }
+  }
+
+  @override
+  void dispose() {
+    _statusRefreshTimer?.cancel();
+    super.dispose();
+    // note: do NOT clear NavigationMemory station context here —
+    // dispose() also fires on tab switch via context.go(), which
+    // would race ahead of the service page initState and wipe the
+    // station ID before the service page can read it.
+    // clearStationContext() is called only in _returnToRoutePlan().
   }
 
   Future<void> _refreshStepStatus() async {
@@ -143,6 +184,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
           _stepIndex = _guideSteps.length - 1;
         }
       });
+      _syncStationNodeContext();
       await _refreshStepStatus();
       _startStatusRefreshTimer();
     } catch (_) {
@@ -215,12 +257,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       const Duration(seconds: 30),
       (_) => _refreshStepStatus(),
     );
-  }
-
-  @override
-  void dispose() {
-    _statusRefreshTimer?.cancel();
-    super.dispose();
   }
 
   @override
@@ -333,6 +369,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                         _stepIndex--;
                         _stepStatus = null;
                       });
+                      _syncStationNodeContext();
                       _refreshStepStatus();
                     },
                     onNext: () {
@@ -341,6 +378,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
                           _stepIndex++;
                           _stepStatus = null;
                         });
+                        _syncStationNodeContext();
                         _refreshStepStatus();
                       }
                     },
@@ -531,12 +569,25 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     );
   }
 
+  void _syncStationNodeContext() {
+    if (_currentStationId != null) {
+      NavigationMemory.updateStationContext(
+        nodeId: _currentNodeId(),
+      );
+      NavigationMemory.lastStepIndex = _stepIndex;
+    }
+  }
+
   void _returnToRoutePlan() {
+    // 返回路线规划页前，将 NavigationMemory 路由重置为规划页，
+    // 确保底部导航栏"规划"标签切换回规划页而非已销毁的 AI 规划页
+    NavigationMemory.routePlanLocation = '/route-plan';
+    NavigationMemory.clearStationContext();
     if (context.canPop()) {
       context.pop();
       return;
     }
-    context.go(NavigationMemory.routePlanLocation ?? '/route-plan');
+    context.go('/route-plan');
   }
 }
 

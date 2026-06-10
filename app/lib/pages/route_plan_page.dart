@@ -97,6 +97,19 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     super.dispose();
   }
 
+  /// 将当前起终点中的站内拓扑站点信息同步到 NavigationMemory，
+  /// 确保服务页能自动定位到用户当前所在站点
+  void _syncStationContextToMemory(String start, String end) {
+    final combined = '$start$end';
+    if (combined.contains('同济大学')) {
+      NavigationMemory.updateStationContext(
+        stationId: 'tong_ji_university', // 匹配设施数据中的 stationId
+        stationName: '同济大学',
+        nodeId: '20', // 默认从站台中心出发
+      );
+    }
+  }
+
   Future<void> _planRoute() async {
     if (_startController.text.trim().isEmpty ||
         _endController.text.trim().isEmpty) {
@@ -488,6 +501,9 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       );
       return;
     }
+
+    // 同步站内位置上下文到 NavigationMemory，供服务页自动定位
+    _syncStationContextToMemory(start, end);
 
     final params = <String, String>{
       'start': start,

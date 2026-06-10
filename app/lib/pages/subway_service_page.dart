@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/services/api_service.dart';
+import 'package:smart_travel_app/services/navigation_memory.dart';
 
 class SubwayServicePage extends StatefulWidget {
   const SubwayServicePage({super.key});
@@ -61,7 +62,15 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
             .whereType<Map>()
             .map((item) => Map<String, dynamic>.from(item))
             .toList();
-        final current = _findFacility(_stationId, list) ??
+
+        // 优先使用 NavigationMemory 中的当前站点（从站内导航页同步），
+        // 其次回退到列表中的第一个设施
+        final rememberedId = NavigationMemory.currentStationId;
+        final preferred = rememberedId != null
+            ? _findFacility(rememberedId, list)
+            : null;
+        final current = preferred ??
+            _findFacility(_stationId, list) ??
             (list.isEmpty ? null : list.first);
 
         final nextStationId = current?['stationId']?.toString() ?? _stationId;
@@ -186,70 +195,72 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
 
   Widget _buildStationHeaderCard() {
     final lines = _lineIdsOf(_facilityInfo!);
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: _openStationPicker,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
+    final isAutoDetected = NavigationMemory.currentStationId != null &&
+        NavigationMemory.currentStationId == _stationId;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: Color(0xFFECE3F1),
+              shape: BoxShape.circle,
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                color: Color(0xFFECE3F1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.train_rounded, color: _line10, size: 30),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _stationName,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
+            child: const Icon(Icons.train_rounded, color: _line10, size: 30),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _stationName,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    lines.isEmpty
-                        ? '点击切换站点'
-                        : lines.map((l) => '$l号线').join('、'),
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isAutoDetected
+                      ? '已自动定位 · ${lines.map((l) => '$l号线').join('、')}'
+                      : lines.isEmpty
+                          ? '站点信息'
+                          : lines.map((l) => '$l号线').join('、'),
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const Icon(Icons.chevron_right_rounded, color: _muted, size: 28),
-          ],
-        ),
+          ),
+          if (isAutoDetected)
+            const Icon(Icons.my_location_rounded, color: _line10, size: 24),
+        ],
       ),
     );
   }
 
   Widget _buildServiceGrid() {
     final supportsTopo = _supportsTopology;
+    final fromNodeId = NavigationMemory.currentNodeId ?? '20';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -275,7 +286,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                 onTap: supportsTopo
                     ? () => _openTopologyPath(
                           label: '出入口',
-                          fromNodeId: '20',
+                          fromNodeId: fromNodeId,
                           targetType: 'exit',
                           targetId: '5',
                         )
@@ -296,7 +307,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                 onTap: supportsTopo && _has('hasElevator')
                     ? () => _openTopologyPath(
                           label: '无障碍电梯',
-                          fromNodeId: '20',
+                          fromNodeId: fromNodeId,
                           targetType: 'facility',
                           targetId: 'accessible_elevator_1',
                         )
@@ -321,7 +332,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                 onTap: supportsTopo && _has('hasAccessibleRestroom')
                     ? () => _openTopologyPath(
                           label: '公共厕所',
-                          fromNodeId: '20',
+                          fromNodeId: fromNodeId,
                           targetType: 'facility',
                           targetId: 'toilet_1',
                         )
@@ -342,7 +353,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
                 onTap: supportsTopo && _has('hasServiceCenter')
                     ? () => _openTopologyPath(
                           label: '服务中心',
-                          fromNodeId: '20',
+                          fromNodeId: fromNodeId,
                           targetType: 'facility',
                           targetId: 'service_center_1',
                         )
@@ -783,9 +794,13 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   }
 
   bool get _supportsTopology =>
-      _stationId == _topologyStationId || _stationName.contains('同济大学');
+      _stationId == _facilityStationId || _stationName.contains('同济大学');
 
-  String get _topologyStationId => 'tongji_university';
+  /// 设施数据中的 stationId（用于匹配已加载的设施列表）
+  static const String _facilityStationId = 'tong_ji_university';
+
+  /// 拓扑 API 使用的 stationId（与后端 station_topologies 目录名一致）
+  static const String _topologyStationId = 'tongji_university';
 
   List<String> _lineIdsOf(Map<String, dynamic> facility) {
     final raw = facility['lineIds'];
