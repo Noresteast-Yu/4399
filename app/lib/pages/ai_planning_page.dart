@@ -442,7 +442,9 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   ) async {
     final stationId = _currentStationId;
     if (stationId == null) return;
-    final fromNodeId = _currentNodeId();
+    // 使用 NavigationMemory 中记录的用户当前站内位置（初始默认站台中心 '20'，
+    // 每次导航到设施后自动更新为目标节点，模拟站内移动）
+    final fromNodeId = NavigationMemory.currentNodeId ?? '20';
 
     final response = await _apiService.getIndoorNavigationPath(
       stationId: stationId,
@@ -458,6 +460,15 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         );
       }
       return;
+    }
+
+    // 导航完成后将目标节点记为用户新的站内位置
+    final toNode = response.data!['toNode'];
+    if (toNode is Map) {
+      final arrivedNodeId = toNode['id']?.toString();
+      if (arrivedNodeId != null && arrivedNodeId.isNotEmpty) {
+        NavigationMemory.currentNodeId = arrivedNodeId;
+      }
     }
 
     _showServicePathSheet(label, response.data!);
@@ -572,10 +583,10 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   }
 
   void _syncStationNodeContext() {
+    // 仅同步步进索引，供切 Tab 后恢复进度。
+    // 拓扑节点位置由实际导航（_navigateToFacility / _openTopologyPath）
+    // 成功后更新，不在此处根据 stage 硬编码映射。
     if (_currentStationId != null) {
-      NavigationMemory.updateStationContext(
-        nodeId: _currentNodeId(),
-      );
       NavigationMemory.lastStepIndex = _stepIndex;
     }
   }

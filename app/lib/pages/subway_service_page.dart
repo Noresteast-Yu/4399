@@ -432,6 +432,16 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       return;
     }
 
+    // 导航完成后，将目标节点记为用户新的站内位置，
+    // 下次再点服务图标时从这里出发，模拟站内移动
+    final toNode = response.data!['toNode'];
+    if (toNode is Map) {
+      final arrivedNodeId = toNode['id']?.toString();
+      if (arrivedNodeId != null && arrivedNodeId.isNotEmpty) {
+        NavigationMemory.currentNodeId = arrivedNodeId;
+      }
+    }
+
     _showTopologyPathSheet(label, response.data!);
   }
 
