@@ -89,7 +89,34 @@ INSERT INTO stations (station_id, station_name, station_alias, city, district, s
 ('hailun_road', '海伦路', NULL, '上海', '虹口区', '地铁站/换乘站', '10号线换乘站，可换乘4号线。'),
 ('youdian_xincun', '邮电新村', NULL, '上海', '虹口区', '地铁站', '10号线沿线站点。'),
 ('siping_road', '四平路', NULL, '上海', '虹口区/杨浦区', '地铁站/换乘站', '10号线换乘站，可换乘8号线。'),
-('tongji_university', '同济大学', NULL, '上海', '杨浦区', '地铁站', '10号线沿线站点，靠近同济大学四平路校区。');
+('tongji_university', '同济大学', NULL, '上海', '杨浦区', '地铁站', '10号线沿线站点，靠近同济大学四平路校区。'),
+('fujin_road', '富锦路', NULL, '上海', '宝山区', '地铁站', '1号线北端站点。'),
+('west_youyi_road', '友谊西路', NULL, '上海', '宝山区', '地铁站', '1号线沿线站点。'),
+('baoan_highway', '宝安公路', NULL, '上海', '宝山区', '地铁站', '1号线沿线站点。'),
+('gongfu_xincun', '共富新村', NULL, '上海', '宝山区', '地铁站', '1号线沿线站点。'),
+('hulan_road', '呼兰路', NULL, '上海', '宝山区', '地铁站', '1号线沿线站点。'),
+('tonghe_xincun', '通河新村', NULL, '上海', '宝山区', '地铁站', '1号线沿线站点。'),
+('gongkang_road', '共康路', NULL, '上海', '宝山区', '地铁站', '1号线沿线站点。'),
+('pengpu_xincun', '彭浦新村', NULL, '上海', '静安区', '地铁站', '1号线沿线站点。'),
+('wenshui_road', '汶水路', NULL, '上海', '静安区', '地铁站', '1号线沿线站点。'),
+('shanghai_circus_world', '上海马戏城', NULL, '上海', '静安区', '地铁站', '1号线沿线站点。'),
+('yanchang_road', '延长路', NULL, '上海', '静安区', '地铁站', '1号线沿线站点。'),
+('north_zhongshan_road', '中山北路', NULL, '上海', '静安区', '地铁站', '1号线沿线站点。'),
+('shanghai_railway_station', '上海火车站', NULL, '上海', '静安区', '地铁站/火车站', '1号线沿线交通枢纽。'),
+('hanzhong_road', '汉中路', NULL, '上海', '静安区', '地铁站', '1号线沿线站点。'),
+('xinzha_road', '新闸路', NULL, '上海', '黄浦区', '地铁站', '1号线沿线站点。'),
+('people_square', '人民广场', NULL, '上海', '黄浦区', '地铁站/换乘站', '1号线市中心换乘站。'),
+('south_huangpi_road', '黄陂南路', NULL, '上海', '黄浦区', '地铁站', '1号线沿线站点。'),
+('changshu_road', '常熟路', NULL, '上海', '徐汇区', '地铁站', '1号线沿线站点。'),
+('hengshan_road', '衡山路', NULL, '上海', '徐汇区', '地铁站', '1号线沿线站点。'),
+('xujiahui', '徐家汇', NULL, '上海', '徐汇区', '地铁站/换乘站', '1号线商业中心站点。'),
+('shanghai_indoor_stadium', '上海体育馆', NULL, '上海', '徐汇区', '地铁站', '1号线沿线站点。'),
+('caobao_road', '漕宝路', NULL, '上海', '徐汇区', '地铁站', '1号线沿线站点。'),
+('shanghai_south_railway_station', '上海南站', NULL, '上海', '徐汇区', '地铁站/火车站', '1号线南部交通枢纽。'),
+('jinjiang_park', '锦江乐园', NULL, '上海', '闵行区', '地铁站', '1号线沿线站点。'),
+('lianhua_road', '莲花路', NULL, '上海', '闵行区', '地铁站', '1号线沿线站点。'),
+('waihuanlu', '外环路', NULL, '上海', '闵行区', '地铁站', '1号线沿线站点。'),
+('xinzhuang', '莘庄', NULL, '上海', '闵行区', '地铁站', '1号线南端换乘站。');
 
 -- 插入线路站点顺序（10号线往基隆路方向）
 INSERT INTO line_stations (line_id, station_id, direction, station_order, is_transfer, platform_tip) VALUES
@@ -115,6 +142,37 @@ INSERT INTO line_stations (line_id, station_id, direction, station_order, is_tra
 ('shanghai_metro_line_10', 'youdian_xincun', '往基隆路方向', 20, 0, NULL),
 ('shanghai_metro_line_10', 'siping_road', '往基隆路方向', 21, 1, '需要换乘8号线的乘客可在本站下车。'),
 ('shanghai_metro_line_10', 'tongji_university', '往基隆路方向', 22, 0, '前往同济大学四平路校区可在本站下车。');
+
+-- 插入线路站点顺序（1号线富锦路至莘庄方向）
+INSERT INTO line_stations (line_id, station_id, direction, station_order, is_transfer, platform_tip) VALUES
+('shanghai_metro_line_1', 'fujin_road', '往莘庄方向', 1, 0, NULL),
+('shanghai_metro_line_1', 'west_youyi_road', '往莘庄方向', 2, 0, NULL),
+('shanghai_metro_line_1', 'baoan_highway', '往莘庄方向', 3, 0, NULL),
+('shanghai_metro_line_1', 'gongfu_xincun', '往莘庄方向', 4, 0, NULL),
+('shanghai_metro_line_1', 'hulan_road', '往莘庄方向', 5, 0, NULL),
+('shanghai_metro_line_1', 'tonghe_xincun', '往莘庄方向', 6, 0, NULL),
+('shanghai_metro_line_1', 'gongkang_road', '往莘庄方向', 7, 0, NULL),
+('shanghai_metro_line_1', 'pengpu_xincun', '往莘庄方向', 8, 0, NULL),
+('shanghai_metro_line_1', 'wenshui_road', '往莘庄方向', 9, 0, NULL),
+('shanghai_metro_line_1', 'shanghai_circus_world', '往莘庄方向', 10, 0, NULL),
+('shanghai_metro_line_1', 'yanchang_road', '往莘庄方向', 11, 0, NULL),
+('shanghai_metro_line_1', 'north_zhongshan_road', '往莘庄方向', 12, 0, NULL),
+('shanghai_metro_line_1', 'shanghai_railway_station', '往莘庄方向', 13, 1, '可前往铁路上海站，注意站内客流。'),
+('shanghai_metro_line_1', 'hanzhong_road', '往莘庄方向', 14, 0, NULL),
+('shanghai_metro_line_1', 'xinzha_road', '往莘庄方向', 15, 0, NULL),
+('shanghai_metro_line_1', 'people_square', '往莘庄方向', 16, 1, '市中心大客流站点，注意换乘导向。'),
+('shanghai_metro_line_1', 'south_huangpi_road', '往莘庄方向', 17, 0, NULL),
+('shanghai_metro_line_1', 'south_shaanxi_road', '往莘庄方向', 18, 1, '可换乘10号线、12号线。'),
+('shanghai_metro_line_1', 'changshu_road', '往莘庄方向', 19, 0, NULL),
+('shanghai_metro_line_1', 'hengshan_road', '往莘庄方向', 20, 0, NULL),
+('shanghai_metro_line_1', 'xujiahui', '往莘庄方向', 21, 1, '徐家汇商圈站点，注意站内换乘导向。'),
+('shanghai_metro_line_1', 'shanghai_indoor_stadium', '往莘庄方向', 22, 0, NULL),
+('shanghai_metro_line_1', 'caobao_road', '往莘庄方向', 23, 0, NULL),
+('shanghai_metro_line_1', 'shanghai_south_railway_station', '往莘庄方向', 24, 1, '可前往上海南站铁路枢纽。'),
+('shanghai_metro_line_1', 'jinjiang_park', '往莘庄方向', 25, 0, NULL),
+('shanghai_metro_line_1', 'lianhua_road', '往莘庄方向', 26, 0, NULL),
+('shanghai_metro_line_1', 'waihuanlu', '往莘庄方向', 27, 0, NULL),
+('shanghai_metro_line_1', 'xinzhuang', '往莘庄方向', 28, 1, '可换乘5号线。');
 
 -- 插入线路站点换乘线路关联
 INSERT INTO line_station_transfer_lines (line_station_id, transfer_line_id)
@@ -233,4 +291,8 @@ INSERT INTO station_exits (exit_id, station_id, exit_name, nearby_place, guide_t
 ('exit_hongqiao_railway_metro', 'shanghai_hongqiao_railway_station', '地铁换乘大厅', '虹桥综合交通枢纽', '地铁2号线、10号线、17号线换乘客流较大，注意看清线路方向。', 1),
 ('exit_east_nanjing_road_center', 'east_nanjing_road', '南京东路方向出口', '南京东路步行街', '前往市中心商圈或换乘2号线时注意客流。', 0),
 ('exit_siping_road_transfer', 'siping_road', '8号线换乘导向', '四平路站换乘通道', '换乘8号线请按站内指示前往对应站台。', 0),
-('exit_tongji_university_campus', 'tongji_university', '同济大学方向出口', '同济大学四平路校区', '前往同济大学四平路校区可根据站内出口指示出站。', 0);
+('exit_tongji_university_1', 'tongji_university', '1号口', '同济联合广场', '靠近同济联合广场，适合作为同济大学周边进出站口。', 1),
+('exit_tongji_university_2', 'tongji_university', '2号口', '彰武路，赤峰路', '前往彰武路、赤峰路方向可选择2号口。', 1),
+('exit_tongji_university_3', 'tongji_university', '3号口', '站厅南侧通道', '从站厅南侧通道出站，适合前往四平路沿线。', 0),
+('exit_tongji_university_4', 'tongji_university', '4号口', '站厅南侧通道', '从站厅南侧通道出站，注意查看站内导向牌。', 0),
+('exit_tongji_university_5', 'tongji_university', '5号口', '四平路，同济大学正门', '前往同济大学正门优先选择5号口。', 1);

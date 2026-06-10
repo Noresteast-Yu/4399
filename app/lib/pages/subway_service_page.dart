@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
+import 'package:smart_travel_app/data/shanghai_metro_data.dart';
 import 'package:smart_travel_app/services/api_service.dart';
-import 'package:smart_travel_app/services/navigation_memory.dart';
-import 'package:smart_travel_app/utils/network_manager.dart';
 
 class SubwayServicePage extends StatefulWidget {
   const SubwayServicePage({super.key});
@@ -27,17 +27,21 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
 
   Map<String, dynamic>? _facilityInfo;
   List<Map<String, dynamic>> _allFacilities = [];
+  List<Map<String, dynamic>> _metroLines = [];
   List<_StationReview> _reviews = [];
   bool _isLoading = true;
+  bool _isLineLoading = false;
   bool _isPathLoading = false;
   String? _error;
-  String _stationId = 'shaanxi_south_road';
+  String _stationId = 'tongji_university';
+  int _expandedPanel = -1;
   int _draftRating = 5;
 
   @override
   void initState() {
     super.initState();
     _loadAllFacilities();
+    _loadMetroLines();
     _loadStationReviews();
   }
 
@@ -63,15 +67,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
             .whereType<Map>()
             .map((item) => Map<String, dynamic>.from(item))
             .toList();
-
-        // 优先使用 NavigationMemory 中的当前站点（从站内导航页同步），
-        // 其次回退到列表中的第一个设施
-        final rememberedId = NavigationMemory.currentStationId;
-        final preferred = rememberedId != null
-            ? _findFacility(rememberedId, list)
-            : null;
-        final current = preferred ??
-            _findFacility(_stationId, list) ??
+        final current = _findFacility(_stationId, list) ??
             (list.isEmpty ? null : list.first);
 
         final nextStationId = current?['stationId']?.toString() ?? _stationId;
@@ -88,6 +84,79 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     }
 
     await _loadFromSingleApi();
+  }
+
+  Future<void> _loadMetroLines() async {
+    setState(() => _isLineLoading = true);
+
+    final response = await _apiService.getSubwayLines();
+    if (!mounted) return;
+
+    if (response.success && response.data != null) {
+      final lines = response.data!
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+      setState(() {
+        _metroLines = lines.isEmpty ? _localMetroLineSummaries() : lines;
+        _isLineLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _metroLines = _localMetroLineSummaries();
+      _isLineLoading = false;
+    });
+  }
+
+  List<Map<String, dynamic>> _localMetroLineSummaries() {
+    return ShanghaiMetroData.getAllLines().map((line) {
+      final stations = line.stations
+          .map((station) => {
+                'id': station.id,
+                'name': station.name,
+                'order': station.order,
+              })
+          .toList();
+      return {
+        'id': line.lineId,
+        'name': line.lineName,
+        'city': '上海',
+        'color': _lineColorHex(line.lineColor),
+        'directions': line.stations.length >= 2
+            ? [
+                '${line.stations.first.name} → ${line.stations.last.name}',
+                '${line.stations.last.name} → ${line.stations.first.name}',
+              ]
+            : <String>[],
+        'firstTrain':
+            line.lineId == '16' || line.lineId == '17' ? '06:00' : '05:30',
+        'lastTrain':
+            line.lineId == '16' || line.lineId == '17' ? '22:30' : '23:00',
+        'interval': line.lineId == '1' ||
+                line.lineId == '2' ||
+                line.lineId == '8' ||
+                line.lineId == '10'
+            ? '3-5分钟'
+            : line.lineId == '16' || line.lineId == '17'
+                ? '6-10分钟'
+                : '4-8分钟',
+        'crowdingLevel': line.lineId == '1' ||
+                line.lineId == '2' ||
+                line.lineId == '8' ||
+                line.lineId == '10'
+            ? '高峰较拥挤'
+            : '平峰平稳',
+        'stationCount': line.stations.length,
+        'stations': stations,
+      };
+    }).toList();
+  }
+
+  String _lineColorHex(Color color) {
+    final value = color.value & 0x00FFFFFF;
+    return '#${value.toRadixString(16).padLeft(6, '0').toUpperCase()}';
   }
 
   Map<String, dynamic>? _findFacility(
@@ -132,6 +201,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       _facilityInfo = local;
       _isLoading = local == null;
       _error = null;
+      _expandedPanel = -1;
     });
     _commentController.clear();
     _loadStationReviews(stationId);
@@ -179,287 +249,392 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadAllFacilities,
+      onRefresh: () async {
+        await _loadAllFacilities();
+        await _loadMetroLines();
+      },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 108),
-        child: Column(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(22, 18, 22, 24),
+          decoration: BoxDecoration(
+            color: _sheet,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 54,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6DDE8),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSearchBox(),
+              const SizedBox(height: 12),
+              _buildPlanFromStationButton(),
+              if (_supportsTopology) ...[
+                const SizedBox(height: 12),
+                _buildTopologyNavigationSection(),
+              ],
+              const SizedBox(height: 22),
+              _buildLineOverviewSection(),
+              const SizedBox(height: 14),
+              _facilityPanel(
+                index: 0,
+                icon: Icons.door_front_door_rounded,
+                title: '出入口与地标',
+                subtitle: '共${_exitHighlights().length}个出口',
+                children: _exitHighlights()
+                    .map(
+                      (exit) => _ExitRow(
+                        number: exit.number,
+                        text: exit.text,
+                        onTap: _supportsTopology
+                            ? () => _openTopologyPath(
+                                  label: '${exit.number}号口',
+                                  fromNodeId: '20',
+                                  targetType: 'exit',
+                                  targetId: exit.number,
+                                )
+                            : null,
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 14),
+              _facilityPanel(
+                index: 1,
+                icon: Icons.elevator_rounded,
+                title: '电梯',
+                subtitle: _has('hasElevator') ? '无障碍设施' : '暂无标注',
+                children: [
+                  _InfoRow(
+                    icon: Icons.elevator_rounded,
+                    title: _has('hasElevator')
+                        ? '无障碍电梯（${_facilityInfo?['elevatorCount'] ?? 0}部）'
+                        : '暂无无障碍电梯',
+                    subtitle: _text('elevatorLocation') ?? '以站内实际导向为准',
+                    enabled: _has('hasElevator'),
+                    onTap: _supportsTopology && _has('hasElevator')
+                        ? () => _openTopologyPath(
+                              label: '无障碍电梯',
+                              fromNodeId: '20',
+                              targetType: 'facility',
+                              targetId: 'accessible_elevator_1',
+                            )
+                        : null,
+                  ),
+                  _InfoRow(
+                    icon: Icons.escalator_rounded,
+                    title: '自动扶梯',
+                    subtitle: _has('hasEscalator') ? '站厅与站台通行' : '暂无标注',
+                    enabled: _has('hasEscalator'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _facilityPanel(
+                index: 2,
+                icon: Icons.wc_rounded,
+                title: '洗手间',
+                subtitle: _restroomSubtitle(),
+                children: [
+                  _InfoRow(
+                    icon: Icons.accessible_rounded,
+                    title: '无障碍卫生间',
+                    subtitle: _text('restroomLocation') ?? '暂无位置说明',
+                    enabled: _has('hasAccessibleRestroom'),
+                    onTap: _supportsTopology && _has('hasAccessibleRestroom')
+                        ? () => _openTopologyPath(
+                              label: '公共厕所',
+                              fromNodeId: '20',
+                              targetType: 'facility',
+                              targetId: 'toilet_1',
+                            )
+                        : null,
+                  ),
+                  _InfoRow(
+                    icon: Icons.meeting_room_rounded,
+                    title: '费区内卫生间',
+                    subtitle: _has('hasRestroomInPaid') ? '进站后可用' : '暂无标注',
+                    enabled: _has('hasRestroomInPaid'),
+                  ),
+                  _InfoRow(
+                    icon: Icons.meeting_room_outlined,
+                    title: '费区外卫生间',
+                    subtitle: _has('hasRestroomOutside') ? '进站前可用' : '暂无标注',
+                    enabled: _has('hasRestroomOutside'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _facilityPanel(
+                index: 3,
+                icon: Icons.support_agent_rounded,
+                title: '服务中心',
+                subtitle: _serviceSubtitle(),
+                children: [
+                  _InfoRow(
+                    icon: Icons.support_agent_rounded,
+                    title: '服务中心',
+                    subtitle: _has('hasServiceCenter') ? '票务处理与咨询' : '暂无标注',
+                    enabled: _has('hasServiceCenter'),
+                    onTap: _supportsTopology && _has('hasServiceCenter')
+                        ? () => _openTopologyPath(
+                              label: '服务中心',
+                              fromNodeId: '20',
+                              targetType: 'facility',
+                              targetId: 'service_center_1',
+                            )
+                        : null,
+                  ),
+                  _InfoRow(
+                    icon: Icons.medical_services_rounded,
+                    title: 'AED急救设备',
+                    subtitle: _has('hasAED') ? '站内已标注' : '暂无标注',
+                    enabled: _has('hasAED'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _buildReviewSection(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBox() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: _openStationPicker,
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F3FB),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE1DCE8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Row(
           children: [
-            _buildStationHeaderCard(),
-            const SizedBox(height: 24),
-            _buildServiceGrid(),
+            Icon(Icons.search_rounded, color: _muted, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '搜索站点、设施、出口...',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _muted,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStationHeaderCard() {
-    final lines = _lineIdsOf(_facilityInfo!);
-    final isAutoDetected = NavigationMemory.currentStationId != null &&
-        NavigationMemory.currentStationId == _stationId;
+  Widget _buildPlanFromStationButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: FilledButton.icon(
+        onPressed: () {
+          context.push(
+            '/ai-planning?start=${Uri.encodeComponent(_stationName)}',
+          );
+        },
+        icon: const Icon(Icons.near_me_rounded),
+        label: Text('从$_stationName出发规划'),
+        style: FilledButton.styleFrom(
+          backgroundColor: _line10,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopologyNavigationSection() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: const Color(0xFFF7F1FA),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8D9EA)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              color: Color(0xFFECE3F1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.train_rounded, color: _line10, size: 30),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _stationName,
-                  style: const TextStyle(
+          Row(
+            children: [
+              const Icon(Icons.alt_route_rounded, color: _line10, size: 22),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  '同济大学站内导航',
+                  style: TextStyle(
                     color: _ink,
-                    fontSize: 22,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  isAutoDetected
-                      ? '已自动定位 · ${lines.map((l) => '$l号线').join('、')}'
-                      : lines.isEmpty
-                          ? '站点信息'
-                          : lines.map((l) => '$l号线').join('、'),
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
+              ),
+              if (_isPathLoading)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-              ],
-            ),
+            ],
           ),
-          if (isAutoDetected)
-            const Icon(Icons.my_location_rounded, color: _line10, size: 24),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _TopologyQuickButton(
+                icon: Icons.train_rounded,
+                label: '5号口进站',
+                onTap: () => _openTopologyPath(
+                  label: '5号口到站台',
+                  fromNodeId: '1',
+                  toNodeId: '20',
+                ),
+              ),
+              _TopologyQuickButton(
+                icon: Icons.wc_rounded,
+                label: '站台去厕所',
+                onTap: () => _openTopologyPath(
+                  label: '公共厕所',
+                  fromNodeId: '20',
+                  targetType: 'facility',
+                  targetId: 'toilet_1',
+                ),
+              ),
+              _TopologyQuickButton(
+                icon: Icons.support_agent_rounded,
+                label: '站台去服务中心',
+                onTap: () => _openTopologyPath(
+                  label: '服务中心',
+                  fromNodeId: '20',
+                  targetType: 'facility',
+                  targetId: 'service_center_1',
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCurrentPositionBox() {
-    final nodeId = NavigationMemory.currentNodeId;
-    final hasPosition = nodeId != null && nodeId.isNotEmpty;
+  Widget _buildLineOverviewSection() {
+    final lines = _metroLines;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFE082)),
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F6)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.my_location_rounded, size: 20, color: Color(0xFFF57F17)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              hasPosition
-                  ? '当前所在节点: $nodeId'
-                  : '当前位置: 未同步（将使用默认起点 20）',
-              style: const TextStyle(
-                color: _ink,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServiceGrid() {
-    final supportsTopo = _supportsTopology;
-    // 直接使用 AI 规划页同步的当前站内节点作为导航起点，
-    // 不再做硬编码映射——用户需要的是当前实际所在拓扑节点
-    final fromNodeId = NavigationMemory.currentNodeId ?? '20';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 当前位置调试框：显示导航起点，便于排查位置同步问题
-        _buildCurrentPositionBox(),
-        const SizedBox(height: 16),
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 16),
-          child: Text(
-            '站内服务',
-            style: TextStyle(
-              color: _ink,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        Row(
-          children: [
-            Expanded(
-              child: _ServiceIconCard(
-                icon: Icons.door_front_door_rounded,
-                label: '出入口',
-                subtitle: supportsTopo ? '查看出口与导航' : '暂无站内导航数据',
-                enabled: supportsTopo,
-                onTap: supportsTopo
-                    ? () => _openTopologyPath(
-                          label: '出入口',
-                          fromNodeId: fromNodeId,
-                          targetType: 'exit',
-                          targetId: '5',
-                        )
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: _ServiceIconCard(
-                icon: Icons.elevator_rounded,
-                label: '电梯',
-                subtitle: _has('hasElevator')
-                    ? '无障碍电梯导航'
-                    : supportsTopo
-                        ? '暂无电梯数据'
-                        : '暂无站内导航数据',
-                enabled: supportsTopo && _has('hasElevator'),
-                onTap: supportsTopo && _has('hasElevator')
-                    ? () => _openTopologyPath(
-                          label: '无障碍电梯',
-                          fromNodeId: fromNodeId,
-                          targetType: 'facility',
-                          targetId: 'accessible_elevator_1',
-                        )
-                    : null,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: _ServiceIconCard(
-                icon: Icons.wc_rounded,
-                label: '洗手间',
-                subtitle: _has('hasAccessibleRestroom')
-                    ? '洗手间位置导航'
-                    : supportsTopo
-                        ? '暂无洗手间数据'
-                        : '暂无站内导航数据',
-                enabled: supportsTopo && _has('hasAccessibleRestroom'),
-                onTap: supportsTopo && _has('hasAccessibleRestroom')
-                    ? () => _openTopologyPath(
-                          label: '公共厕所',
-                          fromNodeId: fromNodeId,
-                          targetType: 'facility',
-                          targetId: 'toilet_1',
-                        )
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: _ServiceIconCard(
-                icon: Icons.support_agent_rounded,
-                label: '服务中心',
-                subtitle: _has('hasServiceCenter')
-                    ? '服务中心导航'
-                    : supportsTopo
-                        ? '暂无服务中心数据'
-                        : '暂无站内导航数据',
-                enabled: supportsTopo && _has('hasServiceCenter'),
-                onTap: supportsTopo && _has('hasServiceCenter')
-                    ? () => _openTopologyPath(
-                          label: '服务中心',
-                          fromNodeId: fromNodeId,
-                          targetType: 'facility',
-                          targetId: 'service_center_1',
-                        )
-                    : null,
-              ),
-            ),
-          ],
-        ),
-        if (!supportsTopo) ...[
-          const SizedBox(height: 40),
-          Center(
-            child: Column(
-              children: [
-                Icon(Icons.location_off_rounded, size: 48, color: _muted),
-                const SizedBox(height: 12),
-                const Text(
-                  '当前站点暂不支持站内导航',
+          Row(
+            children: [
+              const Icon(Icons.route_rounded, color: _line10, size: 23),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  '线路运营概览',
                   style: TextStyle(
-                    color: _muted,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    color: _ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-              ],
+              ),
+              Text(
+                lines.isEmpty ? '加载中' : '${lines.length} 条线路',
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_isLineLoading && lines.isEmpty)
+            const SizedBox(
+              height: 118,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else if (lines.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Text(
+                '暂时没有线路数据',
+                style: TextStyle(
+                  color: _muted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 172,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: lines.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  return _LineOverviewTile(line: lines[index]);
+                },
+              ),
             ),
-          ),
-        ],
-      ],
-    );
-  }
-
-
-  /// 关闭导航弹窗后询问用户是否已到达目标位置，
-  /// 若"是"则将当前位置同步到目标节点
-  Future<bool?> _askArrived(String targetName) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('已到达？'),
-        content: Text('您是否已到达「$targetName」？\n到达后当前位置将同步至此。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('未到达'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('已到达'),
-          ),
         ],
       ),
     );
-  }
-
-  static String _resolvePhotoUrl(String rawUrl) {
-    final value = rawUrl.trim();
-    if (value.isEmpty ||
-        value.startsWith('http://') ||
-        value.startsWith('https://')) {
-      return value;
-    }
-    try {
-      final baseUri = Uri.parse(NetworkManager().baseUrl);
-      final path = value.startsWith('/') ? value : '/$value';
-      return baseUri.replace(path: path, query: '').toString();
-    } catch (_) {
-      return value;
-    }
   }
 
   Future<void> _openTopologyPath({
@@ -489,23 +664,10 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       return;
     }
 
-    final toNodeData = response.data!['toNode'];
-    final destNodeId = toNodeData is Map ? toNodeData['id']?.toString() : null;
-
-    await _showTopologyPathSheet(label, response.data!);
-    if (!mounted) return;
-
-    // 关闭导航弹窗后询问用户是否已到达目标位置
-    final targetName =
-        (response.data!['targetName'] ?? response.data!['toNodeName'] ?? label)
-            .toString();
-    final arrived = await _askArrived(targetName);
-    if (arrived == true && destNodeId != null && destNodeId.isNotEmpty) {
-      NavigationMemory.currentNodeId = destNodeId;
-    }
+    _showTopologyPathSheet(label, response.data!);
   }
 
-  Future<void> _showTopologyPathSheet(String label, Map<String, dynamic> path) {
+  void _showTopologyPathSheet(String label, Map<String, dynamic> path) {
     final steps = ((path['steps'] as List?) ?? const [])
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
@@ -515,7 +677,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
         (path['targetName'] ?? path['toNodeName'] ?? label).toString();
     final minutes = (totalSeconds / 60).ceil().clamp(1, 999);
 
-    return showModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -613,6 +775,316 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     );
   }
 
+  Widget _facilityPanel({
+    required int index,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required List<Widget> children,
+  }) {
+    final expanded = _expandedPanel == index;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: expanded ? Colors.white : const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: expanded
+              ? _line10.withValues(alpha: 0.58)
+              : const Color(0xFFE8E5EC),
+          width: expanded ? 1.2 : 1,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _expandedPanel = expanded ? -1 : index;
+                });
+              },
+              child: Container(
+                color: expanded ? const Color(0xFFFAF8FC) : Colors.transparent,
+                padding: const EdgeInsets.all(18),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: expanded ? _line10 : const Color(0xFFECE3F1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icon,
+                        color:
+                            expanded ? Colors.white : const Color(0xFF884B8F),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: _ink,
+                              fontSize: 21,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF3D3541),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AnimatedRotation(
+                      turns: expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 180),
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: _muted,
+                        size: 28,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 180),
+              crossFadeState: expanded
+                  ? CrossFadeState.showFirst
+                  : CrossFadeState.showSecond,
+              firstChild: Column(
+                children: [
+                  const Divider(height: 1, color: Color(0xFFEDE8EE)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+                    child: Column(children: children),
+                  ),
+                ],
+              ),
+              secondChild: const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewSection() {
+    final average = _reviewAverage;
+    final comments = _reviews.take(3).toList();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDFBFE),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE8D9EA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFECE3F1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.rate_review_rounded,
+                  color: Color(0xFF884B8F),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '站点评分',
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        _StaticStars(rating: average, size: 17),
+                        const SizedBox(width: 8),
+                        Text(
+                          _reviews.isEmpty
+                              ? '${average.toStringAsFixed(1)} 本地体验分'
+                              : '${average.toStringAsFixed(1)} · ${_reviews.length}条评论',
+                          style: const TextStyle(
+                            color: _muted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F1F7),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '给这个站打分',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: List.generate(5, (index) {
+                    final rating = index + 1;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => setState(() => _draftRating = rating),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 5),
+                        child: Icon(
+                          rating <= _draftRating
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          color: _line10,
+                          size: 32,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _commentController,
+                  minLines: 2,
+                  maxLines: 4,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: '说说这个站的出口、换乘或设施体验',
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.all(14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _submitReview,
+                    icon: const Icon(Icons.send_rounded),
+                    label: const Text('发布评论'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _line10,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '评论区',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                _reviews.isEmpty ? '暂无评论' : '最新${comments.length}条',
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (comments.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Text(
+                '还没有评论，来写下第一条体验吧。',
+                style: TextStyle(
+                  color: _muted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else
+            Column(
+              children: comments
+                  .map(
+                    (review) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _ReviewRow(review: review),
+                    ),
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildErrorState() {
     return Center(
@@ -883,13 +1355,9 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   }
 
   bool get _supportsTopology =>
-      _stationId == _facilityStationId || _stationName.contains('同济大学');
+      _stationId == _topologyStationId || _stationName.contains('同济大学');
 
-  /// 设施数据中的 stationId（用于匹配已加载的设施列表）
-  static const String _facilityStationId = 'tong_ji_university';
-
-  /// 拓扑 API 使用的 stationId（与后端 station_topologies 目录名一致）
-  static const String _topologyStationId = 'tongji_university';
+  String get _topologyStationId => 'tongji_university';
 
   List<String> _lineIdsOf(Map<String, dynamic> facility) {
     final raw = facility['lineIds'];
@@ -964,6 +1432,200 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   }
 }
 
+class _LineOverviewTile extends StatelessWidget {
+  final Map<String, dynamic> line;
+
+  const _LineOverviewTile({required this.line});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _parseLineColor(line['color']?.toString());
+    final name = _text('name', '地铁线路');
+    final directions = _directions;
+    final stations = _stations.take(5).toList();
+    final stationCount = (line['stationCount'] as num?)?.toInt() ??
+        (line['stations'] is List ? (line['stations'] as List).length : 0);
+
+    return Container(
+      width: 232,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 11,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _SubwayServicePageState._ink,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$stationCount 站 · ${_text('interval', '4-8分钟')}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _SubwayServicePageState._muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _LineMetaRow(
+            icon: Icons.schedule_rounded,
+            text:
+                '${_text('firstTrain', '--:--')} - ${_text('lastTrain', '--:--')}',
+          ),
+          const SizedBox(height: 7),
+          _LineMetaRow(
+            icon: Icons.groups_rounded,
+            text: _text('crowdingLevel', '平稳'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            directions.isEmpty ? '运营方向待补充' : directions.first,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _SubwayServicePageState._ink,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const Spacer(),
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: stations
+                .map(
+                  (station) => Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      station,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _text(String key, String fallback) {
+    final value = line[key]?.toString().trim();
+    return value == null || value.isEmpty ? fallback : value;
+  }
+
+  List<String> get _directions {
+    final raw = line['directions'];
+    if (raw is List) {
+      return raw
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
+  List<String> get _stations {
+    final raw = line['stations'];
+    if (raw is List) {
+      return raw
+          .whereType<Map>()
+          .map((item) => item['name']?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
+  static Color _parseLineColor(String? hex) {
+    final normalized = (hex ?? '').replaceAll('#', '').trim();
+    if (normalized.length == 6) {
+      final value = int.tryParse('FF$normalized', radix: 16);
+      if (value != null) return Color(value);
+    }
+    return _SubwayServicePageState._line10;
+  }
+}
+
+class _LineMetaRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _LineMetaRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: _SubwayServicePageState._muted, size: 15),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _SubwayServicePageState._muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _TopologyQuickButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1023,9 +1685,7 @@ class _TopologyStepCard extends StatelessWidget {
     final title = step['title']?.toString().trim();
     final instruction = step['instruction']?.toString().trim();
     final seconds = (step['seconds'] as num?)?.toInt() ?? 0;
-    final rawPhotoUrl = step['photoUrl']?.toString().trim() ?? '';
-    final photoUrl =
-        rawPhotoUrl.isEmpty ? '' : _SubwayServicePageState._resolvePhotoUrl(rawPhotoUrl);
+    final photoUrl = step['photoUrl']?.toString().trim();
     final timeText = seconds <= 0 ? '' : '约 ${(seconds / 60).ceil()} 分钟';
 
     return Container(
@@ -1439,91 +2099,4 @@ class _ExitInfo {
   final String text;
 
   const _ExitInfo(this.number, this.text);
-}
-
-class _ServiceIconCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final bool enabled;
-  final VoidCallback? onTap;
-
-  const _ServiceIconCard({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.enabled,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = enabled
-        ? _SubwayServicePageState._line10
-        : Colors.grey;
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        decoration: BoxDecoration(
-          color: enabled ? Colors.white : const Color(0xFFF0F0F2),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color:
-                enabled ? const Color(0xFFE8D9EA) : const Color(0xFFE0E0E0),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: enabled
-                    ? const Color(0xFFECE3F1)
-                    : const Color(0xFFE8E8EC),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: TextStyle(
-                color: enabled
-                    ? _SubwayServicePageState._ink
-                    : Colors.grey,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: enabled
-                    ? _SubwayServicePageState._muted
-                    : Colors.grey,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

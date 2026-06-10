@@ -1,6 +1,9 @@
 package services
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestBuildIndoorGuideWithOptionsSameStationUsesIndoorPath(t *testing.T) {
 	options := IndoorGuideOptions{
@@ -87,6 +90,91 @@ func TestProgressStatusMarksDefaultArrivalAsFallback(t *testing.T) {
 
 	if !status.IsFallback {
 		t.Fatal("expected default arrival data to be marked as fallback")
+	}
+}
+
+func TestIndoorGuideGenericStepsDoNotReuseTongjiPhotoFallback(t *testing.T) {
+	plan := BuildIndoorGuideWithOptions("同济大学", "人民广场", IndoorGuideOptions{})
+	if len(plan.Steps) == 0 {
+		t.Fatal("expected indoor guide steps")
+	}
+	for _, step := range plan.Steps {
+		if step.PhotoURL == "" {
+			t.Fatalf("expected every step to include a real or generated photo URL, step=%q", step.Title)
+		}
+		if step.PhotoSource != "real" && step.PhotoSource != "generated" {
+			t.Fatalf("expected photo source to be real or generated, got %q", step.PhotoSource)
+		}
+		if strings.HasPrefix(step.PhotoURL, "/static/stations/tongji_university/") {
+			t.Fatalf("expected generic route not to reuse Tongji fallback photo, got %q", step.PhotoURL)
+		}
+		if step.PhotoSource == "real" && !strings.Contains(step.PhotoURL, "commons.wikimedia.org") {
+			t.Fatalf("expected non-empty photo URL to come from real photo source, got %q", step.PhotoURL)
+		}
+	}
+}
+
+func TestGuideStepDoesNotPretendGenericPhotoIsReal(t *testing.T) {
+	step := guideStep(
+		"ride",
+		"1号线",
+		"#E4002B",
+		"乘1号线",
+		"测试步骤",
+		"车厢线路图",
+		"示意",
+		2,
+		"train",
+	)
+	if strings.Contains(step.PhotoURL, "/static/stations/tongji_university/") {
+		t.Fatalf("generic steps must not reuse Tongji real photo fallback, got %q", step.PhotoURL)
+	}
+	if step.PhotoURL != "" {
+		t.Fatalf("generic step should leave photo URL empty until a real station photo is matched, got %q", step.PhotoURL)
+	}
+}
+
+func TestIndoorGuideUsesCommonsPhotoForKnownStations(t *testing.T) {
+	plan := BuildIndoorGuideWithOptions("同济大学", "徐家汇", IndoorGuideOptions{})
+	if len(plan.Steps) == 0 {
+		t.Fatal("expected indoor guide steps")
+	}
+	foundCommonsPhoto := false
+	for _, step := range plan.Steps {
+		if strings.Contains(step.PhotoURL, "commons.wikimedia.org") {
+			foundCommonsPhoto = true
+		}
+	}
+	if !foundCommonsPhoto {
+		t.Fatalf("expected at least one Wikimedia Commons real station photo, got %#v", plan.Steps)
+	}
+}
+
+func TestIndoorGuideTransferStepsNameAlightStationAndNextLine(t *testing.T) {
+	plan := BuildIndoorGuideWithOptions("同济大学", "徐家汇", IndoorGuideOptions{})
+	if len(plan.Route) < 2 {
+		t.Fatalf("expected a transfer route, got %#v", plan.Route)
+	}
+
+	hasAlightStep := false
+	hasTransferStep := false
+	for _, step := range plan.Steps {
+		if step.Stage == "ride" &&
+			strings.Contains(step.Title, "下车") &&
+			strings.Contains(step.Detail, "换乘") {
+			hasAlightStep = true
+		}
+		if (step.Stage == "transfer" || step.Stage == "transferWait") &&
+			strings.Contains(step.Title, "换乘") &&
+			strings.Contains(step.Detail, plan.Route[1].LineName) {
+			hasTransferStep = true
+		}
+	}
+	if !hasAlightStep {
+		t.Fatalf("expected ride step to name the alight station and transfer action, got %#v", plan.Steps)
+	}
+	if !hasTransferStep {
+		t.Fatalf("expected transfer step to name the next line, got %#v", plan.Steps)
 	}
 }
 

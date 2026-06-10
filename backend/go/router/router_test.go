@@ -70,10 +70,12 @@ func TestIndoorNavigationRoutesAreRegistered(t *testing.T) {
 	}
 
 	expected := map[string]bool{
-		"GET /api/indoor-guide":               false,
-		"GET /api/indoor-guide/progress":      false,
-		"GET /api/indoor-navigation/topology": false,
-		"GET /api/indoor-navigation/path":     false,
+		"GET /api/indoor-guide":                    false,
+		"GET /api/indoor-guide/progress":           false,
+		"GET /api/indoor-navigation/topology":      false,
+		"GET /api/indoor-navigation/path":          false,
+		"POST /api/transfer-time/start":            false,
+		"GET /api/transfer-time/update/:sessionId": false,
 	}
 
 	for _, route := range SetupRouter().Routes() {

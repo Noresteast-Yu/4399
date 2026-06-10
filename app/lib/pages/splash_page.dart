@@ -62,12 +62,31 @@ class _SplashPageState extends State<SplashPage>
               Transform.scale(
                 scale: lerpDouble(1.08, 1.0, imageIn)! +
                     sin(imagePunch * pi) * 0.045,
-                child: Transform.translate(
-                  offset: Offset(0, lerpDouble(34, 0, imageIn)!),
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.0008)
+                    ..rotateY(lerpDouble(-0.035, 0.018, imagePunch)!)
+                    ..rotateX(lerpDouble(0.025, -0.01, imagePunch)!),
                   child: Image.asset(
                     'assets/images/splash_runner_3d.png',
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.26),
+                          blurRadius: 42,
+                          spreadRadius: -18,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -87,9 +106,11 @@ class _SplashPageState extends State<SplashPage>
               ),
               ..._buildCoins(size, progress),
               Positioned(
-                top: size.height * 0.1,
-                left: 18,
-                right: 18,
+                top: (MediaQuery.paddingOf(context).top + 84)
+                    .clamp(76.0, 120.0)
+                    .toDouble(),
+                left: 20,
+                right: 20,
                 child: Opacity(
                   opacity: _phase(0.5, 0.78),
                   child: Transform(
@@ -152,63 +173,76 @@ class _ArcadeTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Transform.translate(
-          offset: const Offset(5, 6),
-          child: const Text(
-            '同济冲刺',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF101828),
-              fontSize: 48,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0,
+        Stack(
+          alignment: Alignment.center,
+          children: const [
+            Text(
+              '同济冲刺',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF101828),
+                fontSize: 48,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0,
+                shadows: [
+                  Shadow(
+                    color: Color(0xFF101828),
+                    offset: Offset(5, 7),
+                  ),
+                ],
+              ),
             ),
-          ),
+            Text(
+              '同济冲刺',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFFFD166),
+                fontSize: 48,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0,
+                shadows: [
+                  Shadow(
+                    color: Color(0xFFEF476F),
+                    offset: Offset(3, 3),
+                  ),
+                  Shadow(
+                    color: Color(0xFF06D6A0),
+                    offset: Offset(-3, -2),
+                  ),
+                  Shadow(
+                    color: Color(0xFF118AB2),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const Text(
-          '同济冲刺',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFFFFD166),
-            fontSize: 48,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0,
-            shadows: [
-              Shadow(
-                color: Color(0xFFEF476F),
-                offset: Offset(3, 3),
-              ),
-              Shadow(
-                color: Color(0xFF06D6A0),
-                offset: Offset(-3, -2),
-              ),
-              Shadow(
-                color: Color(0xFF118AB2),
-                blurRadius: 10,
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0xFFFFD166), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 16,
+                offset: const Offset(0, 7),
               ),
             ],
           ),
-        ),
-        Positioned(
-          bottom: 0,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.94),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFFFD166), width: 2),
-            ),
-            child: const Text(
-              '地铁跑酷换乘助手',
-              style: TextStyle(
-                color: Color(0xFF1D2939),
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0,
-              ),
+          child: const Text(
+            '地铁跑酷换乘助手',
+            style: TextStyle(
+              color: Color(0xFF1D2939),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
             ),
           ),
         ),

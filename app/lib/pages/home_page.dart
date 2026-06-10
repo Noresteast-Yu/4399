@@ -304,7 +304,14 @@ class _HomePageState extends State<HomePage> {
         forStart ? _startController.text.trim() : _endController.text.trim();
     if (stationName.isEmpty) return;
 
-    final choices = _accessChoicesFor(stationName, forStart: forStart);
+    final stationId = forStart ? _startStationId : _endStationId;
+    final choices = await _loadAccessChoices(
+      stationName,
+      stationId: stationId,
+      forStart: forStart,
+    );
+    if (!mounted) return;
+
     final selected = await showModalBottomSheet<_AccessChoice>(
       context: context,
       useSafeArea: true,
@@ -442,6 +449,31 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<List<_AccessChoice>> _loadAccessChoices(
+    String stationName, {
+    required String? stationId,
+    required bool forStart,
+  }) async {
+    final id = stationId?.trim() ?? '';
+    if (id.isNotEmpty) {
+      final response = await _apiService.getStationExits(id);
+      final data = response.data;
+      if (response.success && data != null) {
+        final remoteChoices = data
+            .whereType<Map>()
+            .map((item) => _AccessChoice.fromJson(
+                  Map<String, dynamic>.from(item),
+                ))
+            .where((choice) => choice.label.trim().isNotEmpty)
+            .toList();
+        if (remoteChoices.isNotEmpty) {
+          return remoteChoices;
+        }
+      }
+    }
+    return _accessChoicesFor(stationName, forStart: forStart);
+  }
+
   List<_AccessChoice> _accessChoicesFor(
     String stationName, {
     required bool forStart,
@@ -469,6 +501,10 @@ class _HomePageState extends State<HomePage> {
         _AccessChoice('5', '5号口', '合生汇，大学路'),
       ];
     }
+    final generatedChoices = _generatedAccessChoicesFor(stationName);
+    if (generatedChoices.isNotEmpty) {
+      return generatedChoices;
+    }
     return forStart
         ? const [
             _AccessChoice('1', '1号口', '默认进站口'),
@@ -478,6 +514,37 @@ class _HomePageState extends State<HomePage> {
             _AccessChoice('1', '1号口', '默认出站口'),
             _AccessChoice('2', '2号口', '备用出站口'),
           ];
+  }
+
+  List<_AccessChoice> _generatedAccessChoicesFor(String stationName) {
+    final name = stationName.trim();
+    if (name.isEmpty) return const [];
+
+    _StationSuggestion? suggestion;
+    for (final item in _stationSuggestions) {
+      if (item.name == name) {
+        suggestion = item;
+        break;
+      }
+    }
+    if (suggestion == null) return const [];
+
+    final primaryLine =
+        suggestion.lineNames.isEmpty ? '地铁' : suggestion.lineNames.first;
+    final transferText = suggestion.lineNames.length > 1
+        ? '，可换乘${suggestion.lineNames.skip(1).join('、')}'
+        : '';
+    final details = <String>[
+      '$name站厅主通道，靠近$primaryLine进出站客流$transferText',
+      '$name周边道路方向，适合步行离站',
+      '$name公交/网约车接驳方向',
+      '$name商业及公共服务设施方向',
+      '$name无障碍优先通行方向',
+    ];
+    final labels = const ['A口', 'B口', 'C口', 'D口', 'E口'];
+    return List.generate(labels.length, (index) {
+      return _AccessChoice(labels[index], labels[index], details[index]);
+    });
   }
 
   double _dockMinHeight(Size size) => size.height < 720 ? 136 : 156;
@@ -1679,6 +1746,29 @@ class _AccessChoice {
   final String detail;
 
   const _AccessChoice(this.id, this.label, this.detail);
+
+  factory _AccessChoice.fromJson(Map<String, dynamic> json) {
+    final rawId =
+        (json['id'] ?? json['exitId'] ?? json['exit_id'] ?? '').toString();
+    final rawLabel = (json['name'] ??
+            json['label'] ??
+            json['exitName'] ??
+            json['exit_name'] ??
+            rawId)
+        .toString();
+    final rawDetail = (json['detail'] ??
+            json['guideTip'] ??
+            json['guide_tip'] ??
+            json['nearbyPlace'] ??
+            json['nearby_place'] ??
+            '')
+        .toString();
+    return _AccessChoice(
+      rawId.isEmpty ? rawLabel : rawId,
+      rawLabel,
+      rawDetail.isEmpty ? '站内出口' : rawDetail,
+    );
+  }
 
   String get shortLabel => id;
 }
