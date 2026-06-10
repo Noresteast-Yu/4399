@@ -475,10 +475,22 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       return;
     }
 
-    _showServicePathSheet(label, response.data!);
+    final toNodeData = response.data!['toNode'];
+    final destNodeId = toNodeData is Map ? toNodeData['id']?.toString() : null;
+
+    await _showServicePathSheet(label, response.data!);
+    if (!mounted) return;
+
+    final targetName =
+        (response.data!['targetName'] ?? response.data!['toNodeName'] ?? label)
+            .toString();
+    final arrived = await _askArrivedAtFacility(targetName);
+    if (arrived == true && destNodeId != null && destNodeId.isNotEmpty) {
+      NavigationMemory.currentNodeId = destNodeId;
+    }
   }
 
-  void _showServicePathSheet(String label, Map<String, dynamic> path) {
+  Future<void> _showServicePathSheet(String label, Map<String, dynamic> path) {
     final steps = ((path['steps'] as List?) ?? const [])
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
@@ -488,7 +500,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         (path['targetName'] ?? path['toNodeName'] ?? label).toString();
     final minutes = (totalSeconds / 60).ceil().clamp(1, 999);
 
-    showModalBottomSheet<void>(
+    return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -618,6 +630,26 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     final nodeId = _currentNodeId();
     NavigationMemory.updateStationContext(nodeId: nodeId);
     NavigationMemory.lastStepIndex = _stepIndex;
+  }
+
+  Future<bool?> _askArrivedAtFacility(String targetName) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('已到达？'),
+        content: Text('您是否已到达「$targetName」？\n到达后当前位置将同步至此。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('未到达'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('已到达'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _returnToRoutePlan() {

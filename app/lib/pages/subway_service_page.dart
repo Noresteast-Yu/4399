@@ -389,6 +389,28 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   }
 
 
+  /// 关闭导航弹窗后询问用户是否已到达目标位置，
+  /// 若"是"则将当前位置同步到目标节点
+  Future<bool?> _askArrived(String targetName) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('已到达？'),
+        content: Text('您是否已到达「$targetName」？\n到达后当前位置将同步至此。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('未到达'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('已到达'),
+          ),
+        ],
+      ),
+    );
+  }
+
   static String _resolvePhotoUrl(String rawUrl) {
     final value = rawUrl.trim();
     if (value.isEmpty ||
@@ -432,10 +454,23 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       return;
     }
 
-    _showTopologyPathSheet(label, response.data!);
+    final toNodeData = response.data!['toNode'];
+    final destNodeId = toNodeData is Map ? toNodeData['id']?.toString() : null;
+
+    await _showTopologyPathSheet(label, response.data!);
+    if (!mounted) return;
+
+    // 关闭导航弹窗后询问用户是否已到达目标位置
+    final targetName =
+        (response.data!['targetName'] ?? response.data!['toNodeName'] ?? label)
+            .toString();
+    final arrived = await _askArrived(targetName);
+    if (arrived == true && destNodeId != null && destNodeId.isNotEmpty) {
+      NavigationMemory.currentNodeId = destNodeId;
+    }
   }
 
-  void _showTopologyPathSheet(String label, Map<String, dynamic> path) {
+  Future<void> _showTopologyPathSheet(String label, Map<String, dynamic> path) {
     final steps = ((path['steps'] as List?) ?? const [])
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
@@ -445,7 +480,7 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
         (path['targetName'] ?? path['toNodeName'] ?? label).toString();
     final minutes = (totalSeconds / 60).ceil().clamp(1, 999);
 
-    showModalBottomSheet<void>(
+    return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
