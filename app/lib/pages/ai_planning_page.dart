@@ -96,7 +96,8 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       NavigationMemory.updateStationContext(
         stationId: 'tong_ji_university', // 匹配设施数据中的 stationId
         stationName: '同济大学',
-        nodeId: _entranceNodeId, // 当前在进站口位置
+        // 若服务页已通过"已到达"更新了位置则保留，否则用进站口节点
+        nodeId: NavigationMemory.currentNodeId ?? _entranceNodeId,
       );
       // 恢复上次导航步进位置（切 Tab 回来后从同一进度继续）
       _stepIndex = NavigationMemory.lastStepIndex;
@@ -193,13 +194,13 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
           _stepIndex = _guideSteps.length - 1;
         }
       });
-      _syncStationNodeContext();
+      _syncStepIndexOnly();
       await _refreshStepStatus();
       _startStatusRefreshTimer();
     } catch (_) {
       if (!mounted) return;
       _useOfflineGuide('站内指引加载超时，已切换为本地演示指引');
-      _syncStationNodeContext();
+      _syncStepIndexOnly();
     }
   }
 
@@ -259,7 +260,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       _stepIndex = 0;
       _stepStatus = _fallbackStatusFor(_guideSteps.first, _guideSteps);
     });
-    _syncStationNodeContext();
+    _syncStepIndexOnly();
   }
 
   void _startStatusRefreshTimer() {
@@ -622,6 +623,14 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     return '20';
   }
 
+  /// 仅同步步进索引（页面加载/重建时），不覆盖已确认的站内位置
+  void _syncStepIndexOnly() {
+    if (_currentStationId != null) {
+      NavigationMemory.lastStepIndex = _stepIndex;
+    }
+  }
+
+  /// 步进时同步索引和拓扑节点（用户主动前进/后退，位置确实变了）
   void _syncStationNodeContext() {
     if (_currentStationId == null) return;
     // 根据当前步骤确定用户所在拓扑节点：
