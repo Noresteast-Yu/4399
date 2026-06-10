@@ -261,7 +261,9 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
 
   Widget _buildServiceGrid() {
     final supportsTopo = _supportsTopology;
-    final fromNodeId = NavigationMemory.currentNodeId ?? '20';
+    // 服务页面向站内用户：若当前节点为进站口('1')则用站台中心('20')作为导航起点，
+    // 避免所有设施路径都从入口开始，更贴合站内导航的使用场景
+    final fromNodeId = _inStationFromNodeId();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -812,6 +814,15 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
 
   bool get _supportsTopology =>
       _stationId == _facilityStationId || _stationName.contains('同济大学');
+
+  /// 服务页内站导航起点：优先用 AI 规划页同步的当前节点，
+  /// 但若为进站口节点 '1' 则替换为站台中心 '20'（用户已在站内，而非刚进站）
+  String _inStationFromNodeId() {
+    final nodeId = NavigationMemory.currentNodeId;
+    if (nodeId == null || nodeId.isEmpty) return '20';
+    if (nodeId == '1') return '20';
+    return nodeId;
+  }
 
   /// 设施数据中的 stationId（用于匹配已加载的设施列表）
   static const String _facilityStationId = 'tong_ji_university';
