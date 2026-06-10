@@ -47,6 +47,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   late final String _startEntranceName;
   late final String _endExitName;
   late final bool _hasRoute;
+  late final String _entranceNodeId; // 用户进站口的拓扑节点 ID
   int _stepIndex = 0;
   _ProgressStatus? _stepStatus;
   _RouteSummary? _summary;
@@ -87,12 +88,20 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     // 同步站内位置上下文，供服务页自动定位站点与节点
     final stationName = '$_startStation$_endStation';
     if (stationName.contains('同济大学')) {
+      // 根据用户选择的进站口解析到拓扑节点（同济大学出口→节点映射）
+      _entranceNodeId = _resolveEntranceToNodeId(
+        _startEntranceId,
+        _startEntranceName,
+      );
       NavigationMemory.updateStationContext(
         stationId: 'tong_ji_university', // 匹配设施数据中的 stationId
         stationName: '同济大学',
+        nodeId: _entranceNodeId, // 当前在进站口位置
       );
       // 恢复上次导航步进位置（切 Tab 回来后从同一进度继续）
       _stepIndex = NavigationMemory.lastStepIndex;
+    } else {
+      _entranceNodeId = '20';
     }
 
     if (_hasRoute) {
@@ -424,13 +433,18 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   }
 
   String _currentNodeId() {
-    if (_guideSteps.isEmpty) return '20';
+    if (_guideSteps.isEmpty) {
+      // 步骤尚未加载，使用已解析的进站口节点
+      return _entranceNodeId;
+    }
     final step = _guideSteps[_stepIndex];
     if (step.nodeId != null && step.nodeId!.isNotEmpty) return step.nodeId!;
     switch (step.stage) {
       case _StepStage.entry:
-        return '1';
+        // 进站步骤：使用用户实际选择的进站口拓扑节点
+        return _entranceNodeId;
       default:
+        // 已进入站内：站台中心
         return '20';
     }
   }
@@ -582,13 +596,38 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     );
   }
 
-  void _syncStationNodeContext() {
-    // 仅同步步进索引，供切 Tab 后恢复进度。
-    // 拓扑节点位置由实际导航（_navigateToFacility / _openTopologyPath）
-    // 成功后更新，不在此处根据 stage 硬编码映射。
-    if (_currentStationId != null) {
-      NavigationMemory.lastStepIndex = _stepIndex;
+  /// 同济大学出口号→拓扑节点 ID 映射
+  static const Map<String, String> _tongjiExitNodeMap = {
+    '1': '5',
+    '2': '14',
+    '3': '10',
+    '4': '12',
+    '5': '1',
+  };
+
+  /// 根据进站口 ID/名称解析到同济大学站内拓扑节点
+  String _resolveEntranceToNodeId(String entranceId, String entranceName) {
+    // 先从入口 ID 直接匹配
+    if (_tongjiExitNodeMap.containsKey(entranceId)) {
+      return _tongjiExitNodeMap[entranceId]!;
     }
+    // 再从入口名称提取数字（如 "1号口" → "1", "1号口地下" → "1"）
+    final match = RegExp(r'(\d+)').firstMatch(entranceName);
+    if (match != null && _tongjiExitNodeMap.containsKey(match.group(1))) {
+      return _tongjiExitNodeMap[match.group(1)!]!;
+    }
+    // 回退到站台中心
+    return '20';
+  }
+
+  void _syncStationNodeContext() {
+    if (_currentStationId == null) return;
+    // 根据当前步骤确定用户所在拓扑节点：
+    //   entry 步骤 → 进站口的拓扑节点
+    //   其他步骤 → 站台中心（用户已进入站内）
+    final nodeId = _currentNodeId();
+    NavigationMemory.updateStationContext(nodeId: nodeId);
+    NavigationMemory.lastStepIndex = _stepIndex;
   }
 
   void _returnToRoutePlan() {
