@@ -456,8 +456,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   ) async {
     final stationId = _currentStationId;
     if (stationId == null) return;
-    // 使用 NavigationMemory 中记录的用户当前站内位置（初始默认站台中心 '20'，
-    // 每次导航到设施后自动更新为目标节点，模拟站内移动）
+    // 始终从规划页当前所在进站口位置出发，查看路线不改变实际位置
     final fromNodeId = NavigationMemory.currentNodeId ?? '20';
 
     final response = await _apiService.getIndoorNavigationPath(
@@ -474,15 +473,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         );
       }
       return;
-    }
-
-    // 导航完成后将目标节点记为用户新的站内位置
-    final toNode = response.data!['toNode'];
-    if (toNode is Map) {
-      final arrivedNodeId = toNode['id']?.toString();
-      if (arrivedNodeId != null && arrivedNodeId.isNotEmpty) {
-        NavigationMemory.currentNodeId = arrivedNodeId;
-      }
     }
 
     _showServicePathSheet(label, response.data!);
