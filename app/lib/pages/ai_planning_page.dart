@@ -190,6 +190,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     } catch (_) {
       if (!mounted) return;
       _useOfflineGuide('站内指引加载超时，已切换为本地演示指引');
+      _syncStationNodeContext();
     }
   }
 
@@ -249,6 +250,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       _stepIndex = 0;
       _stepStatus = _fallbackStatusFor(_guideSteps.first, _guideSteps);
     });
+    _syncStationNodeContext();
   }
 
   void _startStatusRefreshTimer() {
