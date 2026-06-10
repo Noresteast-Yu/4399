@@ -1063,7 +1063,7 @@ class _ProgressPanel extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: const Text(
-                          '估算',
+                          '兜底数据',
                           style: TextStyle(
                             color: Color(0xFF9A4D00),
                             fontSize: 10,
@@ -1391,7 +1391,7 @@ class _ScenePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortcutHint = _exitShortcutHint(step);
     final photoUrl = _resolvePhotoUrl(step.photoUrl);
-    final isRealPhoto = step.photoSource == 'real';
+    final assetPhoto = _fallbackPhotoAsset(step);
 
     return Container(
       width: double.infinity,
@@ -1415,12 +1415,14 @@ class _ScenePanel extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return _AssetScenePhoto(
+                  assetPath: assetPhoto,
                   color: step.lineColor,
                 );
               },
             )
           else
             _AssetScenePhoto(
+              assetPath: assetPhoto,
               color: step.lineColor,
             ),
           DecoratedBox(
@@ -1450,7 +1452,7 @@ class _ScenePanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    isRealPhoto ? '真实照片' : '站点示意',
+                    '实景照片',
                     style: TextStyle(
                       color: _AIPlanningPageState._muted,
                       fontSize: 12,
@@ -1659,15 +1661,23 @@ class _LineBadge extends StatelessWidget {
 }
 
 class _AssetScenePhoto extends StatelessWidget {
+  final String assetPath;
   final Color color;
 
   const _AssetScenePhoto({
+    required this.assetPath,
     required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _ScenePainter(color: color));
+    return Image.asset(
+      assetPath,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return CustomPaint(painter: _ScenePainter(color: color));
+      },
+    );
   }
 }
 
@@ -1766,7 +1776,6 @@ class _NavStep {
   final String photoKey;
   final String photoUrl;
   final String? nodeId;
-  final String photoSource;
 
   const _NavStep({
     required this.stage,
@@ -1786,7 +1795,6 @@ class _NavStep {
     this.photoKey = '',
     this.photoUrl = '',
     this.nodeId,
-    this.photoSource = '',
   });
 
   factory _NavStep.fromJson(Map<String, dynamic> json) {
@@ -1814,7 +1822,6 @@ class _NavStep {
       photoKey: json['photoKey']?.toString() ?? '',
       photoUrl: json['photoUrl']?.toString() ?? '',
       nodeId: json['nodeId']?.toString(),
-      photoSource: json['photoSource']?.toString() ?? '',
     );
   }
 }
@@ -1903,15 +1910,24 @@ String _resolvePhotoUrl(String rawUrl) {
 
   try {
     final baseUri = Uri.parse(NetworkManager().baseUrl);
-    final relativeUri = Uri.parse(value.startsWith('/') ? value : '/$value');
-    return baseUri
-        .replace(
-          path: relativeUri.path,
-          query: relativeUri.query.isEmpty ? null : relativeUri.query,
-        )
-        .toString();
+    final path = value.startsWith('/') ? value : '/$value';
+    return baseUri.replace(path: path, query: '').toString();
   } catch (_) {
     return value;
+  }
+}
+
+String _fallbackPhotoAsset(_NavStep step) {
+  switch (step.stage) {
+    case _StepStage.entry:
+      return 'assets/images/tongji_station_entry.jpg';
+    case _StepStage.exit:
+      return 'assets/images/tongji_station_exit.jpg';
+    case _StepStage.platform:
+    case _StepStage.transfer:
+    case _StepStage.transferWait:
+    case _StepStage.ride:
+      return 'assets/images/tongji_station_transfer.jpg';
   }
 }
 
