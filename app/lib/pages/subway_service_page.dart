@@ -259,6 +259,38 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     );
   }
 
+  Widget _buildCurrentPositionBox() {
+    final nodeId = NavigationMemory.currentNodeId;
+    final hasPosition = nodeId != null && nodeId.isNotEmpty;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE082)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.my_location_rounded, size: 20, color: Color(0xFFF57F17)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              hasPosition
+                  ? '当前所在节点: $nodeId'
+                  : '当前位置: 未同步（将使用默认起点 20）',
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildServiceGrid() {
     final supportsTopo = _supportsTopology;
     // 直接使用 AI 规划页同步的当前站内节点作为导航起点，
@@ -267,6 +299,9 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 当前位置调试框：显示导航起点，便于排查位置同步问题
+        _buildCurrentPositionBox(),
+        const SizedBox(height: 16),
         const Padding(
           padding: EdgeInsets.only(left: 4, bottom: 16),
           child: Text(

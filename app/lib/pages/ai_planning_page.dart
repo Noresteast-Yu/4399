@@ -439,13 +439,15 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     }
     final step = _guideSteps[_stepIndex];
     if (step.nodeId != null && step.nodeId!.isNotEmpty) return step.nodeId!;
+    // 优先从步骤标题/详情提取出口号（处理"五号口地下"等非entry步骤）
+    final exitNode = _exitMentionToNodeId(step.title) ??
+        _exitMentionToNodeId(step.detail);
+    if (exitNode != null) return exitNode;
+    // 回退到 stage 映射：entry→进站口节点，其他→站台中心
     if (step.stage == _StepStage.entry) {
       return _entranceNodeId;
     }
-    // 尝试从步骤标题中提取出口号（如"五号口地下"→5号口→节点'1'）
-    final exitNode = _exitMentionToNodeId(step.title) ??
-        _exitMentionToNodeId(step.detail);
-    return exitNode ?? '20';
+    return '20';
   }
 
   /// 从文本中提取出口号并映射到拓扑节点
