@@ -2,6 +2,8 @@
 
 上海地铁智能换乘助手 — Flutter 移动端应用，支持完整地铁线路图展示和 AI 智能路线规划。
 
+**当前版本**：v1.0.4
+
 ## 项目结构
 
 ```
@@ -13,7 +15,7 @@
 │   │   ├── pages/          # 页面（首页、AI规划、路线、服务、设置）
 │   │   ├── providers/      # 状态管理
 │   │   ├── routes/         # 路由配置
-│   │   ├── services/       # 服务层（AI规划、API）
+│   │   ├── services/       # 服务层（AI规划、API、站内导航）
 │   │   ├── theme/          # 主题系统
 │   │   ├── utils/          # 工具类
 │   │   ├── app.dart        # 应用入口
@@ -21,12 +23,15 @@
 │   ├── android/            # Android 平台
 │   ├── ios/                # iOS 平台
 │   └── pubspec.yaml        # 依赖配置
-├── backend/                # 后端参考代码
+├── backend/                # 后端服务
 │   ├── go/                 # Go 后端源码（Gin + MySQL）
 │   ├── object-storage/     # MinIO 对象存储初始化素材
+│   ├── migrations/         # 数据库迁移脚本
 │   ├── schema.sql          # 数据库表结构
 │   └── seed.sql            # 数据库种子数据
-├── tools/object-storage/   # 本地 MinIO 启动与同步脚本
+├── tools/                  # 工具脚本
+│   ├── object-storage/     # 本地 MinIO 启动与同步脚本
+│   └── suishenxing-api-test/ # 随申行 API 测试工具
 └── .gitignore
 ```
 
@@ -38,6 +43,9 @@
 | AI 智能规划 | 对接 OpenAI 兼容 API，自动规划最优路线 |
 | 离线规划 | 无网络时本地计算路径 |
 | 路线规划 | 多路线方案对比、换乘指引 |
+| 站内导航 | 站内设施导航（出入口、电梯、洗手间、服务中心） |
+| 服务板块自动定位 | 自动读取当前站点，无需手动选择 |
+| 导航状态持久化 | Tab 切换保留导航进度 |
 | 地铁设施 | 无障碍设施、自动扶梯位置查询 |
 | 换乘时间 | 换乘步行时间估算 |
 
@@ -46,12 +54,13 @@
 | 类别 | 技术 |
 |------|------|
 | 前端框架 | Flutter 3.x + Dart |
-| 状态管理 | Provider, ChangeNotifier |
+| 状态管理 | Provider, ChangeNotifier, Bloc |
 | 路由 | GoRouter |
 | 网络 | Dio |
 | 本地存储 | SharedPreferences |
+| 动画 | Lottie |
 | AI | OpenAI 兼容 API（通义千问/DeepSeek/Moonshot 等） |
-| 后端（参考） | Go + Gin + MySQL |
+| 后端 | Go + Gin + MySQL |
 | 实景图片 | MinIO 对象存储 |
 
 ## 数据职责
@@ -70,10 +79,26 @@ powershell -ExecutionPolicy Bypass -File .\tools\object-storage\start-minio.ps1
 
 ## 快速开始
 
-详情见 [app/README.md](app/README.md)。
+**前端应用**：详见 [app/README.md](app/README.md)
 
 ```bash
 cd app
 flutter pub get
 flutter run
 ```
+
+**后端服务**：详见 [backend/go/README.md](backend/go/README.md)
+
+```bash
+cd backend/go
+go mod tidy
+go run main.go
+```
+
+## 更新日志
+
+详见 [CHANGELOG.md](CHANGELOG.md)
+
+## 许可证
+
+MIT License — 详见 [LICENSE](LICENSE)
