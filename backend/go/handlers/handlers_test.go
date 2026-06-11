@@ -251,7 +251,7 @@ func TestDeleteCommonRouteRejectsInvalidID(t *testing.T) {
 	}
 }
 
-func TestValidateDataWithoutDatabaseReturnsServiceUnavailable(t *testing.T) {
+func TestValidateDataWithoutDatabaseValidatesInMemoryNetwork(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	database.DB = nil
 
@@ -263,11 +263,55 @@ func TestValidateDataWithoutDatabaseReturnsServiceUnavailable(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected status %d, got %d with body %s", http.StatusServiceUnavailable, rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
 	}
-	if !bytes.Contains(rec.Body.Bytes(), []byte(`"network_lines":18`)) {
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"network_lines":18`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"ok":true`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"warnings"`)) {
 		t.Fatalf("expected in-memory network validation counts, got %s", rec.Body.String())
+	}
+}
+
+func TestGetStationFallsBackToMetroNetworkStation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/subway-service/station/:stationId", GetStation)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/subway-service/station/wujiaochang_10", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"name":"五角场"`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"lines":["10"]`)) {
+		t.Fatalf("expected metro network station fallback, got %s", rec.Body.String())
+	}
+}
+
+func TestGetStationFacilitiesFallsBackToGenericNetworkFacility(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/subway-service/station/:stationId/facilities", GetStationFacilities)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/subway-service/station/wujiaochang_10/facilities", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"stationName":"五角场"`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`全网演示设施信息`)) {
+		t.Fatalf("expected generic network facility fallback, got %s", rec.Body.String())
 	}
 }
 
@@ -293,7 +337,7 @@ func TestGetTrainInfoWithoutDatabaseReturnsDemoGuideData(t *testing.T) {
 	}
 }
 
-func TestGetStaticResourcesWithoutDatabaseReturnsEmptyList(t *testing.T) {
+func TestGetStaticResourcesWithoutDatabaseReturnsDemoResources(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	database.DB = nil
 
@@ -307,6 +351,75 @@ func TestGetStaticResourcesWithoutDatabaseReturnsEmptyList(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"name":"tongji-university"`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`"type":"diagram"`)) {
+		t.Fatalf("expected demo static resources, got %s", rec.Body.String())
+	}
+}
+
+func TestDataModuleEndpointsCoverSRSInterfaces(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/data/default-config", GetDefaultConfig)
+	router.GET("/api/data/stations", ListStations)
+	router.GET("/api/data/lines/:lineId/stations", ListStationsByLine)
+	router.GET("/api/data/transfer-rules", SearchTransferRules)
+	router.GET("/api/data/route-plan/:ruleId", GetRoutePlanByRule)
+
+	requests := []struct {
+		path     string
+		contains []byte
+	}{
+		{"/api/data/default-config", []byte(`"defaultStation":"同济大学"`)},
+		{"/api/data/stations?keyword=浦东", []byte(`浦东国际机场`)},
+		{"/api/data/lines/10/stations", []byte(`同济大学`)},
+		{"/api/data/transfer-rules?keyword=五角场&originStationId=tongji_university&lineId=10", []byte(`ruleId`)},
+	}
+	for _, item := range requests {
+		req := httptest.NewRequest(http.MethodGet, item.path, nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s expected 200, got %d with body %s", item.path, rec.Code, rec.Body.String())
+		}
+		if !bytes.Contains(rec.Body.Bytes(), item.contains) {
+			t.Fatalf("%s expected body to contain %s, got %s", item.path, item.contains, rec.Body.String())
+		}
+	}
+
+	ruleID := "network%7Ctongji_university%7C10%7Cwujiaochang_10"
+	req := httptest.NewRequest(http.MethodGet, "/api/data/route-plan/"+ruleID, nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected route plan by rule to succeed, got %d with body %s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"segments"`)) {
+		t.Fatalf("expected route plan segments, got %s", rec.Body.String())
+	}
+}
+
+func TestGetCommonRoutesWithoutDatabaseReturnsDemoRoutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/common-routes/user/:userId", GetCommonRoutes)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/common-routes/user/default", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`同济大学`)) ||
+		!bytes.Contains(rec.Body.Bytes(), []byte(`local-demo`)) {
+		t.Fatalf("expected demo common routes, got %s", rec.Body.String())
 	}
 }
 
@@ -347,5 +460,34 @@ func TestSaveUserLuggageRejectsLongWeight(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+}
+
+func TestUserPrivacyEndpointsWorkInDemoMode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.DELETE("/api/users/:userId", DeleteUserData)
+	router.POST("/api/users/:userId/anonymize", AnonymizeUserData)
+
+	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/users/default", nil)
+	deleteRec := httptest.NewRecorder()
+	router.ServeHTTP(deleteRec, deleteReq)
+	if deleteRec.Code != http.StatusOK {
+		t.Fatalf("expected delete status %d, got %d with body %s", http.StatusOK, deleteRec.Code, deleteRec.Body.String())
+	}
+	if !bytes.Contains(deleteRec.Body.Bytes(), []byte(`"deleted":true`)) {
+		t.Fatalf("expected delete confirmation, got %s", deleteRec.Body.String())
+	}
+
+	anonymizeReq := httptest.NewRequest(http.MethodPost, "/api/users/default/anonymize", nil)
+	anonymizeRec := httptest.NewRecorder()
+	router.ServeHTTP(anonymizeRec, anonymizeReq)
+	if anonymizeRec.Code != http.StatusOK {
+		t.Fatalf("expected anonymize status %d, got %d with body %s", http.StatusOK, anonymizeRec.Code, anonymizeRec.Body.String())
+	}
+	if !bytes.Contains(anonymizeRec.Body.Bytes(), []byte(`"anonymousUserId"`)) {
+		t.Fatalf("expected anonymized id, got %s", anonymizeRec.Body.String())
 	}
 }

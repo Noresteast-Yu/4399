@@ -102,26 +102,37 @@ func GetStation(c *gin.Context) {
 			&station.StationType, &station.Description,
 		)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"success": false,
-				"error":   "站点不存在",
-			})
-			return
+			if fallback, ok := services.MetroNetworkStationForID(stationID); ok {
+				station = fallback
+			} else {
+				c.JSON(http.StatusNotFound, gin.H{
+					"success": false,
+					"error":   "站点不存在",
+				})
+				return
+			}
 		}
 	} else {
 		station, err = services.FindStationByID(stationID)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"success": false,
-				"error":   "站点不存在",
-			})
-			return
+			if fallback, ok := services.MetroNetworkStationForID(stationID); ok {
+				station = fallback
+			} else {
+				c.JSON(http.StatusNotFound, gin.H{
+					"success": false,
+					"error":   "站点不存在",
+				})
+				return
+			}
 		}
 	}
 
 	facility, _ := services.GetStationFacilityInfo(stationID)
 
 	lines := services.GetStationLineNames(stationID)
+	if len(lines) == 0 {
+		lines = services.MetroNetworkLineIDsForStationID(station.StationID)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
@@ -599,7 +610,7 @@ func GetCommonRoutes(c *gin.Context) {
 	}
 
 	if database.DB == nil {
-		c.JSON(http.StatusOK, []gin.H{})
+		c.JSON(http.StatusOK, defaultCommonRoutes(userID))
 		return
 	}
 
@@ -634,6 +645,32 @@ func GetCommonRoutes(c *gin.Context) {
 
 	c.JSON(http.StatusOK, routes)
 }
+
+func defaultCommonRoutes(userID string) []gin.H {
+	return []gin.H{
+		{
+			"id":       0,
+			"userId":   userID,
+			"start":    "同济大学",
+			"end":      "上海火车站",
+			"time":     "约31分钟",
+			"distance": "约17公里",
+			"title":    "同济大学 -> 上海火车站",
+			"source":   "local-demo",
+		},
+		{
+			"id":       0,
+			"userId":   userID,
+			"start":    "同济大学",
+			"end":      "浦东国际机场",
+			"time":     "约74分钟",
+			"distance": "约42公里",
+			"title":    "同济大学 -> 浦东国际机场",
+			"source":   "local-demo",
+		},
+	}
+}
+
 func AddCommonRoute(c *gin.Context) {
 	var req struct {
 		UserID   string `json:"userId"`
@@ -726,15 +763,72 @@ func DeleteCommonRoute(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": "删除成功"})
 }
 
+func GetDefaultConfig(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": services.MetroNetworkDefaultConfig()})
+}
+
+func ListStations(c *gin.Context) {
+	keyword := strings.TrimSpace(c.Query("keyword"))
+	stations := services.MetroNetworkStations()
+	if keyword == "" {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": stations, "totalCount": len(stations)})
+		return
+	}
+
+	filtered := make([]services.MetroNetworkStationDirectoryItem, 0)
+	for _, station := range stations {
+		if strings.Contains(station.Name, keyword) || strings.Contains(station.ID, keyword) {
+			filtered = append(filtered, station)
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": filtered, "totalCount": len(filtered)})
+}
+
+func ListDataLines(c *gin.Context) {
+	lines := services.MetroNetworkLineSummaries()
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": lines, "totalCount": len(lines)})
+}
+
+func ListStationsByLine(c *gin.Context) {
+	lineID := strings.TrimSpace(c.Param("lineId"))
+	stations := services.MetroNetworkStationsByLine(lineID)
+	if len(stations) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "线路不存在或暂无站序数据"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": stations, "totalCount": len(stations)})
+}
+
+func SearchTransferRules(c *gin.Context) {
+	rules := services.MetroNetworkSearchTransferRules(
+		c.Query("keyword"),
+		c.Query("originStationId"),
+		c.Query("lineId"),
+	)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": rules, "totalCount": len(rules)})
+}
+
+func GetRoutePlanByRule(c *gin.Context) {
+	ruleID := strings.TrimSpace(c.Param("ruleId"))
+	route, ok := services.MetroNetworkRoutePlanForRule(ruleID)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": "换乘规则不存在或无法生成路线"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": route})
+}
+
 func ValidateData(c *gin.Context) {
 	if database.DB == nil {
 		networkCounts, networkErrors := services.MetroNetworkValidate()
-		c.JSON(http.StatusServiceUnavailable, gin.H{
+		warnings := []string{"database is not connected, validating in-memory metro network"}
+		c.JSON(http.StatusOK, gin.H{
 			"success": len(networkErrors) == 0,
 			"data": gin.H{
-				"ok":     false,
-				"errors": append([]string{"database is not connected, using in-memory metro network"}, networkErrors...),
-				"counts": networkCounts,
+				"ok":       len(networkErrors) == 0,
+				"errors":   networkErrors,
+				"warnings": warnings,
+				"counts":   networkCounts,
 			},
 		})
 		return
@@ -830,7 +924,8 @@ func ValidateData(c *gin.Context) {
 
 func GetStaticResources(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		resources := defaultStaticResources(c.Query("type"))
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": resources, "totalCount": len(resources)})
 		return
 	}
 
@@ -866,6 +961,26 @@ func GetStaticResources(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resources})
+}
+
+func defaultStaticResources(resourceType string) []gin.H {
+	resourceType = strings.TrimSpace(resourceType)
+	resources := []gin.H{
+		{"type": "icon", "name": "timer", "path": "app/assets/icons/timer.png", "description": "换乘倒计时图标"},
+		{"type": "icon", "name": "transfer", "path": "app/assets/icons/transfer.png", "description": "站内换乘图标"},
+		{"type": "diagram", "name": "tongji-university", "path": "backend/go/data/station_topologies/tongji_university.json", "description": "同济大学站平面换乘拓扑数据"},
+		{"type": "generated-visual", "name": "station-visual", "path": "/api/station-visual", "description": "站点无真实照片时生成的平面示意图"},
+	}
+	if resourceType == "" {
+		return resources
+	}
+	filtered := []gin.H{}
+	for _, resource := range resources {
+		if resource["type"] == resourceType {
+			filtered = append(filtered, resource)
+		}
+	}
+	return filtered
 }
 
 func countRows(tableName string) (int, error) {
@@ -1152,6 +1267,80 @@ func allowedString(value, fallback string, allowed ...string) string {
 		}
 	}
 	return fallback
+}
+
+func DeleteUserData(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userId"))
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID"})
+		return
+	}
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"userId":  userID,
+				"deleted": true,
+				"message": "演示模式未保存真实用户数据",
+			},
+		})
+		return
+	}
+
+	tables := []string{"user_preferences", "user_abilities", "user_luggage", "common_routes"}
+	deletedRows := int64(0)
+	for _, table := range tables {
+		result, err := database.DB.Exec("DELETE FROM "+table+" WHERE user_id = ?", userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "用户数据删除失败"})
+			return
+		}
+		if rows, err := result.RowsAffected(); err == nil {
+			deletedRows += rows
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"userId":      userID,
+		"deleted":     true,
+		"deletedRows": deletedRows,
+	}})
+}
+
+func AnonymizeUserData(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userId"))
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供用户ID"})
+		return
+	}
+	anonymousID := fmt.Sprintf("anonymous_%d", time.Now().UnixNano())
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+			"originalUserId":  userID,
+			"anonymousUserId": anonymousID,
+			"message":         "演示模式未保存真实用户数据",
+		}})
+		return
+	}
+
+	tables := []string{"user_preferences", "user_abilities", "user_luggage", "common_routes"}
+	updatedRows := int64(0)
+	for _, table := range tables {
+		result, err := database.DB.Exec("UPDATE "+table+" SET user_id = ? WHERE user_id = ?", anonymousID, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "用户数据匿名化失败"})
+			return
+		}
+		if rows, err := result.RowsAffected(); err == nil {
+			updatedRows += rows
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"originalUserId":  userID,
+		"anonymousUserId": anonymousID,
+		"updatedRows":     updatedRows,
+	}})
 }
 
 func GetTrainInfo(c *gin.Context) {

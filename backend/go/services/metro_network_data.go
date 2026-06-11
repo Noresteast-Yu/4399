@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 
 	"smart-travel-backend/models"
@@ -30,6 +32,30 @@ type MetroNetworkLineSummary struct {
 	CrowdingLevel string                       `json:"crowdingLevel"`
 	StationCount  int                          `json:"stationCount"`
 	Stations      []MetroNetworkStationSummary `json:"stations"`
+}
+
+type MetroNetworkStationDirectoryItem struct {
+	ID             string   `json:"id"`
+	Name           string   `json:"name"`
+	City           string   `json:"city"`
+	StationType    string   `json:"stationType"`
+	AvailableLines []string `json:"availableLineIds"`
+	Description    string   `json:"description"`
+}
+
+type MetroNetworkTransferRuleSummary struct {
+	RuleID             string   `json:"ruleId"`
+	OriginStationID    string   `json:"originStationId"`
+	OriginStationName  string   `json:"originStationName"`
+	LineID             string   `json:"lineId"`
+	LineName           string   `json:"lineName"`
+	TargetStationID    string   `json:"targetStationId"`
+	TargetStationName  string   `json:"targetStationName"`
+	Direction          string   `json:"direction"`
+	StopsCount         int      `json:"stopsCount"`
+	EstimatedMinutes   int      `json:"estimatedMinutes"`
+	CarriageSuggestion string   `json:"carriageSuggestion"`
+	TransferLines      []string `json:"transferLines"`
 }
 
 var metroNetworkLineNames = map[string]string{
@@ -617,14 +643,203 @@ func metroNetworkLine(lineID string) (models.MetroLine, bool) {
 		return models.MetroLine{}, false
 	}
 	color := metroNetworkLineColors[normalized]
-	desc := "????" + name
+	desc := "上海地铁" + name
 	return models.MetroLine{
 		LineID:      normalized,
 		LineName:    name,
-		City:        "??",
+		City:        "上海",
 		ColorHex:    &color,
 		Description: &desc,
 	}, true
+}
+
+func MetroNetworkDefaultConfig() map[string]interface{} {
+	lines := MetroNetworkLineSummaries()
+	defaultStation := "同济大学"
+	defaultLine := "10"
+	return map[string]interface{}{
+		"city":             "上海",
+		"defaultStation":   defaultStation,
+		"defaultStationId": metroNetworkStationNameToID[defaultStation],
+		"defaultLineId":    defaultLine,
+		"defaultLineName":  metroNetworkLineNames[defaultLine],
+		"defaultDirection": "基隆路",
+		"lineCount":        len(lines),
+		"lines":            lines,
+		"dataSource":       "in-memory-network",
+	}
+}
+
+func MetroNetworkStations() []MetroNetworkStationDirectoryItem {
+	lineByStation := map[string][]string{}
+	idByStation := map[string]string{}
+	for lineID, stations := range metroNetworkLines {
+		for _, station := range stations {
+			lineByStation[station.Name] = append(lineByStation[station.Name], lineID)
+			if _, exists := idByStation[station.Name]; !exists {
+				idByStation[station.Name] = station.ID
+			}
+		}
+	}
+
+	names := make([]string, 0, len(lineByStation))
+	for name := range lineByStation {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	result := make([]MetroNetworkStationDirectoryItem, 0, len(names))
+	for _, name := range names {
+		lines := lineByStation[name]
+		sort.Slice(lines, func(i, j int) bool {
+			return normalizeNetworkMetroLineID(lines[i]) < normalizeNetworkMetroLineID(lines[j])
+		})
+		result = append(result, MetroNetworkStationDirectoryItem{
+			ID:             idByStation[name],
+			Name:           name,
+			City:           "上海",
+			StationType:    "地铁站",
+			AvailableLines: append([]string{}, lines...),
+			Description:    "上海地铁" + name + "站，支持线路、站序和换乘规则查询。",
+		})
+	}
+	return result
+}
+
+func MetroNetworkStationsByLine(lineID string) []MetroNetworkStationSummary {
+	lineID = normalizeNetworkMetroLineID(lineID)
+	stations := metroNetworkLines[lineID]
+	result := make([]MetroNetworkStationSummary, 0, len(stations))
+	for _, station := range stations {
+		result = append(result, MetroNetworkStationSummary{
+			ID:    station.ID,
+			Name:  station.Name,
+			Order: station.Order,
+		})
+	}
+	return result
+}
+
+func MetroNetworkSearchTransferRules(keyword, originStationID, lineID string) []MetroNetworkTransferRuleSummary {
+	keyword = strings.TrimSpace(keyword)
+	originName := metroNetworkStationName(originStationID, "")
+	if originName == "" {
+		if station, ok := metroNetworkStationByName(originStationID); ok {
+			originName = station.StationName
+			originStationID = station.StationID
+		}
+	}
+
+	lineID = normalizeNetworkMetroLineID(lineID)
+	if lineID == "" {
+		lineID = lineForStationName(originName)
+	}
+	if lineID == "" || len(metroNetworkLines[lineID]) == 0 {
+		lineID = "10"
+	}
+
+	if originName == "" {
+		origin := metroNetworkLines[lineID][0]
+		originName = origin.Name
+		originStationID = origin.ID
+	}
+
+	originOrder, ok := metroNetworkOrder(lineID, originName)
+	if !ok {
+		originOrder = 1
+	}
+
+	lineName := metroNetworkLineNames[lineID]
+	result := make([]MetroNetworkTransferRuleSummary, 0)
+	for _, target := range metroNetworkLines[lineID] {
+		if keyword != "" && !strings.Contains(target.Name, keyword) && !strings.Contains(target.ID, keyword) {
+			continue
+		}
+		stops := target.Order - originOrder
+		direction := metroNetworkLines[lineID][len(metroNetworkLines[lineID])-1].Name
+		if stops < 0 {
+			stops = -stops
+			direction = metroNetworkLines[lineID][0].Name
+		}
+		if stops == 0 && keyword == "" {
+			continue
+		}
+		transferLines := linesForStationName(target.Name)
+		result = append(result, MetroNetworkTransferRuleSummary{
+			RuleID:             fmt.Sprintf("network|%s|%s|%s", originStationID, lineID, target.ID),
+			OriginStationID:    originStationID,
+			OriginStationName:  originName,
+			LineID:             lineID,
+			LineName:           lineName,
+			TargetStationID:    target.ID,
+			TargetStationName:  target.Name,
+			Direction:          direction,
+			StopsCount:         stops,
+			EstimatedMinutes:   3 + stops*2,
+			CarriageSuggestion: carriageSuggestionForStops(stops),
+			TransferLines:      transferLines,
+		})
+		if len(result) >= 50 {
+			break
+		}
+	}
+	return result
+}
+
+func MetroNetworkRoutePlanForRule(ruleID string) (*PlannedRoute, bool) {
+	parts := strings.Split(ruleID, "|")
+	if len(parts) != 4 || parts[0] != "network" {
+		return nil, false
+	}
+	originName := metroNetworkStationName(parts[1], "")
+	targetName := metroNetworkStationName(parts[3], "")
+	if originName == "" || targetName == "" {
+		return nil, false
+	}
+	result, err := PlanRoute(originName, targetName)
+	if err != nil || len(result.Routes) == 0 {
+		return nil, false
+	}
+	route := result.Routes[0]
+	route.RouteID = ruleID
+	return &route, true
+}
+
+func lineForStationName(stationName string) string {
+	for lineID, stations := range metroNetworkLines {
+		for _, station := range stations {
+			if station.Name == stationName {
+				return lineID
+			}
+		}
+	}
+	return ""
+}
+
+func linesForStationName(stationName string) []string {
+	lines := []string{}
+	for lineID, stations := range metroNetworkLines {
+		for _, station := range stations {
+			if station.Name == stationName {
+				lines = append(lines, lineID)
+				break
+			}
+		}
+	}
+	sort.Slice(lines, func(i, j int) bool {
+		return normalizeNetworkMetroLineID(lines[i]) < normalizeNetworkMetroLineID(lines[j])
+	})
+	return lines
+}
+
+func carriageSuggestionForStops(stops int) string {
+	if stops <= 2 {
+		return "建议选择中部车厢，便于快速上下车。"
+	}
+	if stops >= 8 {
+		return "建议选择靠近换乘通道或电梯的车厢，行李较多可避开首尾车厢。"
+	}
+	return "建议选择中前部车厢，兼顾候车和换乘效率。"
 }
 
 func MetroNetworkLineSummaries() []MetroNetworkLineSummary {
@@ -737,11 +952,11 @@ func metroNetworkCrowding(lineID string) string {
 func metroNetworkStationByName(name string) (models.Station, bool) {
 	name = strings.TrimSpace(name)
 	if id, ok := metroNetworkStationNameToID[name]; ok {
-		return models.Station{StationID: id, StationName: name, City: "??", StationType: "???"}, true
+		return models.Station{StationID: id, StationName: name, City: "上海", StationType: "地铁站"}, true
 	}
 	for stationName, id := range metroNetworkStationNameToID {
 		if strings.Contains(stationName, name) || strings.Contains(name, stationName) {
-			return models.Station{StationID: id, StationName: stationName, City: "??", StationType: "???"}, true
+			return models.Station{StationID: id, StationName: stationName, City: "上海", StationType: "地铁站"}, true
 		}
 	}
 	return models.Station{}, false
@@ -751,11 +966,46 @@ func metroNetworkStationName(stationID string, fallback string) string {
 	if name, ok := metroNetworkStationIDToName[stationID]; ok {
 		return name
 	}
+	for id, name := range metroNetworkStationIDToName {
+		if strings.HasPrefix(id, stationID+"_") {
+			return name
+		}
+	}
 	return fallback
 }
 
 func MetroNetworkStationNameForID(stationID string) string {
 	return metroNetworkStationName(stationID, "")
+}
+
+func MetroNetworkStationForID(stationID string) (models.Station, bool) {
+	name := metroNetworkStationName(stationID, "")
+	if name == "" {
+		return models.Station{}, false
+	}
+	resolvedID := stationID
+	if _, exists := metroNetworkStationIDToName[resolvedID]; !exists {
+		for id, stationName := range metroNetworkStationIDToName {
+			if strings.HasPrefix(id, stationID+"_") && stationName == name {
+				resolvedID = id
+				break
+			}
+		}
+	}
+	return models.Station{
+		StationID:   resolvedID,
+		StationName: name,
+		City:        "上海",
+		StationType: "地铁站",
+	}, true
+}
+
+func MetroNetworkLineIDsForStationID(stationID string) []string {
+	stationName := metroNetworkStationName(stationID, "")
+	if stationName == "" {
+		return nil
+	}
+	return linesForStationName(stationName)
 }
 
 func metroNetworkLineStations(stationID string, stationName string) []models.LineStation {

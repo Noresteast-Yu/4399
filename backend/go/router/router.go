@@ -80,12 +80,20 @@ func SetupRouter() *gin.Engine {
 
 		data := api.Group("/data")
 		{
+			data.GET("/default-config", handlers.GetDefaultConfig)
+			data.GET("/stations", handlers.ListStations)
+			data.GET("/lines", handlers.ListDataLines)
+			data.GET("/lines/:lineId/stations", handlers.ListStationsByLine)
+			data.GET("/transfer-rules", handlers.SearchTransferRules)
+			data.GET("/route-plan/:ruleId", handlers.GetRoutePlanByRule)
 			data.GET("/validate", handlers.ValidateData)
 			data.GET("/static-resources", handlers.GetStaticResources)
 		}
 
 		users := api.Group("/users")
 		{
+			users.DELETE("/:userId", handlers.DeleteUserData)
+			users.POST("/:userId/anonymize", handlers.AnonymizeUserData)
 			users.GET("/:userId/preferences", handlers.GetUserPreferences)
 			users.PUT("/:userId/preferences", handlers.SaveUserPreferences)
 			users.GET("/:userId/abilities", handlers.GetUserAbilities)

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/top_nav_bar.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
+import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/theme/app_theme.dart';
-import 'package:smart_travel_app/utils/network_manager.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -13,7 +13,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final NetworkManager _networkManager = NetworkManager();
+  final ApiService _apiService = ApiService();
 
   List<Map<String, dynamic>> _commonRoutes = [];
   bool _isLoading = true;
@@ -49,25 +49,25 @@ class _ProfilePageState extends State<ProfilePage> {
         _error = null;
       });
 
-      final response = await _networkManager.get('/common-routes/user/default');
-      final data = response.data;
+      final response = await _apiService.getCommonRoutes('default');
 
+      if (!mounted) return;
       setState(() {
-        if (data is Map && data['success'] == true) {
-          final routesData = data['data'];
-          _commonRoutes = routesData is List
-              ? List<Map<String, dynamic>>.from(routesData)
-              : [];
-        } else if (data is List) {
-          _commonRoutes = List<Map<String, dynamic>>.from(data);
+        if (response.success && response.data != null) {
+          _commonRoutes = response.data!
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList();
         } else {
           _commonRoutes = [];
+          _error = response.error;
         }
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = '常用路线加载失败，请检查后端连接';
         _isLoading = false;
       });
     }
@@ -126,12 +126,14 @@ class _ProfilePageState extends State<ProfilePage> {
               Navigator.pop(context);
 
               try {
-                final response = await _networkManager.post(
-                  '/common-routes/add',
-                  data: {'start': start, 'end': end},
+                final response = await _apiService.addCommonRoute(
+                  userId: 'default',
+                  start: start,
+                  end: end,
                 );
 
-                if (response.data is Map && response.data['success'] == true) {
+                if (!mounted) return;
+                if (response.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('添加成功'),
@@ -142,15 +144,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(response.data['error'] ?? '添加失败'),
+                      content: Text(response.error ?? '添加失败'),
                       backgroundColor: Colors.red,
                     ),
                   );
                 }
               } catch (e) {
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('添加失败: $e'),
+                    content: const Text('添加失败，请检查后端连接'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -164,6 +167,15 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _deleteRoute(Map<String, dynamic> route) async {
+    if (route['source'] == 'local-demo' || route['id'] == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('这是演示路线，连接数据库后可管理自己的常用路线'),
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -186,11 +198,12 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirmed != true) return;
 
     try {
-      final response = await _networkManager.delete(
-        '/common-routes/${route['id']}',
+      final response = await _apiService.deleteCommonRoute(
+        route['id'].toString(),
       );
 
-      if (response.data is Map && response.data['success'] == true) {
+      if (!mounted) return;
+      if (response.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('删除成功'),
@@ -201,15 +214,16 @@ class _ProfilePageState extends State<ProfilePage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response.data['error'] ?? '删除失败'),
+            content: Text(response.error ?? '删除失败'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('删除失败: $e'),
+          content: const Text('删除失败，请检查后端连接'),
           backgroundColor: Colors.red,
         ),
       );

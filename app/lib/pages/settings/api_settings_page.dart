@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/ai_planning_service.dart';
@@ -23,8 +22,11 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
   final ApiService _apiService = ApiService();
 
   bool _isTestingBackend = false;
+  bool _isValidatingData = false;
   String? _backendStatusText;
+  String? _dataValidationText;
   bool? _backendHealthy;
+  bool? _dataHealthy;
 
   @override
   void initState() {
@@ -59,7 +61,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
     }
   }
 
-  Future<void> _saveSettings() async {
+  Future<void> _saveSettings({bool showSnackBar = true}) async {
     await AIPlanningService.setApiKey(_apiKeyController.text.trim());
     await AIPlanningService.setApiEndpoint(_endpointController.text.trim());
     await AIPlanningService.setModel(_modelController.text.trim());
@@ -70,7 +72,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
         ? '3000'
         : _serverPortController.text.trim());
     await NetworkManager().refreshBaseUrl();
-    if (mounted) {
+    if (mounted && showSnackBar) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('配置已保存')),
       );
@@ -84,7 +86,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
       _backendHealthy = null;
     });
 
-    await _saveSettings();
+    await _saveSettings(showSnackBar: false);
     final response = await _apiService.getBackendHealth();
 
     if (!mounted) return;
@@ -99,6 +101,49 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
       } else {
         _backendStatusText = response.error ?? '连接失败';
       }
+    });
+  }
+
+  Future<void> _validateBackendData() async {
+    setState(() {
+      _isValidatingData = true;
+      _dataValidationText = null;
+      _dataHealthy = null;
+    });
+
+    await _saveSettings(showSnackBar: false);
+    final response = await _apiService.validateData();
+
+    if (!mounted) return;
+    setState(() {
+      _isValidatingData = false;
+      if (response.success && response.data != null) {
+        final ok = response.data!['ok'] == true;
+        final errors = response.data!['errors'];
+        final counts = response.data!['counts'];
+        final lineCount = counts is Map ? counts['network_lines'] : null;
+        final stationRows =
+            counts is Map ? counts['network_line_station_rows'] : null;
+        _dataHealthy = ok;
+        if (ok) {
+          _dataValidationText =
+              '数据校验通过：已覆盖${lineCount ?? '-'}条线路，${stationRows ?? '-'}条站序记录';
+        } else if (errors is List && errors.isNotEmpty) {
+          _dataValidationText = '数据仍需检查：${errors.take(2).join('；')}';
+        } else {
+          _dataValidationText = '数据校验未通过，请检查后端数据库或演示数据';
+        }
+      } else {
+        _dataHealthy = false;
+        _dataValidationText = response.error ?? '数据校验失败';
+      }
+    });
+  }
+
+  void _fillBackendPreset(String host, String port) {
+    setState(() {
+      _serverHostController.text = host;
+      _serverPortController.text = port;
     });
   }
 
@@ -221,18 +266,43 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                           Icon(Icons.dns, color: colorScheme.onSurfaceVariant),
                     ),
                     SizedBox(height: AppTheme.spacingS),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _serverHostController.text =
-                                'http://100.79.122.212:3000/api';
-                            _serverPortController.text = '3000';
-                          });
-                        },
-                        icon: const Icon(Icons.phone_android_rounded),
-                        label: const Text('一键填入手机后端地址'),
+                    Wrap(
+                      spacing: AppTheme.spacingS,
+                      runSpacing: AppTheme.spacingS,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _fillBackendPreset('10.0.2.2', '3000'),
+                          icon: const Icon(Icons.phone_android_rounded),
+                          label: const Text('安卓模拟器'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _fillBackendPreset('localhost', '3000'),
+                          icon: const Icon(Icons.computer_rounded),
+                          label: const Text('电脑本机'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => _fillBackendPreset('', '3000'),
+                          icon: const Icon(Icons.edit_location_alt_rounded),
+                          label: const Text('真机手填'),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: AppTheme.spacingS),
+                    Container(
+                      padding: EdgeInsets.all(AppTheme.spacingS),
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondaryContainer.withOpacity(0.5),
+                        borderRadius: AppTheme.borderRadiusS,
+                      ),
+                      child: Text(
+                        '模拟器用 10.0.2.2:3000。真机要填电脑 WLAN 的 IPv4 地址，'
+                        '例如 http://电脑IP:3000/api，手机和电脑需要在同一网络。',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSecondaryContainer,
+                        ),
                       ),
                     ),
                     SizedBox(height: AppTheme.spacingM),
@@ -257,22 +327,6 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                       ),
                     ),
                     SizedBox(height: AppTheme.spacingM),
-                    Container(
-                      padding: EdgeInsets.all(AppTheme.spacingS),
-                      decoration: BoxDecoration(
-                        color: colorScheme.secondaryContainer.withOpacity(0.5),
-                        borderRadius: AppTheme.borderRadiusS,
-                      ),
-                      child: Text(
-                        '真机可以直接填完整地址：http://100.79.122.212:3000/api。'
-                        '如果分开填写，服务器地址填 100.79.122.212，端口填 3000。',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: AppTheme.spacingM),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -291,31 +345,41 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
                         label: Text(_isTestingBackend ? '测试中...' : '测试后端连接'),
                       ),
                     ),
+                    SizedBox(height: AppTheme.spacingS),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            _isValidatingData ? null : _validateBackendData,
+                        icon: _isValidatingData
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              )
+                            : const Icon(Icons.fact_check_rounded),
+                        label: Text(_isValidatingData ? '校验中...' : '校验后端数据'),
+                      ),
+                    ),
                     if (_backendStatusText != null) ...[
                       SizedBox(height: AppTheme.spacingS),
-                      Row(
-                        children: [
-                          Icon(
-                            _backendHealthy == true
-                                ? Icons.check_circle_rounded
-                                : Icons.error_rounded,
-                            size: 18,
-                            color: _backendHealthy == true
-                                ? Colors.green
-                                : colorScheme.error,
-                          ),
-                          SizedBox(width: AppTheme.spacingS),
-                          Expanded(
-                            child: Text(
-                              _backendStatusText!,
-                              style: textTheme.bodySmall?.copyWith(
-                                color: _backendHealthy == true
-                                    ? Colors.green.shade700
-                                    : colorScheme.error,
-                              ),
-                            ),
-                          ),
-                        ],
+                      _StatusLine(
+                        healthy: _backendHealthy == true,
+                        text: _backendStatusText!,
+                        successColor: Colors.green.shade700,
+                        errorColor: colorScheme.error,
+                      ),
+                    ],
+                    if (_dataValidationText != null) ...[
+                      SizedBox(height: AppTheme.spacingS),
+                      _StatusLine(
+                        healthy: _dataHealthy == true,
+                        text: _dataValidationText!,
+                        successColor: Colors.green.shade700,
+                        errorColor: colorScheme.error,
                       ),
                     ],
                   ],
@@ -325,6 +389,43 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  final bool healthy;
+  final String text;
+  final Color successColor;
+  final Color errorColor;
+
+  const _StatusLine({
+    required this.healthy,
+    required this.text,
+    required this.successColor,
+    required this.errorColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = healthy ? successColor : errorColor;
+    return Row(
+      children: [
+        Icon(
+          healthy ? Icons.check_circle_rounded : Icons.error_rounded,
+          size: 18,
+          color: color,
+        ),
+        SizedBox(width: AppTheme.spacingS),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: color,
+                ),
+          ),
+        ),
+      ],
     );
   }
 }

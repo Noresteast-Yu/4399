@@ -42,7 +42,7 @@ class ApiService {
     } on DioException catch (e) {
       return ApiResponse<T>(
         success: false,
-        error: '网络错误: ${e.message ?? '未知错误'}',
+        error: _friendlyDioError(e),
       );
     } catch (e) {
       return ApiResponse<T>(
@@ -384,6 +384,63 @@ class ApiService {
     });
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> getDefaultConfig() {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.get('/data/default-config');
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<List<dynamic>>> listStations({String? keyword}) {
+    return _handleApiCall<List<dynamic>>(() async {
+      final response = await _networkManager.get(
+        '/data/stations',
+        queryParameters: {
+          if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+        },
+      );
+      return _unwrapDataList(response.data);
+    });
+  }
+
+  Future<ApiResponse<List<dynamic>>> listStationsByLine(String lineId) {
+    return _handleApiCall<List<dynamic>>(() async {
+      final encodedLineId = Uri.encodeComponent(lineId);
+      final response =
+          await _networkManager.get('/data/lines/$encodedLineId/stations');
+      return _unwrapDataList(response.data);
+    });
+  }
+
+  Future<ApiResponse<List<dynamic>>> searchTransferRules({
+    String? keyword,
+    String? originStationId,
+    String? lineId,
+  }) {
+    return _handleApiCall<List<dynamic>>(() async {
+      final response = await _networkManager.get(
+        '/data/transfer-rules',
+        queryParameters: {
+          if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+          if (originStationId != null && originStationId.isNotEmpty)
+            'originStationId': originStationId,
+          if (lineId != null && lineId.isNotEmpty) 'lineId': lineId,
+        },
+      );
+      return _unwrapDataList(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getRoutePlanByRule(
+      String ruleId) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final encodedRuleId = Uri.encodeComponent(ruleId);
+      final response =
+          await _networkManager.get('/data/route-plan/$encodedRuleId');
+      return _unwrapDataMap(response.data);
+    });
+  }
+
   Future<ApiResponse<List<dynamic>>> getStaticResources({String? type}) {
     return _handleApiCall<List<dynamic>>(() async {
       final path = type == null
@@ -477,6 +534,23 @@ class ApiService {
           'size': size,
         },
       );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> deleteUserData(String userId) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final encodedUserId = Uri.encodeComponent(userId);
+      final response = await _networkManager.delete('/users/$encodedUserId');
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> anonymizeUserData(String userId) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final encodedUserId = Uri.encodeComponent(userId);
+      final response =
+          await _networkManager.post('/users/$encodedUserId/anonymize');
       return _unwrapDataMap(response.data);
     });
   }
