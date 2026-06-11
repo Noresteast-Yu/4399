@@ -38,7 +38,6 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
   List<Map<String, dynamic>> _routePlans = [];
   int _selectedPlanIndex = 0;
   bool _isLoading = false;
-  bool _isGuideLoading = false;
   String? _error;
   bool _hasSearched = false;
 
@@ -546,116 +545,6 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
     addIfNotEmpty('routeId', _textOf(plan['routeId']));
 
     context.push(Uri(path: '/ai-planning', queryParameters: params).toString());
-  }
-
-  Future<void> _showIndoorGuideSheet(Map<String, dynamic> plan) async {
-    final start = _startController.text.trim();
-    final end = _endController.text.trim();
-    if (start.isEmpty || end.isEmpty) return;
-
-    setState(() => _isGuideLoading = true);
-    final response = await _apiService.getIndoorGuide(
-      from: start,
-      to: end,
-      startEntranceId: widget.initialStartEntranceId,
-      startEntranceName: widget.initialStartEntranceName,
-      endExitId: widget.initialEndExitId,
-      endExitName: widget.initialEndExitName,
-    );
-    if (!mounted) return;
-    setState(() => _isGuideLoading = false);
-
-    if (!response.success || response.data == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.error ?? '站内指引加载失败')),
-      );
-      return;
-    }
-
-    final rawSteps = response.data!['steps'];
-    final steps = rawSteps is List
-        ? rawSteps
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList()
-        : <Map<String, dynamic>>[];
-
-    if (steps.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('暂无站内指引步骤')),
-      );
-      return;
-    }
-
-    await showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final colorScheme = Theme.of(context).colorScheme;
-        final textTheme = Theme.of(context).textTheme;
-        return DraggableScrollableSheet(
-          initialChildSize: 0.72,
-          minChildSize: 0.42,
-          maxChildSize: 0.92,
-          builder: (context, controller) {
-            return Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-              ),
-              child: ListView(
-                controller: controller,
-                padding: EdgeInsets.fromLTRB(
-                  AppTheme.spacingM,
-                  10,
-                  AppTheme.spacingM,
-                  AppTheme.spacingL,
-                ),
-                children: [
-                  Center(
-                    child: Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: AppTheme.spacingM),
-                  Text(
-                    '站内一点通',
-                    style: textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  SizedBox(height: AppTheme.spacingS),
-                  Text(
-                    '${_textOf(plan['title']).isEmpty ? '已选路线' : _textOf(plan['title'])} · ${start} → $end',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  SizedBox(height: AppTheme.spacingM),
-                  ...List.generate(
-                    steps.length,
-                    (index) => _IndoorGuideStepTile(
-                      index: index,
-                      total: steps.length,
-                      step: steps[index],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   String _textOf(dynamic value) => value?.toString().trim() ?? '';
