@@ -50,7 +50,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   late final String _entranceNodeId; // 用户进站口的拓扑节点 ID
   int _stepIndex = 0;
   _ProgressStatus? _stepStatus;
-  _RouteSummary? _summary;
   List<_NavStep> _guideSteps = [];
   String? _guideLoadNotice;
   Timer? _statusRefreshTimer;
@@ -181,14 +180,8 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
         return;
       }
 
-      final rawSummary = response.data?['summary'];
-
       setState(() {
         _guideLoadNotice = null;
-        if (rawSummary is Map) {
-          _summary =
-              _RouteSummary.fromJson(Map<String, dynamic>.from(rawSummary));
-        }
         _guideSteps = steps;
         if (_stepIndex >= _guideSteps.length) {
           _stepIndex = _guideSteps.length - 1;
@@ -207,15 +200,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   void _useOfflineGuide(String notice) {
     setState(() {
       _guideLoadNotice = notice;
-      _summary = _RouteSummary(
-        title: '本地换乘指引',
-        durationMinutes: 8,
-        transferCount: 0,
-        transferText: '按站内标识前往',
-        doorHint: _startEntranceName.isNotEmpty ? _startEntranceName : '中部车门',
-        lines: const ['演示路线'],
-        nextAction: '确认起终点后按页面步骤前进',
-      );
       _guideSteps = [
         _NavStep(
           stage: _StepStage.entry,
@@ -311,9 +295,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
     final steps = _guideSteps;
     final step = steps[_stepIndex];
-    final showSummary = _summary != null && _stepIndex == 0;
-    final sceneHeight =
-        (MediaQuery.sizeOf(context).height * 0.34).clamp(260.0, 360.0).toDouble();
+    final status = _stepStatus ?? _fallbackStatusFor(step, steps);
 
     return Scaffold(
       backgroundColor: _surface,
@@ -325,54 +307,30 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Column(
                 children: [
-                  _GuideTopBar(onBack: _returnToRoutePlan),
+                  _GuideTopBar(
+                    onBack: _returnToRoutePlan,
+                    currentStep: _stepIndex + 1,
+                    totalSteps: steps.length,
+                  ),
+                  const SizedBox(height: 8),
+                  _CompactJourneyStatus(
+                    status: status,
+                    startEntrance: _startEntranceName,
+                    endExit: _endExitName,
+                  ),
+                  if (_guideLoadNotice != null) ...[
+                    const SizedBox(height: 8),
+                    _CompactNotice(message: _guideLoadNotice!),
+                  ],
                   const SizedBox(height: 10),
                   Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        children: [
-                          _ProgressPanel(
-                            status:
-                                _stepStatus ?? _fallbackStatusFor(step, steps),
-                          ),
-                          if (_guideLoadNotice != null) ...[
-                            const SizedBox(height: 12),
-                            _NoticePanel(message: _guideLoadNotice!),
-                          ],
-                          if (_hasAccessSelection) ...[
-                            const SizedBox(height: 12),
-                            _AccessTaskPanel(
-                              startStation: _startStation,
-                              startEntrance: _startEntranceName,
-                              endStation: _endStation,
-                              endExit: _endExitName,
-                            ),
-                          ],
-                          if (showSummary) ...[
-                            const SizedBox(height: 12),
-                            _RouteSummaryPanel(summary: _summary!),
-                          ],
-                          const SizedBox(height: 12),
-                          _InstructionPanel(step: step),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: sceneHeight,
-                            child: _ScenePanel(step: step),
-                          ),
-                        ],
-                      ),
-                    ),
+                    child: _ScenePanel(step: step),
                   ),
-                  const SizedBox(height: 12),
-                  if (_supportsServiceNavigation)
-                    _ServiceQuickBar(
-                      onTap: (targetType, targetId, label) {
-                        _navigateToFacility(targetType, targetId, label);
-                      },
-                    ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
+                  if (_supportsServiceNavigation) ...[
+                    _AddFacilityButton(onPressed: _showFacilityPicker),
+                    const SizedBox(height: 8),
+                  ],
                   _StepControls(
                     canGoBack: _stepIndex > 0,
                     isLast: _stepIndex == steps.length - 1,
@@ -419,9 +377,6 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     );
   }
 
-  bool get _hasAccessSelection =>
-      _startEntranceName.isNotEmpty || _endExitName.isNotEmpty;
-
   bool get _supportsServiceNavigation {
     final station = _currentStationId;
     return station != null && station.isNotEmpty;
@@ -440,8 +395,8 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     final step = _guideSteps[_stepIndex];
     if (step.nodeId != null && step.nodeId!.isNotEmpty) return step.nodeId!;
     // 优先从步骤标题/详情提取出口号（处理"五号口地下"等非entry步骤）
-    final exitNode = _exitMentionToNodeId(step.title) ??
-        _exitMentionToNodeId(step.detail);
+    final exitNode =
+        _exitMentionToNodeId(step.title) ?? _exitMentionToNodeId(step.detail);
     if (exitNode != null) return exitNode;
     // 回退到 stage 映射：entry→进站口节点，其他→站台中心
     if (step.stage == _StepStage.entry) {
@@ -453,8 +408,15 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   /// 从文本中提取出口号并映射到拓扑节点
   /// 支持"5号口""五号口地下"等中文数字和阿拉伯数字格式
   static const Map<String, String> _cnDigitMap = {
-    '一': '1', '二': '2', '三': '3', '四': '4', '五': '5',
-    '六': '6', '七': '7', '八': '8', '九': '9',
+    '一': '1',
+    '二': '2',
+    '三': '3',
+    '四': '4',
+    '五': '5',
+    '六': '6',
+    '七': '7',
+    '八': '8',
+    '九': '9',
   };
 
   String? _exitMentionToNodeId(String text) {
@@ -513,6 +475,118 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
     if (arrived == true && destNodeId != null && destNodeId.isNotEmpty) {
       NavigationMemory.currentNodeId = destNodeId;
     }
+  }
+
+  Future<void> _showFacilityPicker() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        const options = <_FacilityOption>[
+          _FacilityOption(
+            type: 'exit',
+            id: '5',
+            label: '出入口',
+            subtitle: '导航到最近或指定出入口',
+            icon: Icons.door_front_door_rounded,
+          ),
+          _FacilityOption(
+            type: 'facility',
+            id: 'accessible_elevator_1',
+            label: '无障碍电梯',
+            subtitle: '优先使用无障碍通道',
+            icon: Icons.elevator_rounded,
+          ),
+          _FacilityOption(
+            type: 'facility',
+            id: 'toilet_1',
+            label: '公共厕所',
+            subtitle: '加入当前路线作为途经点',
+            icon: Icons.wc_rounded,
+          ),
+          _FacilityOption(
+            type: 'facility',
+            id: 'service_center_1',
+            label: '服务中心',
+            subtitle: '前往票务与人工服务位置',
+            icon: Icons.support_agent_rounded,
+          ),
+        ];
+
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE4DCE7),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '添加途经设施',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '系统会从当前位置重新计算最短站内路径',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              for (final option in options)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _line10.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(option.icon, color: _line10),
+                  ),
+                  title: Text(
+                    option.label,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(option.subtitle),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _navigateToFacility(option.type, option.id, option.label);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _showServicePathSheet(String label, Map<String, dynamic> path) {
@@ -700,16 +774,22 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
 class _GuideTopBar extends StatelessWidget {
   final VoidCallback onBack;
+  final int currentStep;
+  final int totalSteps;
 
-  const _GuideTopBar({required this.onBack});
+  const _GuideTopBar({
+    required this.onBack,
+    required this.currentStep,
+    required this.totalSteps,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         SizedBox(
-          width: 44,
-          height: 44,
+          width: 40,
+          height: 40,
           child: IconButton.filledTonal(
             onPressed: onBack,
             icon: const Icon(Icons.arrow_back),
@@ -724,6 +804,164 @@ class _GuideTopBar extends StatelessWidget {
               color: _AIPlanningPageState._ink,
               fontSize: 20,
               fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.78),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            '$currentStep/$totalSteps',
+            style: const TextStyle(
+              color: _AIPlanningPageState._line10,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactJourneyStatus extends StatelessWidget {
+  final _ProgressStatus status;
+  final String startEntrance;
+  final String endExit;
+
+  const _CompactJourneyStatus({
+    required this.status,
+    required this.startEntrance,
+    required this.endExit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final routeText = startEntrance.isNotEmpty || endExit.isNotEmpty
+        ? '${startEntrance.isEmpty ? '起点' : startEntrance} → '
+            '${endExit.isEmpty ? '终点' : endExit}'
+        : '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 11),
+      decoration: _softPanel(),
+      child: Row(
+        children: [
+          Container(
+            constraints: const BoxConstraints(minWidth: 68),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: status.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Text(
+              status.leadText,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: status.color,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(status.icon, color: status.color, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        status.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _AIPlanningPageState._ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    if (routeText.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          routeText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: _AIPlanningPageState._muted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: status.progress.clamp(0, 1),
+                    minHeight: 7,
+                    backgroundColor: const Color(0xFFE8E1EA),
+                    color: status.color,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  status.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _AIPlanningPageState._muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactNotice extends StatelessWidget {
+  final String message;
+
+  const _CompactNotice({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(
+          Icons.info_outline_rounded,
+          size: 15,
+          color: Color(0xFF9A6500),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            message,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF765000),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -1431,10 +1669,32 @@ class _ScenePanel extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.02),
-                  Colors.black.withOpacity(0.42),
+                  Colors.black.withOpacity(0.12),
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.72),
+                ],
+                stops: const [0, 0.42, 1],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            top: 16,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.92),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 14,
+                    offset: const Offset(0, 5),
+                  ),
                 ],
               ),
+              child: Icon(step.icon, color: step.lineColor, size: 28),
             ),
           ),
           Positioned(
@@ -1451,33 +1711,76 @@ class _ScenePanel extends StatelessWidget {
                     color: Colors.white.withOpacity(0.86),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Text(
-                    '实景照片',
-                    style: TextStyle(
-                      color: _AIPlanningPageState._muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.photo_camera_outlined,
+                        color: _AIPlanningPageState._muted,
+                        size: 14,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        '实景指引',
+                        style: TextStyle(
+                          color: _AIPlanningPageState._muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 9),
                 Text(
-                  step.imageTitle,
+                  step.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 25,
+                    fontSize: 26,
+                    height: 1.08,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 7),
                 Text(
-                  step.imageSubtitle,
+                  step.detail,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
+                    height: 1.3,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (step.imageTitle.isNotEmpty &&
+                    step.imageTitle != step.title) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.place_outlined,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          step.imageTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -1488,9 +1791,9 @@ class _ScenePanel extends StatelessWidget {
           ),
           if (shortcutHint != null)
             Positioned(
-              left: 16,
+              left: 76,
               right: 74,
-              top: 16,
+              top: 18,
               child: _SceneShortcutTag(hint: shortcutHint),
             ),
         ],
@@ -1829,7 +2132,6 @@ class _NavStep {
 class _RouteSummary {
   final String title;
   final int durationMinutes;
-  final int transferCount;
   final String transferText;
   final String doorHint;
   final List<String> lines;
@@ -1838,27 +2140,11 @@ class _RouteSummary {
   const _RouteSummary({
     required this.title,
     required this.durationMinutes,
-    required this.transferCount,
     required this.transferText,
     required this.doorHint,
     required this.lines,
     required this.nextAction,
   });
-
-  factory _RouteSummary.fromJson(Map<String, dynamic> json) {
-    final rawLines = json['lines'];
-    return _RouteSummary(
-      title: json['title']?.toString() ?? '',
-      durationMinutes: _intFromJson(json['durationMinutes'], 0),
-      transferCount: _intFromJson(json['transferCount'], 0),
-      transferText: json['transferText']?.toString() ?? '无需换乘',
-      doorHint: json['doorHint']?.toString() ?? '中部车门',
-      lines: rawLines is List
-          ? rawLines.map((item) => item.toString()).toList()
-          : const <String>[],
-      nextAction: json['nextAction']?.toString() ?? '',
-    );
-  }
 }
 
 class _ExitShortcutHint {
@@ -1889,7 +2175,12 @@ _ExitShortcutHint? _exitShortcutHint(_NavStep step) {
 }
 
 String _extractExitName(_NavStep step) {
-  final candidates = [step.title, step.imageTitle, step.detail, step.imageSubtitle];
+  final candidates = [
+    step.title,
+    step.imageTitle,
+    step.detail,
+    step.imageSubtitle
+  ];
   final exitPattern = RegExp(r'([A-Za-z]?\d+[A-Za-z]?号口)');
   for (final text in candidates) {
     final match = exitPattern.firstMatch(text);
@@ -2044,6 +2335,48 @@ double _doubleFromJson(dynamic value, double fallback) {
 
 // -- 中途服务导航组件 -------------------------------------------------
 
+class _AddFacilityButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _AddFacilityButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.add_location_alt_outlined, size: 19),
+        label: const Text('添加途经设施'),
+        style: TextButton.styleFrom(
+          foregroundColor: _AIPlanningPageState._line10,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          textStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FacilityOption {
+  final String type;
+  final String id;
+  final String label;
+  final String subtitle;
+  final IconData icon;
+
+  const _FacilityOption({
+    required this.type,
+    required this.id,
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+  });
+}
+
 class _ServiceQuickBar extends StatelessWidget {
   final void Function(String targetType, String targetId, String label) onTap;
 
@@ -2074,8 +2407,7 @@ class _ServiceQuickBar extends StatelessWidget {
           _QuickIcon(
             icon: Icons.elevator_rounded,
             label: '电梯',
-            onTap: () =>
-                onTap('facility', 'accessible_elevator_1', '无障碍电梯'),
+            onTap: () => onTap('facility', 'accessible_elevator_1', '无障碍电梯'),
           ),
           _QuickIcon(
             icon: Icons.wc_rounded,
@@ -2271,8 +2603,7 @@ class _ServicePathStepCard extends StatelessWidget {
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             color: Colors.white,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             alignment: Alignment.centerLeft,
                             child: const Row(
                               children: [
