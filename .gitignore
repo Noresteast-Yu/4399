@@ -44,6 +44,7 @@ Thumbs.db
 # Go backend
 backend/go/.env
 .gocache/
+.cache/
 
 # Android signing keys
 *.jks
