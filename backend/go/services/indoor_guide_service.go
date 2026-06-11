@@ -14,6 +14,8 @@ type IndoorGuideStep struct {
 	Stage          string            `json:"stage"`
 	LineName       string            `json:"lineName"`
 	LineColor      string            `json:"lineColor"`
+	FromNodeID     string            `json:"fromNodeId,omitempty"`
+	ToNodeID       string            `json:"toNodeId,omitempty"`
 	Title          string            `json:"title"`
 	Detail         string            `json:"detail"`
 	ImageTitle     string            `json:"imageTitle"`
@@ -445,7 +447,7 @@ func samePointIndoorStep(path *IndoorNavigationPath, options IndoorGuideOptions)
 	if targetName == "" {
 		targetName = path.ToNode.Name
 	}
-	return guideStep(
+	step := guideStep(
 		"indoor",
 		"站内通行",
 		"#B07AB2",
@@ -456,6 +458,9 @@ func samePointIndoorStep(path *IndoorNavigationPath, options IndoorGuideOptions)
 		0,
 		"navigation",
 	)
+	step.FromNodeID = path.FromNode.ID
+	step.ToNodeID = path.ToNode.ID
+	return step
 }
 
 func buildSameStationIndoorSummary(from string, to string, steps []IndoorGuideStep, options IndoorGuideOptions) IndoorGuideSummary {
@@ -896,6 +901,8 @@ func guideStepsFromTopologyPath(path *IndoorNavigationPath, stage string, lineNa
 		if step.ImageSubtitle == "" {
 			step.ImageSubtitle = "预计" + secondsText(topologyStep.Seconds)
 		}
+		step.FromNodeID = topologyStep.FromNode.ID
+		step.ToNodeID = topologyStep.ToNode.ID
 		step.PhotoKey = topologyStep.PhotoKey
 		step.PhotoURL = topologyStep.PhotoURL
 		if step.PhotoURL != "" {

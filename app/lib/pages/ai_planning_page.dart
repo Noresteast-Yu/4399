@@ -52,6 +52,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   _ProgressStatus? _stepStatus;
   List<_NavStep> _guideSteps = [];
   String? _guideLoadNotice;
+  bool _usesLocalStepStatus = false;
   Timer? _statusRefreshTimer;
   int _statusRequestId = 0;
 
@@ -122,6 +123,12 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
   Future<void> _refreshStepStatus() async {
     if (!_hasRoute || _guideSteps.isEmpty) return;
+    if (_usesLocalStepStatus) {
+      if (mounted) {
+        setState(() => _stepStatus = null);
+      }
+      return;
+    }
     final requestedStepIndex = _stepIndex;
     final requestId = ++_statusRequestId;
     final response = await _apiService.getIndoorGuideProgress(
@@ -182,6 +189,7 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
 
       setState(() {
         _guideLoadNotice = null;
+        _usesLocalStepStatus = false;
         _guideSteps = steps;
         if (_stepIndex >= _guideSteps.length) {
           _stepIndex = _guideSteps.length - 1;
@@ -393,6 +401,9 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
       return _entranceNodeId;
     }
     final step = _guideSteps[_stepIndex];
+    if (step.fromNodeId != null && step.fromNodeId!.isNotEmpty) {
+      return step.fromNodeId!;
+    }
     if (step.nodeId != null && step.nodeId!.isNotEmpty) return step.nodeId!;
     // 优先从步骤标题/详情提取出口号（处理"五号口地下"等非entry步骤）
     final exitNode =
@@ -443,38 +454,117 @@ class _AIPlanningPageState extends State<AIPlanningPage> {
   ) async {
     final stationId = _currentStationId;
     if (stationId == null) return;
-    // 始终从规划页当前所在进站口位置出发，查看路线不改变实际位置
-    final fromNodeId = NavigationMemory.currentNodeId ?? '20';
+    final fromNodeId = _currentNodeId();
 
-    final response = await _apiService.getIndoorNavigationPath(
+    final waypointResponse = await _apiService.getIndoorNavigationPath(
       stationId: stationId,
       fromNodeId: fromNodeId,
       targetType: targetType,
       targetId: targetId,
     );
 
-    if (!mounted || !response.success || response.data == null) {
+    if (!mounted ||
+        !waypointResponse.success ||
+        waypointResponse.data == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.error ?? '暂时无法生成站内路径')),
+          SnackBar(
+            content: Text(waypointResponse.error ?? '暂时无法生成站内路径'),
+          ),
         );
       }
       return;
     }
 
-    final toNodeData = response.data!['toNode'];
-    final destNodeId = toNodeData is Map ? toNodeData['id']?.toString() : null;
-
-    await _showServicePathSheet(label, response.data!);
-    if (!mounted) return;
-
-    final targetName =
-        (response.data!['targetName'] ?? response.data!['toNodeName'] ?? label)
-            .toString();
-    final arrived = await _askArrivedAtFacility(targetName);
-    if (arrived == true && destNodeId != null && destNodeId.isNotEmpty) {
-      NavigationMemory.currentNodeId = destNodeId;
+    final waypointData = waypointResponse.data!;
+    final waypointNode = waypointData['toNode'];
+    final waypointNodeId =
+        waypointNode is Map ? waypointNode['id']?.toString() ?? '' : '';
+    if (waypointNodeId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('设施路径缺少目标节点')),
+        );
+      }
+      return;
     }
+
+    final waypointSteps = _topologySteps(
+      waypointData,
+      lineName: '前往$label',
+      waypointLabel: label,
+    );
+
+    final finalNodeId = _tongjiExitNodeMap[_endExitId] ?? '';
+    var resumeSteps = <_NavStep>[];
+    if (finalNodeId.isNotEmpty && finalNodeId != waypointNodeId) {
+      final resumeResponse = await _apiService.getIndoorNavigationPath(
+        stationId: stationId,
+        fromNodeId: waypointNodeId,
+        toNodeId: finalNodeId,
+      );
+      if (!mounted || !resumeResponse.success || resumeResponse.data == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(resumeResponse.error ?? '已找到设施，但无法接回原终点'),
+            ),
+          );
+        }
+        return;
+      }
+      resumeSteps = _topologySteps(
+        resumeResponse.data!,
+        lineName: '继续前往$_endExitName',
+      );
+    }
+
+    final combinedSteps = [...waypointSteps, ...resumeSteps];
+    if (combinedSteps.isEmpty) return;
+
+    _statusRefreshTimer?.cancel();
+    setState(() {
+      _guideSteps = combinedSteps;
+      _stepIndex = 0;
+      _stepStatus = null;
+      _usesLocalStepStatus = true;
+      _guideLoadNotice = '已加入途经点：$label，随后继续前往$_endExitName';
+    });
+    NavigationMemory.updateStationContext(nodeId: fromNodeId);
+    NavigationMemory.lastStepIndex = 0;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已将$label加入当前路线')),
+      );
+    }
+  }
+
+  List<_NavStep> _topologySteps(
+    Map<String, dynamic> path, {
+    required String lineName,
+    String? waypointLabel,
+  }) {
+    final rawSteps = path['steps'];
+    if (rawSteps is! List) return const <_NavStep>[];
+    final steps = rawSteps
+        .whereType<Map>()
+        .map(
+          (item) => _NavStep.fromTopologyJson(
+            Map<String, dynamic>.from(item),
+            lineName: lineName,
+          ),
+        )
+        .toList();
+    if (steps.isNotEmpty && waypointLabel != null) {
+      final last = steps.last;
+      steps[steps.length - 1] = last.copyWith(
+        imageTitle: '到达$waypointLabel',
+        imageSubtitle: last.imageSubtitle.isEmpty
+            ? '完成此步后继续前往原终点'
+            : '${last.imageSubtitle}，随后继续前往原终点',
+      );
+    }
+    return steps;
   }
 
   Future<void> _showFacilityPicker() async {
@@ -2078,6 +2168,7 @@ class _NavStep {
   final Map<String, dynamic> arrivalQuery;
   final String photoKey;
   final String photoUrl;
+  final String? fromNodeId;
   final String? nodeId;
 
   const _NavStep({
@@ -2097,6 +2188,7 @@ class _NavStep {
     this.doorHint = '车门',
     this.photoKey = '',
     this.photoUrl = '',
+    this.fromNodeId,
     this.nodeId,
   });
 
@@ -2124,8 +2216,77 @@ class _NavStep {
       doorHint: json['doorHint']?.toString() ?? '车门',
       photoKey: json['photoKey']?.toString() ?? '',
       photoUrl: json['photoUrl']?.toString() ?? '',
-      nodeId: json['nodeId']?.toString(),
+      fromNodeId: json['fromNodeId']?.toString(),
+      nodeId: json['toNodeId']?.toString() ?? json['nodeId']?.toString(),
     );
+  }
+
+  factory _NavStep.fromTopologyJson(
+    Map<String, dynamic> json, {
+    required String lineName,
+  }) {
+    final fromNode = json['fromNode'];
+    final toNode = json['toNode'];
+    final seconds = _intFromJson(json['seconds'], 0);
+    final edgeType = json['edgeType']?.toString() ?? '';
+    return _NavStep(
+      stage: _StepStage.entry,
+      lineName: lineName,
+      lineColor: _AIPlanningPageState._line10,
+      title: json['title']?.toString() ?? '继续前行',
+      detail: json['instruction']?.toString() ?? '',
+      imageTitle: toNode is Map ? toNode['name']?.toString() ?? '站内节点' : '站内节点',
+      imageSubtitle: json['note']?.toString() ?? '',
+      minutes: seconds <= 0 ? 1 : (seconds / 60).ceil(),
+      icon: _topologyEdgeIcon(edgeType),
+      photoKey: json['photoKey']?.toString() ?? '',
+      photoUrl: json['photoUrl']?.toString() ?? '',
+      fromNodeId: fromNode is Map ? fromNode['id']?.toString() : null,
+      nodeId: toNode is Map ? toNode['id']?.toString() : null,
+    );
+  }
+
+  _NavStep copyWith({
+    String? imageTitle,
+    String? imageSubtitle,
+  }) {
+    return _NavStep(
+      stage: stage,
+      lineName: lineName,
+      lineColor: lineColor,
+      title: title,
+      detail: detail,
+      imageTitle: imageTitle ?? this.imageTitle,
+      imageSubtitle: imageSubtitle ?? this.imageSubtitle,
+      minutes: minutes,
+      icon: icon,
+      targetStation: targetStation,
+      remainingStops: remainingStops,
+      totalStops: totalStops,
+      arrivalQuery: arrivalQuery,
+      doorHint: doorHint,
+      photoKey: photoKey,
+      photoUrl: photoUrl,
+      fromNodeId: fromNodeId,
+      nodeId: nodeId,
+    );
+  }
+}
+
+IconData _topologyEdgeIcon(String edgeType) {
+  switch (edgeType) {
+    case 'vertical':
+      return Icons.stairs_rounded;
+    case 'elevator':
+      return Icons.elevator_rounded;
+    case 'entry_gate':
+      return Icons.login_rounded;
+    case 'exit_gate':
+      return Icons.logout_rounded;
+    case 'facility':
+      return Icons.place_rounded;
+    default:
+      return Icons.navigation_rounded;
   }
 }
 
