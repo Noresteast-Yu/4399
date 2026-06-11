@@ -20,19 +20,16 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   static const Color _muted = Color(0xFF6B6470);
   static const Color _surface = Color(0xFFEAF1FF);
   static const Color _sheet = Color(0xFFFFFFFF);
-  static const Color _chipBlue = Color(0xFFDDE8FF);
 
   final ApiService _apiService = ApiService();
   final TextEditingController _commentController = TextEditingController();
 
   Map<String, dynamic>? _facilityInfo;
   List<Map<String, dynamic>> _allFacilities = [];
-  List<_StationReview> _reviews = [];
   bool _isLoading = true;
   bool _isPathLoading = false;
   String? _error;
   String _stationId = 'shaanxi_south_road';
-  int _draftRating = 5;
 
   @override
   void initState() {
@@ -123,19 +120,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
       _error = response.error ?? '站点设施信息不存在';
       _isLoading = false;
     });
-  }
-
-  void _selectStation(String stationId) {
-    final local = _findFacility(stationId);
-    setState(() {
-      _stationId = stationId;
-      _facilityInfo = local;
-      _isLoading = local == null;
-      _error = null;
-    });
-    _commentController.clear();
-    _loadStationReviews(stationId);
-    if (local == null) _loadFromSingleApi();
   }
 
   @override
@@ -673,24 +657,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     });
   }
 
-  Future<void> _saveStationReviews() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _reviewStorageKey(),
-      jsonEncode(_reviews.map((review) => review.toJson()).toList()),
-    );
-  }
-
-  double get _baseStationRating {
-    var score = 4.1;
-    if (_has('hasElevator')) score += 0.15;
-    if (_has('hasAccessibleRestroom')) score += 0.15;
-    if (_has('hasServiceCenter')) score += 0.1;
-    if (_has('hasAED')) score += 0.1;
-    if (_has('hasWideGate')) score += 0.1;
-    return score.clamp(3.8, 4.8).toDouble();
-  }
-
   String get _stationName {
     final name = _facilityInfo?['stationName']?.toString().trim();
     return name == null || name.isEmpty ? '地铁设施' : name;
@@ -817,7 +783,7 @@ class _TopologyStepCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (photoUrl != null && photoUrl.isNotEmpty) ...[
+                if (photoUrl.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
@@ -867,32 +833,6 @@ class _TopologyStepCard extends StatelessWidget {
   }
 }
 
-class _StaticStars extends StatelessWidget {
-  final double rating;
-  final double size;
-
-  const _StaticStars({
-    required this.rating,
-    required this.size,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (index) {
-        final starValue = index + 1;
-        final filled = rating >= starValue - 0.25;
-        return Icon(
-          filled ? Icons.star_rounded : Icons.star_border_rounded,
-          color: _SubwayServicePageState._line10,
-          size: size,
-        );
-      }),
-    );
-  }
-}
-
 class _StationReview {
   final int rating;
   final String content;
@@ -925,13 +865,6 @@ class _StationReview {
     String two(int value) => value.toString().padLeft(2, '0');
     return '${createdAt.month}月${createdAt.day}日 ${two(createdAt.hour)}:${two(createdAt.minute)}';
   }
-}
-
-class _ExitInfo {
-  final String number;
-  final String text;
-
-  const _ExitInfo(this.number, this.text);
 }
 
 class _ServiceIconCard extends StatelessWidget {
