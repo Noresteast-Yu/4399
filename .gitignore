@@ -1,3 +1,7 @@
+# Codex
+.codex/
+.docker-codex/
+
 # Secrets & API Keys — NEVER COMMIT
 **/.env
 **/.env.*
