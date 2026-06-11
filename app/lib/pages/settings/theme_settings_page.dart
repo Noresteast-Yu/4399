@@ -99,7 +99,7 @@ class ThemeSettingsPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainer,
-      appBar: TopNavBar(
+      appBar: const TopNavBar(
         title: '外观设置',
         showBack: true,
       ),
@@ -180,7 +180,7 @@ class ThemeSettingsPage extends StatelessWidget {
     return Card(
       elevation: 0,
       color: colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: AppTheme.borderRadiusXL,
       ),
       child: ListTile(
@@ -256,7 +256,7 @@ class ThemeSettingsPage extends StatelessWidget {
       elevation: 0,
       color: previewColors.firstWhere((c) => c['option'] == color,
           orElse: () => previewColors[1])['color'] as Color,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: AppTheme.borderRadiusXL,
       ),
       child: Padding(
@@ -284,7 +284,7 @@ class ThemeSettingsPage extends StatelessWidget {
     final isDark = brightness == Brightness.dark;
     final chipColor = isSelected
         ? (isDark ? color.lighten(0.3) : color.darken(0.3))
-        : color.withOpacity(0.2);
+        : color.withValues(alpha: 0.2);
     final textColor =
         isSelected ? (isDark ? Colors.white : Colors.black87) : color;
 

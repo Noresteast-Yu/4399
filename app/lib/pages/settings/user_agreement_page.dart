@@ -16,7 +16,7 @@ class UserAgreementPage extends StatelessWidget {
         showBack: true,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -88,7 +88,7 @@ class UserAgreementPage extends StatelessWidget {
               '2. 本协议任何条款被认定为无效或不可执行，不影响其他条款的效力。\n'
               '3. 本协议构成用户与本应用之间关于使用本应用的完整协议。',
             ),
-            SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingL),
             Center(
               child: Text(
                 '更新日期：2026年5月19日',
@@ -97,7 +97,7 @@ class UserAgreementPage extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
           ],
         ),
       ),
@@ -113,7 +113,7 @@ class UserAgreementPage extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: AppTheme.spacingL),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingL),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -124,7 +124,7 @@ class UserAgreementPage extends StatelessWidget {
               color: colorScheme.primary,
             ),
           ),
-          SizedBox(height: AppTheme.spacingS),
+          const SizedBox(height: AppTheme.spacingS),
           Text(
             content,
             style: textTheme.bodyMedium?.copyWith(

@@ -17,7 +17,7 @@ class PreferencesPage extends StatelessWidget {
       body: Consumer<UserPreferencesProvider>(
         builder: (context, preferences, child) {
           return SingleChildScrollView(
-            padding: EdgeInsets.all(AppTheme.spacingM),
+            padding: const EdgeInsets.all(AppTheme.spacingM),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -55,7 +55,7 @@ class PreferencesPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: AppTheme.spacingL),
+                const SizedBox(height: AppTheme.spacingL),
                 _buildSection(
                   context,
                   '路线类型偏好',
@@ -106,9 +106,9 @@ class PreferencesPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(height: AppTheme.spacingM),
+        const SizedBox(height: AppTheme.spacingM),
         Card(
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppTheme.borderRadiusL,
           ),
           child: Column(

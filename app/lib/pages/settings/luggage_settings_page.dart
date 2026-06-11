@@ -17,7 +17,7 @@ class LuggageSettingsPage extends StatelessWidget {
       body: Consumer<UserPreferencesProvider>(
         builder: (context, preferences, child) {
           return SingleChildScrollView(
-            padding: EdgeInsets.all(AppTheme.spacingM),
+            padding: const EdgeInsets.all(AppTheme.spacingM),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -35,7 +35,7 @@ class LuggageSettingsPage extends StatelessWidget {
                   ],
                 ),
                 if (preferences.hasLuggage) ...[
-                  SizedBox(height: AppTheme.spacingL),
+                  const SizedBox(height: AppTheme.spacingL),
                   _buildSection(
                     context,
                     '行李规格',
@@ -63,7 +63,7 @@ class LuggageSettingsPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: AppTheme.spacingL),
+                  const SizedBox(height: AppTheme.spacingL),
                   _buildSection(
                     context,
                     '行李数量',
@@ -79,7 +79,7 @@ class LuggageSettingsPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  SizedBox(height: AppTheme.spacingL),
+                  const SizedBox(height: AppTheme.spacingL),
                   _buildSection(
                     context,
                     '特殊需求',
@@ -117,9 +117,9 @@ class LuggageSettingsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(height: AppTheme.spacingM),
+        const SizedBox(height: AppTheme.spacingM),
         Card(
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppTheme.borderRadiusL,
           ),
           child: Column(
@@ -205,7 +205,7 @@ class LuggageSettingsPage extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: EdgeInsets.all(AppTheme.spacingM),
+      padding: const EdgeInsets.all(AppTheme.spacingM),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -234,9 +234,9 @@ class LuggageSettingsPage extends StatelessWidget {
               Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.remove_circle_outline),
+                    icon: const Icon(Icons.remove_circle_outline),
                     color: value <= min
-                        ? colorScheme.onSurfaceVariant.withOpacity(0.3)
+                        ? colorScheme.onSurfaceVariant.withValues(alpha: 0.3)
                         : colorScheme.primary,
                     onPressed: value > min
                         ? () => onChanged(value - 1)
@@ -253,9 +253,9 @@ class LuggageSettingsPage extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.add_circle_outline),
+                    icon: const Icon(Icons.add_circle_outline),
                     color: value >= max
-                        ? colorScheme.onSurfaceVariant.withOpacity(0.3)
+                        ? colorScheme.onSurfaceVariant.withValues(alpha: 0.3)
                         : colorScheme.primary,
                     onPressed: value < max
                         ? () => onChanged(value + 1)

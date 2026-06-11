@@ -92,7 +92,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 prefixIcon: Icon(Icons.location_on),
               ),
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             TextField(
               controller: endController,
               decoration: const InputDecoration(
@@ -257,16 +257,16 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: const TopNavBar(title: '个人中心'),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppTheme.spacingM),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Padding(
-                padding: EdgeInsets.all(AppTheme.spacingM),
+                padding: const EdgeInsets.all(AppTheme.spacingM),
                 child: Row(
                   children: [
                     Container(
@@ -282,7 +282,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         size: 30,
                       ),
                     ),
-                    SizedBox(width: AppTheme.spacingM),
+                    const SizedBox(width: AppTheme.spacingM),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,7 +306,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
-            SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingL),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -323,13 +323,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ],
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                     ? Card(
                         child: Padding(
-                          padding: EdgeInsets.all(AppTheme.spacingM),
+                          padding: const EdgeInsets.all(AppTheme.spacingM),
                           child: Column(
                             children: [
                               Icon(
@@ -337,14 +337,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                 size: 32,
                                 color: colorScheme.onSurfaceVariant,
                               ),
-                              SizedBox(height: AppTheme.spacingS),
+                              const SizedBox(height: AppTheme.spacingS),
                               Text(
                                 '后端服务未连接',
                                 style: textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                              SizedBox(height: AppTheme.spacingXS),
+                              const SizedBox(height: AppTheme.spacingXS),
                               Text(
                                 '请前往 个人中心 → 设置 → 服务配置 设置后端地址',
                                 style: textTheme.bodySmall?.copyWith(
@@ -362,7 +362,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     : _commonRoutes.isEmpty
                         ? Card(
                             child: Padding(
-                              padding: EdgeInsets.all(AppTheme.spacingL),
+                              padding: const EdgeInsets.all(AppTheme.spacingL),
                               child: Column(
                                 children: [
                                   Icon(
@@ -370,14 +370,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                     size: 48,
                                     color: colorScheme.onSurfaceVariant,
                                   ),
-                                  SizedBox(height: AppTheme.spacingM),
+                                  const SizedBox(height: AppTheme.spacingM),
                                   Text(
                                     '暂无常用路线',
                                     style: textTheme.bodyMedium?.copyWith(
                                       color: colorScheme.onSurfaceVariant,
                                     ),
                                   ),
-                                  SizedBox(height: AppTheme.spacingS),
+                                  const SizedBox(height: AppTheme.spacingS),
                                   Text(
                                     '点击 + 按钮添加常用路线',
                                     style: textTheme.bodySmall?.copyWith(
@@ -391,13 +391,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         : Column(
                             children: _commonRoutes.map((route) {
                               return Card(
-                                shape: RoundedRectangleBorder(
+                                shape: const RoundedRectangleBorder(
                                   borderRadius: AppTheme.borderRadiusM,
                                 ),
                                 margin:
-                                    EdgeInsets.only(bottom: AppTheme.spacingM),
+                                    const EdgeInsets.only(bottom: AppTheme.spacingM),
                                 child: Padding(
-                                  padding: EdgeInsets.all(AppTheme.spacingM),
+                                  padding: const EdgeInsets.all(AppTheme.spacingM),
                                   child: Row(
                                     children: [
                                       Expanded(
@@ -414,7 +414,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                             ),
                                             if (route['time'] != null ||
                                                 route['distance'] != null)
-                                              SizedBox(height: 4),
+                                              const SizedBox(height: 4),
                                             if (route['time'] != null ||
                                                 route['distance'] != null)
                                               Text(
@@ -457,16 +457,16 @@ class _ProfilePageState extends State<ProfilePage> {
                               );
                             }).toList(),
                           ),
-            SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingL),
             Text(
               '设置',
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             Card(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Column(
@@ -493,16 +493,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 }).toList(),
               ),
             ),
-            SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingL),
             Text(
               '辅助功能',
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: AppTheme.spacingM),
+            const SizedBox(height: AppTheme.spacingM),
             Card(
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppTheme.borderRadiusL,
               ),
               child: Column(
@@ -529,7 +529,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 3),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
     );
   }
 }

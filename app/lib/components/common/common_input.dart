@@ -57,7 +57,7 @@ class CommonInput extends StatelessWidget {
             color: Theme.of(context).colorScheme.error,
           ),
         ),
-        contentPadding: EdgeInsets.symmetric(
+        contentPadding: const EdgeInsets.symmetric(
           horizontal: AppTheme.spacingM,
           vertical: AppTheme.spacingM,
         ),

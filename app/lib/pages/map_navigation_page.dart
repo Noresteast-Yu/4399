@@ -77,7 +77,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
         _filteredStations = _allStations.where((s) {
           final name = (s['stationName']?.toString() ?? '').toLowerCase();
           final lineIds = s['lineIds'] as List<dynamic>? ?? [];
-          final lineMatch = lineIds.any((l) => '${l}号线'.contains(query));
+          final lineMatch = lineIds.any((l) => '$l号线'.contains(query));
           return name.contains(query) || lineMatch;
         }).toList();
       }
@@ -148,7 +148,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
     final groupedByLine = <String, List<Map<String, dynamic>>>{};
     for (final station in _filteredStations) {
       final lineIds = station['lineIds'] as List<dynamic>? ?? [];
-      final key = lineIds.isNotEmpty ? lineIds.map((l) => '${l}号线').join('/') : '其他';
+      final key = lineIds.isNotEmpty ? lineIds.map((l) => '$l号线').join('/') : '其他';
       groupedByLine.putIfAbsent(key, () => []);
       groupedByLine[key]!.add(station);
     }
@@ -172,7 +172,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
                       },
                     )
                   : null,
-              border: OutlineInputBorder(
+              border: const OutlineInputBorder(
                 borderRadius: AppTheme.borderRadiusM,
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -214,10 +214,10 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
                   ),
                   ...stations.map((station) {
                     final score = _getFacilityScore(station);
-                    final maxScore = 8;
+                    const maxScore = 8;
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-                      shape: RoundedRectangleBorder(
+                      shape: const RoundedRectangleBorder(
                         borderRadius: AppTheme.borderRadiusM,
                       ),
                       child: ListTile(
@@ -270,7 +270,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
     final station = _selectedStation!;
     final stationName = station['stationName'] ?? '';
     final lineIds = (station['lineIds'] as List<dynamic>?) ?? [];
-    final lineNames = lineIds.map((l) => '${l}号线').join('、');
+    final lineNames = lineIds.map((l) => '$l号线').join('、');
     final score = _getFacilityScore(station);
 
     return SingleChildScrollView(
@@ -280,7 +280,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
         children: [
           Card(
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusL),
+            shape: const RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusL),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -329,7 +329,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
                         backgroundColor: colorScheme.primary,
                         foregroundColor: colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: AppTheme.borderRadiusM,
                         ),
                       ),
@@ -376,8 +376,8 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Card(
-                color: colorScheme.primaryContainer.withOpacity(0.3),
-                shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusM),
+                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                shape: const RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusM),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
@@ -410,7 +410,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
   ) {
     return Card(
       elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusM),
+      shape: const RoundedRectangleBorder(borderRadius: AppTheme.borderRadiusM),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -442,7 +442,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
           Icon(
             available ? Icons.check_circle : Icons.cancel_outlined,
             size: 16,
-            color: available ? Colors.green : colorScheme.onSurfaceVariant.withOpacity(0.4),
+            color: available ? Colors.green : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -452,7 +452,7 @@ class _MapNavigationPageState extends State<MapNavigationPage> {
                 Text(
                   label,
                   style: textTheme.bodySmall?.copyWith(
-                    color: available ? null : colorScheme.onSurfaceVariant.withOpacity(0.5),
+                    color: available ? null : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                   ),
                 ),
                 if (detail != null && detail.isNotEmpty)

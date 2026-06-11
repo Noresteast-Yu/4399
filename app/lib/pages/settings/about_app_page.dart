@@ -264,7 +264,7 @@ class _AboutAppPageState extends State<AboutAppPage>
           Expanded(
             flex: 1,
             child: Padding(
-              padding: EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: AppTheme.spacingL,
                 vertical: AppTheme.spacingM,
               ),
@@ -278,16 +278,16 @@ class _AboutAppPageState extends State<AboutAppPage>
                       color: colorScheme.onSurface,
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingS),
+                  const SizedBox(height: AppTheme.spacingS),
                   Text(
                     'Subway Surfers Transfer Helper',
                     style: textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  SizedBox(height: AppTheme.spacingM),
+                  const SizedBox(height: AppTheme.spacingM),
                   Container(
-                    padding: EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: AppTheme.spacingM,
                       vertical: AppTheme.spacingS,
                     ),
