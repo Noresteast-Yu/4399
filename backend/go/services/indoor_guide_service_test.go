@@ -29,6 +29,9 @@ func TestBuildIndoorGuideWithOptionsSameStationUsesIndoorPath(t *testing.T) {
 		if step.Stage == "ride" || step.Stage == "platform" || step.Stage == "transfer" {
 			t.Fatalf("same-station indoor path should not include metro stage %q", step.Stage)
 		}
+		if step.FromNodeID == "" || step.ToNodeID == "" {
+			t.Fatalf("same-station topology step must expose node ids: %#v", step)
+		}
 	}
 	if plan.Summary.TransferText != "无需进闸乘车" {
 		t.Fatalf("unexpected summary transfer text: %q", plan.Summary.TransferText)

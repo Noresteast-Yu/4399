@@ -1,28 +1,7 @@
 -- Smart Travel MySQL 数据库种子数据
--- 用于初始化上海地铁10号线演示数据
+-- 用于空数据库首次初始化上海地铁演示数据。
+-- 本脚本不会删除已有业务数据；不要把它当作升级迁移重复执行。
 USE smart_travel;
-
--- 清空现有数据（按依赖顺序）
-DELETE FROM line_station_transfer_lines;
-DELETE FROM transfer_rule_transfer_lines;
-DELETE FROM transfer_rule_tags;
-DELETE FROM line_stations;
-DELETE FROM station_exits;
-DELETE FROM transfer_rules;
-DELETE FROM line_directions;
-DELETE FROM metro_lines;
-DELETE FROM stations;
-
--- 重置自增ID
-ALTER TABLE line_station_transfer_lines AUTO_INCREMENT = 1;
-ALTER TABLE transfer_rule_transfer_lines AUTO_INCREMENT = 1;
-ALTER TABLE transfer_rule_tags AUTO_INCREMENT = 1;
-ALTER TABLE line_stations AUTO_INCREMENT = 1;
-ALTER TABLE station_exits AUTO_INCREMENT = 1;
-ALTER TABLE transfer_rules AUTO_INCREMENT = 1;
-ALTER TABLE line_directions AUTO_INCREMENT = 1;
-ALTER TABLE metro_lines AUTO_INCREMENT = 1;
-ALTER TABLE stations AUTO_INCREMENT = 1;
 
 -- 插入地铁线路
 INSERT INTO metro_lines (line_id, line_name, city, color_name, color_hex, description) VALUES
@@ -280,10 +259,7 @@ CROSS JOIN (
 
 -- 插入静态资源
 INSERT INTO static_resources (resource_type, resource_name, resource_path, description) VALUES
-('icon', 'timer', 'app/assets/icons/timer.png', '换乘倒计时图标'),
-('icon', 'transfer', 'app/assets/icons/transfer.png', '站内换乘图标'),
-('diagram', 'hongqiao-transfer', 'backend/go/data/station_topologies/hongqiao_railway_station.json', '虹桥火车站平面换乘拓扑数据'),
-('diagram', 'tongji-university', 'backend/go/data/station_topologies/tongji_university.json', '同济大学站平面换乘拓扑数据');
+('diagram', 'tongji-university', 'backend/go/data/station_topologies/tongji_university.json', '同济大学站站内拓扑数据');
 
 -- 插入站点出口
 INSERT INTO station_exits (exit_id, station_id, exit_name, nearby_place, guide_tip, is_accessible) VALUES
@@ -296,3 +272,51 @@ INSERT INTO station_exits (exit_id, station_id, exit_name, nearby_place, guide_t
 ('exit_tongji_university_3', 'tongji_university', '3号口', '站厅南侧通道', '从站厅南侧通道出站，适合前往四平路沿线。', 0),
 ('exit_tongji_university_4', 'tongji_university', '4号口', '站厅南侧通道', '从站厅南侧通道出站，注意查看站内导向牌。', 0),
 ('exit_tongji_university_5', 'tongji_university', '5号口', '四平路，同济大学正门', '前往同济大学正门优先选择5号口。', 1);
+
+-- 插入当前完整演示站的设施摘要
+INSERT INTO station_facilities (
+    station_id,
+    has_elevator,
+    has_escalator,
+    has_wheelchair_ramp,
+    has_wide_gate,
+    has_accessible_restroom,
+    has_blind_path,
+    elevator_count,
+    elevator_location,
+    escalator_count,
+    restroom_location,
+    has_restroom_in_paid,
+    has_restroom_outside,
+    has_mother_baby_room,
+    has_third_bathroom,
+    has_aed,
+    has_service_center,
+    facility_note
+) VALUES (
+    'tongji_university',
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    '站厅至站台无障碍电梯',
+    4,
+    '4号口地下附近，非付费区',
+    0,
+    1,
+    0,
+    0,
+    1,
+    1,
+    '演示数据；详细位置与通行关系以站内拓扑文件为准'
+);
+
+-- 最低限度的演示公告，确保新数据库能够通过数据完整性检查
+INSERT INTO travel_alerts (type, title, message) VALUES (
+    'other',
+    '演示环境运行正常',
+    '当前为课程项目演示数据，不代表上海地铁实时运营公告。'
+);

@@ -2,6 +2,8 @@
 
 上海地铁智能换乘助手 Flutter 应用，支持完整地铁线路图展示和 AI 智能路线规划。
 
+**当前版本**：v1.0.4
+
 ## 功能特性
 
 | 功能 | 说明 |
@@ -10,8 +12,12 @@
 | AI 智能规划 | 对接 OpenAI 兼容 API，自动规划最优路线 |
 | 离线规划 | 无网络时本地计算路径 |
 | 路线规划 | 多路线方案对比、换乘指引 |
+| 站内导航 | 站内设施导航（出入口、电梯、洗手间、服务中心） |
+| 服务板块自动定位 | 自动读取当前站点，无需手动选择 |
+| 导航状态持久化 | Tab 切换保留导航进度 |
 | 地铁设施 | 无障碍设施、自动扶梯位置查询 |
 | 换乘时间 | 换乘步行时间估算 |
+| 迷你游戏 | 内置小游戏（奶蛙游戏） |
 
 ## 环境配置
 
@@ -191,9 +197,20 @@ app/
 │   │   └── home/       # 首页组件
 │   ├── data/           # 数据模型
 │   ├── pages/          # 页面
+│   │   ├── ai_planning_page.dart    # AI 智能规划
+│   │   ├── home_page.dart           # 首页
+│   │   ├── map_navigation_page.dart # 地图导航
+│   │   ├── mini_game_page.dart      # 迷你游戏
+│   │   ├── profile_page.dart        # 个人中心
+│   │   ├── route_plan_page.dart     # 路线规划
+│   │   ├── subway_service_page.dart # 地铁服务
+│   │   └── settings/                # 设置页面
 │   ├── providers/      # 状态管理
 │   ├── routes/         # 路由配置
 │   ├── services/       # 服务层
+│   │   ├── ai_planning_service.dart # AI 规划服务
+│   │   ├── api_service.dart         # API 服务
+│   │   └── navigation_memory.dart   # 导航状态记忆
 │   ├── theme/          # 主题
 │   ├── utils/          # 工具类
 │   ├── app.dart        # 应用入口
@@ -207,3 +224,11 @@ app/
 ├── pubspec.yaml        # 依赖配置
 └── analysis_options.yaml
 ```
+
+## 更新日志
+
+详见 [../CHANGELOG.md](../CHANGELOG.md)
+
+## 许可证
+
+MIT License — 详见 [../LICENSE](../LICENSE)

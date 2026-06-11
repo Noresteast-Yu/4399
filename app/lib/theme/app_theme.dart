@@ -183,8 +183,39 @@ class AppTheme {
   // 生成亮主题
   static ThemeData generateLightTheme(ThemeColorOption color,
       {FontSizeOption fontSize = FontSizeOption.medium}) {
-    final base = lightTheme.copyWith(
-      colorScheme: generateLightColorScheme(color),
+    final colorScheme = generateLightColorScheme(color);
+    final base = ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      textTheme: const TextTheme(
+        displayLarge: headline1,
+        displayMedium: headline2,
+        displaySmall: headline3,
+        bodyLarge: bodyText1,
+        bodyMedium: bodyText2,
+        bodySmall: caption,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
     );
     return base.copyWith(
       textTheme: applyFontSize(base.textTheme, fontSize),
@@ -194,144 +225,48 @@ class AppTheme {
   // 生成暗主题
   static ThemeData generateDarkTheme(ThemeColorOption color,
       {FontSizeOption fontSize = FontSizeOption.medium}) {
-    final base = darkTheme.copyWith(
-      colorScheme: generateDarkColorScheme(color),
+    final colorScheme = generateDarkColorScheme(color);
+    final base = ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      textTheme: const TextTheme(
+        displayLarge: headline1,
+        displayMedium: headline2,
+        displaySmall: headline3,
+        bodyLarge: bodyText1,
+        bodyMedium: bodyText2,
+        bodySmall: caption,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
     );
     return base.copyWith(
       textTheme: applyFontSize(base.textTheme, fontSize),
     );
   }
 
-  // 兼容旧版本的静态主题（基于 BarcodeScanner 蓝色主题）
-  static const ColorScheme lightColorScheme = ColorScheme(
-    brightness: Brightness.light,
-    primary: Color(0xFF4A5C92),
-    onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: Color(0xFFDBE1FF),
-    onPrimaryContainer: Color(0xFF00174A),
-    secondary: Color(0xFF585E72),
-    onSecondary: Color(0xFFFFFFFF),
-    secondaryContainer: Color(0xFFDDE1F9),
-    onSecondaryContainer: Color(0xFF161B2C),
-    tertiary: Color(0xFF745471),
-    onTertiary: Color(0xFFFFFFFF),
-    tertiaryContainer: Color(0xFFFFD6F8),
-    onTertiaryContainer: Color(0xFF2B122B),
-    error: Color(0xFFBA1A1A),
-    onError: Color(0xFFFFFFFF),
-    errorContainer: Color(0xFFFFDAD6),
-    onErrorContainer: Color(0xFF410002),
-    surface: Color(0xFFFAF8FF),
-    onSurface: Color(0xFF1A1B21),
-    surfaceContainerHighest: Color(0xFFE2E2EC),
-    onSurfaceVariant: Color(0xFF45464F),
-    outline: Color(0xFF757680),
-    outlineVariant: Color(0xFFC5C6D0),
-    shadow: Color(0xFF000000),
-    scrim: Color(0xFF000000),
-    inverseSurface: Color(0xFF2F3036),
-    onInverseSurface: Color(0xFFF1F0F7),
-    inversePrimary: Color(0xFFB4C5FF),
-    surfaceTint: Color(0xFF4A5C92),
-  );
+  // 默认亮色主题（MD3 标准配色）
+  static ThemeData get lightTheme => generateLightTheme(ThemeColorOption.system);
 
-  static const ColorScheme darkColorScheme = ColorScheme(
-    brightness: Brightness.dark,
-    primary: Color(0xFFB4C5FF),
-    onPrimary: Color(0xFF1A2E60),
-    primaryContainer: Color(0xFF324478),
-    onPrimaryContainer: Color(0xFFDBE1FF),
-    secondary: Color(0xFFC1C6DD),
-    onSecondary: Color(0xFF2A3042),
-    secondaryContainer: Color(0xFF414659),
-    onSecondaryContainer: Color(0xFFDDE1F9),
-    tertiary: Color(0xFFE2BBDC),
-    onTertiary: Color(0xFF422741),
-    tertiaryContainer: Color(0xFF5A3D58),
-    onTertiaryContainer: Color(0xFFFFD6F8),
-    error: Color(0xFFFFB4AB),
-    onError: Color(0xFF690005),
-    errorContainer: Color(0xFF93000A),
-    onErrorContainer: Color(0xFFFFDAD6),
-    surface: Color(0xFF121318),
-    onSurface: Color(0xFFE3E2E9),
-    surfaceContainerHighest: Color(0xFF45464F),
-    onSurfaceVariant: Color(0xFFC5C6D0),
-    outline: Color(0xFF8F909A),
-    outlineVariant: Color(0xFF45464F),
-    shadow: Color(0xFF000000),
-    scrim: Color(0xFF000000),
-    inverseSurface: Color(0xFFE3E2E9),
-    onInverseSurface: Color(0xFF2F3036),
-    inversePrimary: Color(0xFF4A5C92),
-    surfaceTint: Color(0xFFB4C5FF),
-  );
-
-  static final ThemeData lightTheme = ThemeData(
-    useMaterial3: true,
-    colorScheme: lightColorScheme,
-    textTheme: const TextTheme(
-      displayLarge: headline1,
-      displayMedium: headline2,
-      displaySmall: headline3,
-      bodyLarge: bodyText1,
-      bodyMedium: bodyText2,
-      bodySmall: caption,
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-  );
-
-  static final ThemeData darkTheme = ThemeData(
-    useMaterial3: true,
-    colorScheme: darkColorScheme,
-    textTheme: const TextTheme(
-      displayLarge: headline1,
-      displayMedium: headline2,
-      displaySmall: headline3,
-      bodyLarge: bodyText1,
-      bodyMedium: bodyText2,
-      bodySmall: caption,
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-  );
+  // 默认暗色主题（MD3 标准配色）
+  static ThemeData get darkTheme => generateDarkTheme(ThemeColorOption.system);
 }

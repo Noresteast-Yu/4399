@@ -167,11 +167,6 @@ void main() {
 
       int totalChecked = 0;
       int nameMismatches = 0;
-      final knownMismatches = {
-        // 虹桥火车站: line 10 uses '上海虹桥火车站', lines 2/17 use '虹桥火车站'
-        '虹桥火车站',
-        '上海虹桥火车站',
-      };
 
       for (final line in lines) {
         for (final station in line.stations) {

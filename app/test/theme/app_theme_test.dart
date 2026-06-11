@@ -308,12 +308,12 @@ void main() {
       expect(AppTheme.darkTheme.useMaterial3, true);
     });
 
-    test('lightColorScheme 亮度为 light', () {
-      expect(AppTheme.lightColorScheme.brightness, Brightness.light);
+    test('lightTheme colorScheme 亮度为 light', () {
+      expect(AppTheme.lightTheme.colorScheme.brightness, Brightness.light);
     });
 
-    test('darkColorScheme 亮度为 dark', () {
-      expect(AppTheme.darkColorScheme.brightness, Brightness.dark);
+    test('darkTheme colorScheme 亮度为 dark', () {
+      expect(AppTheme.darkTheme.colorScheme.brightness, Brightness.dark);
     });
 
     test('lightTheme textTheme 配置正确', () {

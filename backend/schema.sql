@@ -4,6 +4,16 @@
 CREATE DATABASE IF NOT EXISTS smart_travel DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE smart_travel;
 
+-- 数据库版本记录。schema.sql 表示当前完整基线，后续升级由 migrations 维护。
+CREATE TABLE schema_migrations (
+    version VARCHAR(100) PRIMARY KEY,
+    description VARCHAR(255) NOT NULL,
+    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO schema_migrations (version, description)
+VALUES ('000_current_baseline', 'Current complete schema baseline');
+
 -- 站点表
 CREATE TABLE stations (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -141,19 +151,40 @@ CREATE TABLE station_exits (
 CREATE TABLE station_facilities (
     id INT AUTO_INCREMENT PRIMARY KEY,
     station_id VARCHAR(100) NOT NULL UNIQUE,
-    has_elevator TINYINT(1) NOT NULL DEFAULT 1,
-    has_escalator TINYINT(1) NOT NULL DEFAULT 1,
-    has_wheelchair_ramp TINYINT(1) NOT NULL DEFAULT 1,
-    has_wide_gate TINYINT(1) NOT NULL DEFAULT 1,
-    has_accessible_restroom TINYINT(1) NOT NULL DEFAULT 1,
-    has_blind_path TINYINT(1) NOT NULL DEFAULT 1,
-    elevator_count INT NOT NULL DEFAULT 1,
-    escalator_count INT NOT NULL DEFAULT 2,
+    has_elevator TINYINT(1) NOT NULL DEFAULT 0,
+    has_escalator TINYINT(1) NOT NULL DEFAULT 0,
+    has_wheelchair_ramp TINYINT(1) NOT NULL DEFAULT 0,
+    has_wide_gate TINYINT(1) NOT NULL DEFAULT 0,
+    has_accessible_restroom TINYINT(1) NOT NULL DEFAULT 0,
+    has_blind_path TINYINT(1) NOT NULL DEFAULT 0,
+    elevator_count INT NOT NULL DEFAULT 0,
+    elevator_location VARCHAR(255) DEFAULT '',
+    escalator_count INT NOT NULL DEFAULT 0,
+    restroom_location VARCHAR(255) DEFAULT '',
+    has_restroom_in_paid TINYINT(1) NOT NULL DEFAULT 0,
+    has_restroom_outside TINYINT(1) NOT NULL DEFAULT 0,
+    has_mother_baby_room TINYINT(1) NOT NULL DEFAULT 0,
+    has_third_bathroom TINYINT(1) NOT NULL DEFAULT 0,
+    has_aed TINYINT(1) NOT NULL DEFAULT 0,
+    has_service_center TINYINT(1) NOT NULL DEFAULT 0,
     facility_note TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (station_id) REFERENCES stations(station_id) ON DELETE CASCADE,
     INDEX idx_station_facility_station (station_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 用户反馈表
+CREATE TABLE feedbacks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    type VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    contact VARCHAR(255) DEFAULT NULL,
+    status ENUM('pending', 'processing', 'resolved', 'closed') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_feedback_status_created (status, created_at),
+    INDEX idx_feedback_type (type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 出行提醒表

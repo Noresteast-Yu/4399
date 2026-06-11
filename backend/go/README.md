@@ -2,6 +2,8 @@
 
 智能出行助手 - Go 后端服务
 
+**当前版本**：v1.0.4
+
 ## 环境要求
 
 | 组件 | 版本要求 |
@@ -16,12 +18,16 @@
 backend/
 ├── schema.sql           # 数据库表结构
 ├── seed.sql             # 数据库种子数据（上海地铁演示数据）
+├── migrations/          # 数据库迁移脚本
+├── object-storage/      # MinIO 对象存储初始化素材
 └── go/
     ├── main.go          # 程序入口
     ├── go.mod           # Go 模块定义
     ├── go.sum           # 依赖校验文件
     ├── .env.example     # 环境变量示例
+    ├── cmd/             # 命令行工具
     ├── config/          # 配置加载
+    ├── data/            # 数据文件
     ├── database/        # MySQL 连接
     ├── models/          # 数据模型
     ├── handlers/        # HTTP 处理器
@@ -142,6 +148,7 @@ go build -o smart-travel-server.exe
 | GET | `/api/subway-service/station/:id/facilities` | 获取站点设施 |
 | GET | `/api/subway-service/facilities` | 获取所有站点设施 |
 | GET | `/api/subway-service/lines` | 获取所有线路 |
+| GET | `/api/subway-service/station/:id/navigate` | 站内导航路径规划 |
 | GET | `/api/high-speed-rail/train/:number` | 获取高铁车次信息 |
 | POST | `/api/high-speed-rail/guide` | 获取高铁乘车指引 |
 | GET | `/api/common-routes/user/:userId` | 获取常用路线 |
@@ -181,3 +188,12 @@ go env -w GOPROXY=https://goproxy.cn,direct
 - **框架**：Gin（高性能 HTTP 框架）
 - **数据库**：MySQL（go-sql-driver）
 - **配置**：godotenv
+- **对象存储**：MinIO
+
+## 更新日志
+
+详见 [../../CHANGELOG.md](../../CHANGELOG.md)
+
+## 许可证
+
+MIT License — 详见 [../../LICENSE](../../LICENSE)

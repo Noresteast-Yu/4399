@@ -12,11 +12,16 @@ CREATE TABLE IF NOT EXISTS static_resources (
     INDEX idx_resource_type (resource_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 删除历史上指向不存在文件的记录，避免接口返回不可用资源。
+DELETE FROM static_resources
+WHERE (resource_type = 'icon' AND resource_name IN ('timer', 'transfer'))
+   OR (resource_type = 'diagram' AND resource_name = 'hongqiao-transfer');
+
 INSERT INTO static_resources (resource_type, resource_name, resource_path, description) VALUES
-('icon', 'timer', 'app/assets/icons/timer.png', '换乘倒计时图标'),
-('icon', 'transfer', 'app/assets/icons/transfer.png', '站内换乘图标'),
-('diagram', 'hongqiao-transfer', 'backend/go/data/station_topologies/hongqiao_railway_station.json', '虹桥火车站平面换乘拓扑数据'),
-('diagram', 'tongji-university', 'backend/go/data/station_topologies/tongji_university.json', '同济大学站平面换乘拓扑数据')
+('diagram', 'tongji-university', 'backend/go/data/station_topologies/tongji_university.json', '同济大学站站内拓扑数据')
 ON DUPLICATE KEY UPDATE
     resource_path = VALUES(resource_path),
     description = VALUES(description);
+
+INSERT IGNORE INTO schema_migrations (version, description)
+VALUES ('003', 'Clean and register static resources');
