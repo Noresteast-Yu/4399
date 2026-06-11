@@ -40,7 +40,7 @@ class NetworkManager {
     _dio = _createDio(baseUrl);
   }
 
-  String get baseUrl => _dio.options.baseUrl;
+  String get baseUrl => _configLoaded ? _dio.options.baseUrl : '';
 
   Future<Response> health() async {
     await ensureConfigReady();

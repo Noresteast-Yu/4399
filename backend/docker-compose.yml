@@ -15,9 +15,13 @@ services:
       - smart-travel-mysql-data:/var/lib/mysql
       - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
       - ./seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
-      - ./migrations/004_full_shanghai_metro_network.sql:/docker-entrypoint-initdb.d/03_full_shanghai_metro_network.sql:ro
+      - ./migrations/001_migration_metadata.sql:/docker-entrypoint-initdb.d/03_migration_metadata.sql:ro
       - ./migrations/002_station_facility_details.sql:/docker-entrypoint-initdb.d/04_station_facility_details.sql:ro
       - ./migrations/003_static_resources.sql:/docker-entrypoint-initdb.d/05_static_resources.sql:ro
+      - ./migrations/004_full_shanghai_metro_network.sql:/docker-entrypoint-initdb.d/06_full_shanghai_metro_network.sql:ro
+      - ./migrations/004_feedbacks.sql:/docker-entrypoint-initdb.d/07_feedbacks.sql:ro
+      - ./migrations/005_reference_data_maintenance.sql:/docker-entrypoint-initdb.d/08_reference_data_maintenance.sql:ro
+      - ./migrations/006_facility_safe_defaults.sql:/docker-entrypoint-initdb.d/09_facility_safe_defaults.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-psmart_travel_dev"]
       interval: 5s

@@ -115,7 +115,6 @@ def main() -> None:
         "line_directions",
         "station_exits",
         "station_facilities",
-        "static_resources",
         "metro_lines",
         "stations",
     ]:
@@ -246,6 +245,10 @@ def main() -> None:
         "(SELECT COUNT(*) FROM stations) AS stations, "
         "(SELECT COUNT(*) FROM line_stations) AS line_stations, "
         "(SELECT COUNT(*) FROM station_exits) AS station_exits;"
+    )
+    statements.append(
+        "INSERT IGNORE INTO schema_migrations (version, description) "
+        "VALUES ('004_full_shanghai_metro_network', 'Load full Shanghai metro network seed data');"
     )
     header = (
         "-- Auto-generated from backend/go/services/metro_network_data.go.\n"

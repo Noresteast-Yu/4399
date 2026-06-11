@@ -11,7 +11,6 @@ DELETE FROM line_stations;
 DELETE FROM line_directions;
 DELETE FROM station_exits;
 DELETE FROM station_facilities;
-DELETE FROM static_resources;
 DELETE FROM metro_lines;
 DELETE FROM stations;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -2745,3 +2744,4 @@ INSERT INTO static_resources (resource_type, resource_name, resource_path, descr
 INSERT INTO static_resources (resource_type, resource_name, resource_path, description) VALUES ('diagram', 'full-shanghai-metro-network', 'backend/go/services/metro_network_data.go', '上海地铁1-18号线全网演示数据源') ON DUPLICATE KEY UPDATE resource_path=VALUES(resource_path), description=VALUES(description);
 INSERT INTO static_resources (resource_type, resource_name, resource_path, description) VALUES ('icon', 'accessibility', 'app/assets/icons/accessibility.png', '无障碍设施图标') ON DUPLICATE KEY UPDATE resource_path=VALUES(resource_path), description=VALUES(description);
 SELECT 'full_shanghai_metro_network_loaded' AS status, (SELECT COUNT(*) FROM metro_lines) AS metro_lines, (SELECT COUNT(*) FROM stations) AS stations, (SELECT COUNT(*) FROM line_stations) AS line_stations, (SELECT COUNT(*) FROM station_exits) AS station_exits;
+INSERT IGNORE INTO schema_migrations (version, description) VALUES ('004_full_shanghai_metro_network', 'Load full Shanghai metro network seed data');

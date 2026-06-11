@@ -37,7 +37,7 @@ func LoadConfig() {
 		DBHost:           getEnv("DB_HOST", "localhost"),
 		DBPort:           getEnv("DB_PORT", "3306"),
 		DBUser:           getEnv("DB_USER", "root"),
-		DBPassword:       getEnv("DB_PASSWORD", ""),
+		DBPassword:       getEnv("DB_PASSWORD", "smart_travel_dev"),
 		DBName:           getEnv("DB_NAME", "smart_travel"),
 		ShmaasHost:       getEnv("SHMAAS_HOST", "http://127.0.0.1:8787"),
 		ShmaasMerchantID: getEnv("SHMAAS_MERCHANT_ID", "mock-merchant"),
