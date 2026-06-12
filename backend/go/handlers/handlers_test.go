@@ -109,6 +109,66 @@ func TestGetStationExitsWithoutDatabaseReturnsDemoExits(t *testing.T) {
 	}
 }
 
+func TestGetNearestStationWithoutDatabaseReturnsEntrance(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/location/nearest-station", GetNearestStation)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/location/nearest-station?lat=31.2821&lng=121.5063", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"stationName":"同济大学"`)) {
+		t.Fatalf("expected tongji nearest station, got %s", rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"recommendedEntrance"`)) {
+		t.Fatalf("expected recommended entrance, got %s", rec.Body.String())
+	}
+}
+
+func TestParseAssistantDestinationMatchesStation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.POST("/api/assistant/parse-destination", ParseAssistantDestination)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/assistant/parse-destination", bytes.NewBufferString(`{"text":"帮我导航到浦东国际机场"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"stationName":"浦东国际机场"`)) {
+		t.Fatalf("expected pudong airport destination, got %s", rec.Body.String())
+	}
+}
+
+func TestParseAssistantDestinationRejectsEmptyBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.POST("/api/assistant/parse-destination", ParseAssistantDestination)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/assistant/parse-destination", bytes.NewBufferString(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+}
+
 func TestGetStationExitsGeneratesNetworkStationChoices(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	database.DB = nil

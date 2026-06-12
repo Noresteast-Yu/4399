@@ -47,6 +47,16 @@ func SetupRouter() *gin.Engine {
 			metro.GET("/arrival", handlers.GetMetroArrival)
 		}
 
+		location := api.Group("/location")
+		{
+			location.GET("/nearest-station", handlers.GetNearestStation)
+		}
+
+		assistant := api.Group("/assistant")
+		{
+			assistant.POST("/parse-destination", handlers.ParseAssistantDestination)
+		}
+
 		indoorGuide := api.Group("/indoor-guide")
 		{
 			indoorGuide.GET("", handlers.GetIndoorGuide)

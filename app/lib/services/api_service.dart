@@ -151,6 +151,34 @@ class ApiService {
     });
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> getNearestStation({
+    required double latitude,
+    required double longitude,
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.get(
+        '/location/nearest-station',
+        queryParameters: {
+          'lat': latitude,
+          'lng': longitude,
+        },
+      );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> parseAssistantDestination(
+    String text,
+  ) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.post(
+        '/assistant/parse-destination',
+        data: {'text': text},
+      );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> getAllStationFacilities() {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response = await _networkManager.get('/subway-service/facilities');

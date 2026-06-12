@@ -147,6 +147,20 @@ CREATE TABLE station_exits (
     INDEX idx_station (station_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 站点地理坐标表（用于 GPS 最近站推荐）
+CREATE TABLE station_geo_points (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    station_id VARCHAR(100) NOT NULL UNIQUE,
+    latitude DECIMAL(10, 7) NOT NULL,
+    longitude DECIMAL(10, 7) NOT NULL,
+    source VARCHAR(100) NOT NULL DEFAULT 'manual',
+    accuracy_note VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (station_id) REFERENCES stations(station_id) ON DELETE CASCADE,
+    INDEX idx_station_geo_lat_lng (latitude, longitude)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 站点无障碍与服务设施表
 CREATE TABLE station_facilities (
     id INT AUTO_INCREMENT PRIMARY KEY,

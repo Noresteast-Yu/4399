@@ -71,6 +71,10 @@ class _HomePageState extends State<HomePage> {
   bool _assistantBusy = false;
   String _assistantStatus = '说出想去的终点，我会帮你找最近进站口。';
   Position? _lastKnownPosition;
+  String? _assistantPreviewStart;
+  String? _assistantPreviewEntrance;
+  String? _assistantPreviewEnd;
+  String? _assistantPreviewExit;
 
   late final List<_StationSuggestion> _stationSuggestions =
       _buildStationSuggestions();
@@ -374,13 +378,17 @@ class _HomePageState extends State<HomePage> {
               ? '识别到：$destination'
               : '正在识别：$destination';
         });
+        if (result.finalResult) {
+          _resolveAssistantDestination(words);
+        }
       },
     );
   }
 
   Future<void> _startAssistantPlan() async {
-    final destination =
-        _extractDestination(_assistantDestinationController.text.trim());
+    final destination = await _resolveAssistantDestination(
+      _assistantDestinationController.text.trim(),
+    );
     final endStation = _bestStationMatch(destination);
     if (endStation == null) {
       setState(() {
@@ -422,13 +430,19 @@ class _HomePageState extends State<HomePage> {
       _endController.text = endStation.name;
       _endStationId = endStation.id;
       _endExit = endExit;
+      _assistantPreviewStart = startStation.name;
+      _assistantPreviewEntrance = startEntrance.label;
+      _assistantPreviewEnd = endStation.name;
+      _assistantPreviewExit = endExit.label;
       _assistantBusy = false;
-      _assistantExpanded = false;
       _assistantStatus = _lastKnownPosition == null
           ? '已用演示定位推荐${startStation.name}，准备开始规划。'
           : '已定位并推荐${startStation.name}，准备开始规划。';
     });
 
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    setState(() => _assistantExpanded = false);
     _goPlanning();
   }
 
@@ -440,6 +454,23 @@ class _HomePageState extends State<HomePage> {
     value = value.replaceAll(RegExp(r'[，。,.!?！？\s]'), '');
     final matched = _bestStationMatch(value);
     return matched?.name ?? value;
+  }
+
+  Future<String> _resolveAssistantDestination(String text) async {
+    final fallback = _extractDestination(text);
+    if (fallback.isEmpty) return fallback;
+    final response = await _apiService.parseAssistantDestination(text);
+    final stationName = response.data?['stationName']?.toString() ?? '';
+    final destination = response.success && stationName.isNotEmpty
+        ? stationName
+        : fallback;
+    if (mounted && destination.isNotEmpty) {
+      setState(() {
+        _assistantDestinationController.text = destination;
+        _assistantStatus = '识别到：$destination';
+      });
+    }
+    return destination;
   }
 
   _StationSuggestion? _bestStationMatch(String keyword) {
@@ -478,6 +509,14 @@ class _HomePageState extends State<HomePage> {
         desiredAccuracy: LocationAccuracy.medium,
         timeLimit: const Duration(seconds: 4),
       );
+      final remote = await _apiService.getNearestStation(
+        latitude: _lastKnownPosition!.latitude,
+        longitude: _lastKnownPosition!.longitude,
+      );
+      final stationName = remote.data?['stationName']?.toString() ?? '';
+      if (remote.success && stationName.isNotEmpty) {
+        return _bestStationMatch(stationName) ?? fallback;
+      }
       return _nearestKnownStation(_lastKnownPosition!) ?? fallback;
     } catch (_) {
       return fallback;
@@ -1052,6 +1091,42 @@ class _HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              if (_assistantPreviewStart != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF8F3),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFCFEBDD)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '推荐方案',
+                        style: TextStyle(
+                          color: _green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${_assistantPreviewStart ?? ''} ${_assistantPreviewEntrance ?? ''} → ${_assistantPreviewEnd ?? ''} ${_assistantPreviewExit ?? ''}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Row(
                 children: [

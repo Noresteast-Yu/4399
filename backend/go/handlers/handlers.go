@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -261,6 +262,25 @@ type stationExitResponse struct {
 	IsAccessible bool   `json:"isAccessible"`
 }
 
+type stationGeoPoint struct {
+	Name      string
+	StationID string
+	Latitude  float64
+	Longitude float64
+}
+
+var knownStationGeoPoints = []stationGeoPoint{
+	{Name: "同济大学", StationID: "tongji_university", Latitude: 31.2821, Longitude: 121.5063},
+	{Name: "四平路", StationID: "siping_road", Latitude: 31.2749, Longitude: 121.5082},
+	{Name: "五角场", StationID: "wujiaochang_10", Latitude: 31.3039, Longitude: 121.5145},
+	{Name: "国权路", StationID: "guoquan_road", Latitude: 31.2895, Longitude: 121.5104},
+	{Name: "上海火车站", StationID: "shanghai_railway_1", Latitude: 31.2495, Longitude: 121.4555},
+	{Name: "人民广场", StationID: "peoples_square", Latitude: 31.2304, Longitude: 121.4737},
+	{Name: "南京东路", StationID: "east_nanjing_road", Latitude: 31.2392, Longitude: 121.4846},
+	{Name: "虹桥火车站", StationID: "hongqiao_railway_2", Latitude: 31.1943, Longitude: 121.3189},
+	{Name: "浦东国际机场", StationID: "pudong_airport", Latitude: 31.1500, Longitude: 121.8050},
+}
+
 func GetStationExits(c *gin.Context) {
 	stationID := c.Param("stationId")
 
@@ -275,6 +295,240 @@ func GetStationExits(c *gin.Context) {
 		"exits":      exits,
 		"totalCount": len(exits),
 	})
+}
+
+func GetNearestStation(c *gin.Context) {
+	lat, latErr := strconv.ParseFloat(strings.TrimSpace(c.Query("lat")), 64)
+	lng, lngErr := strconv.ParseFloat(strings.TrimSpace(c.Query("lng")), 64)
+	if latErr != nil || lngErr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "请提供有效的 lat 和 lng",
+		})
+		return
+	}
+
+	nearest, distanceMeters, source := nearestStationGeoPoint(lat, lng)
+	if nearest == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "暂无可用站点定位数据",
+		})
+		return
+	}
+
+	exits := stationExitsFromDatabase(nearest.StationID)
+	if len(exits) == 0 {
+		exits = defaultStationExits(nearest.StationID)
+	}
+	recommendedEntrance := stationExitResponse{}
+	if len(exits) > 0 {
+		recommendedEntrance = exits[0]
+		for _, exit := range exits {
+			detail := exit.Detail + exit.NearbyPlace + exit.Name
+			if strings.Contains(detail, "同济") || strings.Contains(detail, "正门") || strings.Contains(detail, "主通道") {
+				recommendedEntrance = exit
+				break
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"stationId":            nearest.StationID,
+			"stationName":          nearest.Name,
+			"distanceMeters":       int(math.Round(distanceMeters)),
+			"recommendedEntrance":  recommendedEntrance,
+			"candidateEntrances":   exits,
+			"source":               source,
+			"coverageDescription":  nearestStationCoverageDescription(source),
+			"requestedCoordinates": gin.H{"lat": lat, "lng": lng},
+		},
+	})
+}
+
+func ParseAssistantDestination(c *gin.Context) {
+	var req struct {
+		Text string `json:"text" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供语音文本"})
+		return
+	}
+
+	cleaned := cleanAssistantDestinationText(req.Text)
+	station, score := bestAssistantStationMatch(cleaned)
+	if station.Name == "" {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+			"rawText":      req.Text,
+			"destination":  cleaned,
+			"matched":      false,
+			"matchScore":   0,
+			"stationId":    "",
+			"stationName":  "",
+			"availableTip": "没有匹配到地铁站，请换个站名试试",
+		}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"rawText":     req.Text,
+		"destination": cleaned,
+		"matched":     true,
+		"matchScore":  score,
+		"stationId":   station.ID,
+		"stationName": station.Name,
+		"lineNames":   station.LineNames,
+	}})
+}
+
+type assistantStationMatch struct {
+	ID        string
+	Name      string
+	LineNames []string
+}
+
+func cleanAssistantDestinationText(text string) string {
+	value := strings.TrimSpace(text)
+	replacers := []string{"我要去", "我想去", "带我去", "导航到", "导航去", "去往", "前往", "到达", "到", "地铁站", "站"}
+	for _, token := range replacers {
+		value = strings.ReplaceAll(value, token, "")
+	}
+	value = strings.Map(func(r rune) rune {
+		switch r {
+		case '，', '。', ',', '.', '!', '?', '！', '？', ' ', '\t', '\n', '\r':
+			return -1
+		default:
+			return r
+		}
+	}, value)
+	return strings.TrimSpace(value)
+}
+
+func bestAssistantStationMatch(query string) (assistantStationMatch, int) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return assistantStationMatch{}, 0
+	}
+	best := assistantStationMatch{}
+	bestScore := 0
+	for _, item := range services.MetroNetworkStations() {
+		score := assistantStationScore(query, item.Name)
+		if score > bestScore {
+			bestScore = score
+			best = assistantStationMatch{
+				ID:        item.ID,
+				Name:      item.Name,
+				LineNames: item.AvailableLines,
+			}
+		}
+	}
+	if bestScore < 40 {
+		return assistantStationMatch{}, 0
+	}
+	return best, bestScore
+}
+
+func assistantStationScore(query, stationName string) int {
+	switch {
+	case query == stationName:
+		return 100
+	case strings.Contains(stationName, query):
+		return 85 - absInt(utf8.RuneCountInString(stationName)-utf8.RuneCountInString(query))
+	case strings.Contains(query, stationName):
+		return 82
+	default:
+		common := commonRuneCount(query, stationName)
+		if common == 0 {
+			return 0
+		}
+		return common * 18
+	}
+}
+
+func commonRuneCount(a, b string) int {
+	seen := map[rune]bool{}
+	for _, r := range a {
+		seen[r] = true
+	}
+	count := 0
+	for _, r := range b {
+		if seen[r] {
+			count++
+		}
+	}
+	return count
+}
+
+func nearestStationGeoPoint(lat, lng float64) (*stationGeoPoint, float64, string) {
+	if nearest, distance, ok := nearestStationGeoPointFromDatabase(lat, lng); ok {
+		return nearest, distance, "database"
+	}
+	var nearest *stationGeoPoint
+	bestDistance := math.MaxFloat64
+	for i := range knownStationGeoPoints {
+		point := &knownStationGeoPoints[i]
+		distance := haversineMeters(lat, lng, point.Latitude, point.Longitude)
+		if distance < bestDistance {
+			bestDistance = distance
+			nearest = point
+		}
+	}
+	return nearest, bestDistance, "known-station-geo"
+}
+
+func nearestStationGeoPointFromDatabase(lat, lng float64) (*stationGeoPoint, float64, bool) {
+	if database.DB == nil {
+		return nil, 0, false
+	}
+	rows, err := database.DB.Query(
+		`SELECT sg.station_id, s.station_name, sg.latitude, sg.longitude
+		FROM station_geo_points sg
+		JOIN stations s ON s.station_id = sg.station_id`,
+	)
+	if err != nil {
+		return nil, 0, false
+	}
+	defer rows.Close()
+
+	var nearest *stationGeoPoint
+	bestDistance := math.MaxFloat64
+	for rows.Next() {
+		var point stationGeoPoint
+		if err := rows.Scan(&point.StationID, &point.Name, &point.Latitude, &point.Longitude); err != nil {
+			continue
+		}
+		distance := haversineMeters(lat, lng, point.Latitude, point.Longitude)
+		if distance < bestDistance {
+			bestDistance = distance
+			nearest = &point
+		}
+	}
+	if nearest == nil {
+		return nil, 0, false
+	}
+	return nearest, bestDistance, true
+}
+
+func nearestStationCoverageDescription(source string) string {
+	if source == "database" {
+		return "数据库站点坐标推荐，可随站点数据扩展"
+	}
+	return "课程项目演示定位数据，覆盖常用演示站点"
+}
+
+func haversineMeters(lat1, lng1, lat2, lng2 float64) float64 {
+	const earthRadiusMeters = 6371000.0
+	toRadians := func(degrees float64) float64 { return degrees * math.Pi / 180 }
+	dLat := toRadians(lat2 - lat1)
+	dLng := toRadians(lng2 - lng1)
+	rLat1 := toRadians(lat1)
+	rLat2 := toRadians(lat2)
+
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(rLat1)*math.Cos(rLat2)*math.Sin(dLng/2)*math.Sin(dLng/2)
+	return earthRadiusMeters * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 }
 
 func stationExitsFromDatabase(stationID string) []stationExitResponse {
