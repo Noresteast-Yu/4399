@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
@@ -10,7 +11,6 @@ import 'package:smart_travel_app/components/home/line10_interactive_metro_map.da
 import 'package:smart_travel_app/data/shanghai_metro_data.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/navigation_memory.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,6 +26,8 @@ class _HomePageState extends State<HomePage> {
   static const Color _surface = Color(0xFFF8F9FF);
   static const Color _surfaceBlue = Color(0xFFEFF4FF);
   static const Color _green = Color(0xFF008644);
+  static const MethodChannel _speechChannel =
+      MethodChannel('smart_travel_app/speech');
   static const List<_KnownStationGeo> _knownStationGeos = [
     _KnownStationGeo('同济大学', 31.2821, 121.5063),
     _KnownStationGeo('四平路', 31.2749, 121.5082),
@@ -46,7 +48,6 @@ class _HomePageState extends State<HomePage> {
   final FocusNode _startFocusNode = FocusNode();
   final FocusNode _endFocusNode = FocusNode();
   final ApiService _apiService = ApiService();
-  late final stt.SpeechToText _speechToText = stt.SpeechToText();
 
   List<Map<String, dynamic>> _travelAlerts = [];
   Map<String, dynamic>? _metroArrival;
@@ -89,6 +90,7 @@ class _HomePageState extends State<HomePage> {
       if (!mounted || _metroArrival == null) return;
       setState(() {});
     });
+    _speechChannel.setMethodCallHandler(_handleSpeechMethodCall);
     _loadData();
   }
 
@@ -104,7 +106,7 @@ class _HomePageState extends State<HomePage> {
     _startController.dispose();
     _endController.dispose();
     _assistantDestinationController.dispose();
-    _speechToText.stop();
+    unawaited(_speechChannel.invokeMethod<void>('stopSpeech'));
     super.dispose();
   }
 
@@ -329,7 +331,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _toggleAssistantListening() async {
     if (_assistantListening) {
-      await _speechToText.stop();
+      await _speechChannel.invokeMethod<void>('stopSpeech');
       if (mounted) {
         setState(() {
           _assistantListening = false;
@@ -339,51 +341,59 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    final available = await _speechToText.initialize(
-      onStatus: (status) {
-        if (!mounted) return;
-        if (status == 'done' || status == 'notListening') {
-          setState(() => _assistantListening = false);
-        }
-      },
-      onError: (error) {
-        if (!mounted) return;
-        setState(() {
-          _assistantListening = false;
-          _assistantStatus = '语音识别暂时不可用，可以手动输入终点。';
-        });
-      },
-    );
-
-    if (!available) {
-      if (!mounted) return;
-      setState(() {
-        _assistantStatus = '没有获得麦克风能力，可以手动输入终点。';
-      });
-      return;
-    }
-
     setState(() {
       _assistantListening = true;
       _assistantStatus = '正在听你说终点，例如：我要去浦东国际机场。';
     });
-    await _speechToText.listen(
-      localeId: 'zh_CN',
-      onResult: (result) {
-        final words = result.recognizedWords.trim();
-        if (words.isEmpty || !mounted) return;
+    try {
+      final available = await _speechChannel.invokeMethod<bool>(
+            'startSpeech',
+            {'locale': 'zh-CN'},
+          ) ??
+          false;
+      if (available || !mounted) return;
+      setState(() {
+        _assistantListening = false;
+        _assistantStatus = '没有获得麦克风能力，可以手动输入终点。';
+      });
+    } on PlatformException {
+      if (!mounted) return;
+      setState(() {
+        _assistantListening = false;
+        _assistantStatus = '语音识别暂时不可用，可以手动输入终点。';
+      });
+    }
+  }
+
+  Future<dynamic> _handleSpeechMethodCall(MethodCall call) async {
+    if (!mounted) return null;
+    switch (call.method) {
+      case 'onSpeechResult':
+        final args = Map<String, dynamic>.from(call.arguments as Map);
+        final words = (args['text'] ?? '').toString().trim();
+        if (words.isEmpty) return null;
         final destination = _extractDestination(words);
+        final isFinal = args['isFinal'] == true;
         setState(() {
           _assistantDestinationController.text = destination;
-          _assistantStatus = result.finalResult
-              ? '识别到：$destination'
-              : '正在识别：$destination';
+          _assistantListening = !isFinal;
+          _assistantStatus = isFinal ? '识别到：$destination' : '正在识别：$destination';
         });
-        if (result.finalResult) {
-          _resolveAssistantDestination(words);
+        if (isFinal) {
+          unawaited(_resolveAssistantDestination(words));
         }
-      },
-    );
+        return null;
+      case 'onSpeechError':
+        setState(() {
+          _assistantListening = false;
+          _assistantStatus = '语音识别暂时不可用，可以手动输入终点。';
+        });
+        return null;
+      case 'onSpeechDone':
+        setState(() => _assistantListening = false);
+        return null;
+    }
+    return null;
   }
 
   Future<void> _startAssistantPlan() async {
