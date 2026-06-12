@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/components/home/line10_interactive_metro_map.dart';
 import 'package:smart_travel_app/data/shanghai_metro_data.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/navigation_memory.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,13 +26,27 @@ class _HomePageState extends State<HomePage> {
   static const Color _surface = Color(0xFFF8F9FF);
   static const Color _surfaceBlue = Color(0xFFEFF4FF);
   static const Color _green = Color(0xFF008644);
+  static const List<_KnownStationGeo> _knownStationGeos = [
+    _KnownStationGeo('同济大学', 31.2821, 121.5063),
+    _KnownStationGeo('四平路', 31.2749, 121.5082),
+    _KnownStationGeo('五角场', 31.3039, 121.5145),
+    _KnownStationGeo('国权路', 31.2895, 121.5104),
+    _KnownStationGeo('上海火车站', 31.2495, 121.4555),
+    _KnownStationGeo('人民广场', 31.2304, 121.4737),
+    _KnownStationGeo('南京东路', 31.2392, 121.4846),
+    _KnownStationGeo('虹桥火车站', 31.1943, 121.3189),
+    _KnownStationGeo('浦东国际机场', 31.1500, 121.8050),
+  ];
 
   final TextEditingController _startController =
       TextEditingController(text: '同济大学');
   final TextEditingController _endController = TextEditingController();
+  final TextEditingController _assistantDestinationController =
+      TextEditingController();
   final FocusNode _startFocusNode = FocusNode();
   final FocusNode _endFocusNode = FocusNode();
   final ApiService _apiService = ApiService();
+  late final stt.SpeechToText _speechToText = stt.SpeechToText();
 
   List<Map<String, dynamic>> _travelAlerts = [];
   Map<String, dynamic>? _metroArrival;
@@ -50,6 +66,11 @@ class _HomePageState extends State<HomePage> {
   bool _allowStationTapAutoExpand = true;
   Timer? _arrivalTicker;
   DateTime? _arrivalFetchedAt;
+  bool _assistantExpanded = true;
+  bool _assistantListening = false;
+  bool _assistantBusy = false;
+  String _assistantStatus = '说出想去的终点，我会帮你找最近进站口。';
+  Position? _lastKnownPosition;
 
   late final List<_StationSuggestion> _stationSuggestions =
       _buildStationSuggestions();
@@ -77,6 +98,8 @@ class _HomePageState extends State<HomePage> {
       ..dispose();
     _startController.dispose();
     _endController.dispose();
+    _assistantDestinationController.dispose();
+    _speechToText.stop();
     super.dispose();
   }
 
@@ -297,6 +320,206 @@ class _HomePageState extends State<HomePage> {
         '&endExitName=${Uri.encodeComponent(_endExit!.label)}';
     NavigationMemory.routePlanLocation = location;
     context.go(location);
+  }
+
+  Future<void> _toggleAssistantListening() async {
+    if (_assistantListening) {
+      await _speechToText.stop();
+      if (mounted) {
+        setState(() {
+          _assistantListening = false;
+          _assistantStatus = '已停止收音，可以直接开始规划。';
+        });
+      }
+      return;
+    }
+
+    final available = await _speechToText.initialize(
+      onStatus: (status) {
+        if (!mounted) return;
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _assistantListening = false);
+        }
+      },
+      onError: (error) {
+        if (!mounted) return;
+        setState(() {
+          _assistantListening = false;
+          _assistantStatus = '语音识别暂时不可用，可以手动输入终点。';
+        });
+      },
+    );
+
+    if (!available) {
+      if (!mounted) return;
+      setState(() {
+        _assistantStatus = '没有获得麦克风能力，可以手动输入终点。';
+      });
+      return;
+    }
+
+    setState(() {
+      _assistantListening = true;
+      _assistantStatus = '正在听你说终点，例如：我要去浦东国际机场。';
+    });
+    await _speechToText.listen(
+      localeId: 'zh_CN',
+      onResult: (result) {
+        final words = result.recognizedWords.trim();
+        if (words.isEmpty || !mounted) return;
+        final destination = _extractDestination(words);
+        setState(() {
+          _assistantDestinationController.text = destination;
+          _assistantStatus = result.finalResult
+              ? '识别到：$destination'
+              : '正在识别：$destination';
+        });
+      },
+    );
+  }
+
+  Future<void> _startAssistantPlan() async {
+    final destination =
+        _extractDestination(_assistantDestinationController.text.trim());
+    final endStation = _bestStationMatch(destination);
+    if (endStation == null) {
+      setState(() {
+        _assistantStatus = '没有找到“$destination”对应的地铁站，可以换个站名试试。';
+      });
+      return;
+    }
+
+    setState(() {
+      _assistantBusy = true;
+      _assistantStatus = '正在定位你附近的进站口...';
+    });
+
+    final startStation = await _nearestStationByLocation();
+    if (!mounted) return;
+
+    final startChoices = await _loadAccessChoices(
+      startStation.name,
+      stationId: startStation.id,
+      forStart: true,
+    );
+    final endChoices = await _loadAccessChoices(
+      endStation.name,
+      stationId: endStation.id,
+      forStart: false,
+    );
+    if (!mounted) return;
+
+    final startEntrance = _preferredAccessChoice(
+      startChoices,
+      preferCampus: startStation.name.contains('同济大学'),
+    );
+    final endExit = _preferredAccessChoice(endChoices);
+
+    setState(() {
+      _startController.text = startStation.name;
+      _startStationId = startStation.id;
+      _startEntrance = startEntrance;
+      _endController.text = endStation.name;
+      _endStationId = endStation.id;
+      _endExit = endExit;
+      _assistantBusy = false;
+      _assistantExpanded = false;
+      _assistantStatus = _lastKnownPosition == null
+          ? '已用演示定位推荐${startStation.name}，准备开始规划。'
+          : '已定位并推荐${startStation.name}，准备开始规划。';
+    });
+
+    _goPlanning();
+  }
+
+  String _extractDestination(String text) {
+    var value = text.trim();
+    for (final token in ['我要去', '我想去', '带我去', '导航到', '去往', '前往', '到达']) {
+      value = value.replaceAll(token, '');
+    }
+    value = value.replaceAll(RegExp(r'[，。,.!?！？\s]'), '');
+    final matched = _bestStationMatch(value);
+    return matched?.name ?? value;
+  }
+
+  _StationSuggestion? _bestStationMatch(String keyword) {
+    final query = keyword.trim();
+    if (query.isEmpty) return null;
+    final matches = _stationSuggestions.where((station) {
+      return station.name == query ||
+          station.name.contains(query) ||
+          query.contains(station.name);
+    }).toList()
+      ..sort((a, b) {
+        final exact = (b.name == query ? 1 : 0) - (a.name == query ? 1 : 0);
+        if (exact != 0) return exact;
+        return b.name.length.compareTo(a.name.length);
+      });
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  Future<_StationSuggestion> _nearestStationByLocation() async {
+    final fallback = _bestStationMatch('同济大学') ?? _stationSuggestions.first;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled()
+          .timeout(const Duration(seconds: 2), onTimeout: () => false);
+      if (!serviceEnabled) return fallback;
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return fallback;
+      }
+
+      _lastKnownPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 4),
+      );
+      return _nearestKnownStation(_lastKnownPosition!) ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  _StationSuggestion? _nearestKnownStation(Position position) {
+    _KnownStationGeo? nearest;
+    var bestDistance = double.infinity;
+    for (final station in _knownStationGeos) {
+      final distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        station.latitude,
+        station.longitude,
+      );
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        nearest = station;
+      }
+    }
+    if (nearest == null) return null;
+    return _bestStationMatch(nearest.name);
+  }
+
+  _AccessChoice _preferredAccessChoice(
+    List<_AccessChoice> choices, {
+    bool preferCampus = false,
+  }) {
+    if (choices.isEmpty) {
+      return const _AccessChoice('1', '1号口', '推荐入口');
+    }
+    if (preferCampus) {
+      for (final choice in choices) {
+        if (choice.label.contains('5') ||
+            choice.detail.contains('同济') ||
+            choice.detail.contains('正门')) {
+          return choice;
+        }
+      }
+    }
+    return choices.first;
   }
 
   Future<void> _chooseAccessPoint({required bool forStart}) async {
@@ -690,9 +913,180 @@ class _HomePageState extends State<HomePage> {
               child: _buildArrivalDock(),
             ),
           ),
+          _buildVoiceAssistantOverlay(size),
         ],
       ),
       bottomNavigationBar: const BottomNavBar(currentIndex: 0),
+    );
+  }
+
+  Widget _buildVoiceAssistantOverlay(Size size) {
+    if (!_assistantExpanded) {
+      return Positioned(
+        left: 10,
+        top: size.height * 0.46,
+        child: SafeArea(
+          child: _AssistantCloudButton(
+            onTap: () => setState(() => _assistantExpanded = true),
+          ),
+        ),
+      );
+    }
+
+    final top = size.height < 720 ? 116.0 : 132.0;
+    return Positioned(
+      left: 18,
+      right: 18,
+      top: top,
+      child: SafeArea(
+        child: _GlassPanel(
+          borderRadius: 26,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: _surfaceBlue,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.cloud_rounded,
+                      color: _line10,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AI 语音助手',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _ink,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          '说出终点，自动推荐进站口和出站口',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '收起',
+                    onPressed: () => setState(() => _assistantExpanded = false),
+                    icon: const Icon(Icons.close_rounded, color: _muted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.72),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFE7D8EA)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      color: _assistantDestinationController.text.isEmpty
+                          ? _muted
+                          : _line10,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _assistantDestinationController,
+                        onChanged: (_) => setState(() {}),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _startAssistantPlan(),
+                        decoration: const InputDecoration(
+                          hintText: '说或输入终点，例如 浦东国际机场',
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: _assistantListening ? '停止识别' : '语音输入',
+                      onPressed:
+                          _assistantBusy ? null : _toggleAssistantListening,
+                      icon: Icon(
+                        _assistantListening
+                            ? Icons.graphic_eq_rounded
+                            : Icons.mic_rounded,
+                        color: _assistantListening ? _green : _line10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _assistantStatus,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _assistantBusy
+                          ? null
+                          : () => setState(() => _assistantExpanded = false),
+                      icon: const Icon(Icons.keyboard_hide_rounded, size: 18),
+                      label: const Text('稍后再用'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _assistantBusy ? null : _startAssistantPlan,
+                      icon: _assistantBusy
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.near_me_rounded, size: 18),
+                      label: Text(_assistantBusy ? '规划中' : '开始规划'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1681,6 +2075,68 @@ class _MapReadabilityVeil extends StatelessWidget {
   }
 }
 
+class _AssistantCloudButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _AssistantCloudButton({required this.onTap});
+
+  @override
+  State<_AssistantCloudButton> createState() => _AssistantCloudButtonState();
+}
+
+class _AssistantCloudButtonState extends State<_AssistantCloudButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final dy = lerpDouble(-3, 3, _controller.value) ?? 0;
+        return Transform.translate(offset: Offset(0, dy), child: child);
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: widget.onTap,
+          child: Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.88),
+              border: Border.all(color: const Color(0xFFE7D8EA)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF7B4A7F).withOpacity(0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.cloud_rounded,
+              color: Color(0xFFB07AB2),
+              size: 30,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GridPainter extends CustomPainter {
   const _GridPainter();
 
@@ -1771,6 +2227,14 @@ class _AccessChoice {
   }
 
   String get shortLabel => id;
+}
+
+class _KnownStationGeo {
+  final String name;
+  final double latitude;
+  final double longitude;
+
+  const _KnownStationGeo(this.name, this.latitude, this.longitude);
 }
 
 class _StationSuggestion {
