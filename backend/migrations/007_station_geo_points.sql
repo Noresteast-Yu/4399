@@ -14,15 +14,15 @@ CREATE TABLE IF NOT EXISTS station_geo_points (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO station_geo_points (station_id, latitude, longitude, source, accuracy_note) VALUES
-('tongji_university', 31.2821000, 121.5063000, 'manual-demo', '同济大学站演示坐标'),
-('siping_road', 31.2749000, 121.5082000, 'manual-demo', '四平路站演示坐标'),
+('tongji_university_10', 31.2821000, 121.5063000, 'manual-demo', '同济大学站演示坐标'),
+('siping_road_8', 31.2749000, 121.5082000, 'manual-demo', '四平路站演示坐标'),
 ('wujiaochang_10', 31.3039000, 121.5145000, 'manual-demo', '五角场站演示坐标'),
 ('guoquan_road', 31.2895000, 121.5104000, 'manual-demo', '国权路站演示坐标'),
 ('shanghai_railway_1', 31.2495000, 121.4555000, 'manual-demo', '上海火车站演示坐标'),
 ('peoples_square', 31.2304000, 121.4737000, 'manual-demo', '人民广场站演示坐标'),
-('east_nanjing_road', 31.2392000, 121.4846000, 'manual-demo', '南京东路站演示坐标'),
+('nanjing_east_2', 31.2392000, 121.4846000, 'manual-demo', '南京东路站演示坐标'),
 ('hongqiao_railway_2', 31.1943000, 121.3189000, 'manual-demo', '虹桥火车站演示坐标'),
-('pudong_airport', 31.1500000, 121.8050000, 'manual-demo', '浦东国际机场站演示坐标')
+('pudong_airport_2', 31.1500000, 121.8050000, 'manual-demo', '浦东国际机场站演示坐标')
 ON DUPLICATE KEY UPDATE
     latitude = VALUES(latitude),
     longitude = VALUES(longitude),

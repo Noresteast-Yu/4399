@@ -270,15 +270,15 @@ type stationGeoPoint struct {
 }
 
 var knownStationGeoPoints = []stationGeoPoint{
-	{Name: "同济大学", StationID: "tongji_university", Latitude: 31.2821, Longitude: 121.5063},
-	{Name: "四平路", StationID: "siping_road", Latitude: 31.2749, Longitude: 121.5082},
+	{Name: "同济大学", StationID: "tongji_university_10", Latitude: 31.2821, Longitude: 121.5063},
+	{Name: "四平路", StationID: "siping_road_8", Latitude: 31.2749, Longitude: 121.5082},
 	{Name: "五角场", StationID: "wujiaochang_10", Latitude: 31.3039, Longitude: 121.5145},
 	{Name: "国权路", StationID: "guoquan_road", Latitude: 31.2895, Longitude: 121.5104},
 	{Name: "上海火车站", StationID: "shanghai_railway_1", Latitude: 31.2495, Longitude: 121.4555},
 	{Name: "人民广场", StationID: "peoples_square", Latitude: 31.2304, Longitude: 121.4737},
-	{Name: "南京东路", StationID: "east_nanjing_road", Latitude: 31.2392, Longitude: 121.4846},
+	{Name: "南京东路", StationID: "nanjing_east_2", Latitude: 31.2392, Longitude: 121.4846},
 	{Name: "虹桥火车站", StationID: "hongqiao_railway_2", Latitude: 31.1943, Longitude: 121.3189},
-	{Name: "浦东国际机场", StationID: "pudong_airport", Latitude: 31.1500, Longitude: 121.8050},
+	{Name: "浦东国际机场", StationID: "pudong_airport_2", Latitude: 31.1500, Longitude: 121.8050},
 }
 
 func GetStationExits(c *gin.Context) {
