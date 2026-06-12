@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/navigation_memory.dart';
@@ -22,8 +19,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   static const Color _sheet = Color(0xFFFFFFFF);
 
   final ApiService _apiService = ApiService();
-  final TextEditingController _commentController = TextEditingController();
-
   Map<String, dynamic>? _facilityInfo;
   List<Map<String, dynamic>> _allFacilities = [];
   bool _isLoading = true;
@@ -35,13 +30,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
   void initState() {
     super.initState();
     _loadAllFacilities();
-    _loadStationReviews();
-  }
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadAllFacilities() async {
@@ -79,7 +67,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
           _stationId = nextStationId;
           _isLoading = false;
         });
-        await _loadStationReviews(nextStationId);
         return;
       }
     }
@@ -111,7 +98,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
           _isLoading = false;
           _error = null;
         });
-        await _loadStationReviews(_stationId);
         return;
       }
     }
@@ -633,30 +619,6 @@ class _SubwayServicePageState extends State<SubwayServicePage> {
     );
   }
 
-  String _reviewStorageKey([String? stationId]) {
-    return 'station_reviews_${stationId ?? _stationId}';
-  }
-
-  Future<void> _loadStationReviews([String? stationId]) async {
-    final targetStationId = stationId ?? _stationId;
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_reviewStorageKey(targetStationId));
-    final decoded = raw == null ? null : jsonDecode(raw);
-    final reviews = decoded is List
-        ? decoded
-            .whereType<Map>()
-            .map((item) =>
-                _StationReview.fromJson(Map<String, dynamic>.from(item)))
-            .toList()
-        : <_StationReview>[];
-
-    if (!mounted || targetStationId != _stationId) return;
-    setState(() {
-      _reviews = reviews;
-      _draftRating = 5;
-    });
-  }
-
   String get _stationName {
     final name = _facilityInfo?['stationName']?.toString().trim();
     return name == null || name.isEmpty ? '地铁设施' : name;
@@ -830,40 +792,6 @@ class _TopologyStepCard extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _StationReview {
-  final int rating;
-  final String content;
-  final DateTime createdAt;
-
-  const _StationReview({
-    required this.rating,
-    required this.content,
-    required this.createdAt,
-  });
-
-  factory _StationReview.fromJson(Map<String, dynamic> json) {
-    return _StationReview(
-      rating: (json['rating'] as num?)?.toInt().clamp(1, 5) ?? 5,
-      content: json['content']?.toString() ?? '',
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
-          DateTime.now(),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'rating': rating,
-      'content': content,
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-
-  String get displayTime {
-    String two(int value) => value.toString().padLeft(2, '0');
-    return '${createdAt.month}月${createdAt.day}日 ${two(createdAt.hour)}:${two(createdAt.minute)}';
   }
 }
 
