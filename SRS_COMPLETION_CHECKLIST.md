@@ -23,6 +23,7 @@
 | FR-015 | AI 语音辅助规划 | 首页新增 AI 语音助手弹窗和云朵悬浮窗，支持语音/手动输入终点、定位最近站、推荐进出站口并跳转路线规划。 |
 | FR-016 | GPS 最近站推荐 | 后端新增 `/api/location/nearest-station`，根据经纬度返回最近地铁站、推荐入口、候选入口和距离。 |
 | FR-017 | 语音目的地解析 | 后端新增 `/api/assistant/parse-destination`，将“我要去/导航到”等自然语言归一为站点名称和站点 ID。 |
+| FR-018 | AI 助手会话记录 | 后端新增 `/api/assistant/sessions`，记录语音文本、解析终点、推荐起点入口和终点出口，便于演示复盘和数据管理。 |
 
 ## SRS 数据模块接口对照
 
@@ -37,6 +38,7 @@
 | validateData() | `GET /api/data/validate` | 已实现，校验数据库表和内存线路网完整性。 |
 | getNearestStation(lat, lng) | `GET /api/location/nearest-station` | 已实现，供 AI 语音助手和定位推荐使用；数据库不可用时仍返回演示定位数据。 |
 | parseDestination(text) | `POST /api/assistant/parse-destination` | 已实现，供 AI 语音助手解析用户口语目的地，前端保留本地兜底。 |
+| saveAssistantSession(session) | `POST /api/assistant/sessions` | 已实现，保存 AI 助手规划会话；数据库不可用时返回演示成功但不写入。 |
 
 ## 本次修复
 
@@ -55,6 +57,7 @@
 - 新增后端最近站推荐接口，前端定位后优先调用后端，失败时使用本地关键站点兜底。
 - 新增 `station_geo_points` 数据表和 007 迁移，最近站推荐优先读取数据库坐标，未连接数据库时才使用内置关键站点兜底。
 - 新增语音目的地解析接口，前端语音识别完成后优先调用后端解析，无法连接后端时使用本地站名匹配兜底。
+- 新增 `assistant_sessions` 数据表和 008 迁移，AI 助手规划前会异步保存会话记录，不阻塞用户进入规划页。
 
 ## 当前仍属于演示数据的部分
 

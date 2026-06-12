@@ -179,6 +179,33 @@ class ApiService {
     });
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> saveAssistantSession({
+    String userId = 'default',
+    String? rawText,
+    required String parsedDestination,
+    required String startStation,
+    required String startEntrance,
+    required String endStation,
+    required String endExit,
+  }) {
+    return _handleApiCall<Map<String, dynamic>>(() async {
+      final response = await _networkManager.post(
+        '/assistant/sessions',
+        data: {
+          'userId': userId,
+          if (rawText != null && rawText.isNotEmpty) 'rawText': rawText,
+          'parsedDestination': parsedDestination,
+          'startStation': startStation,
+          'startEntrance': startEntrance,
+          'endStation': endStation,
+          'endExit': endExit,
+          'source': 'voice-assistant',
+        },
+      );
+      return _unwrapDataMap(response.data);
+    });
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> getAllStationFacilities() {
     return _handleApiCall<Map<String, dynamic>>(() async {
       final response = await _networkManager.get('/subway-service/facilities');

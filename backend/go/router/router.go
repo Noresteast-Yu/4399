@@ -55,6 +55,8 @@ func SetupRouter() *gin.Engine {
 		assistant := api.Group("/assistant")
 		{
 			assistant.POST("/parse-destination", handlers.ParseAssistantDestination)
+			assistant.POST("/sessions", handlers.SaveAssistantSession)
+			assistant.GET("/sessions", handlers.GetAssistantSessions)
 		}
 
 		indoorGuide := api.Group("/indoor-guide")

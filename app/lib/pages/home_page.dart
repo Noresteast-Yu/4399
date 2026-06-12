@@ -70,6 +70,7 @@ class _HomePageState extends State<HomePage> {
   bool _assistantListening = false;
   bool _assistantBusy = false;
   String _assistantStatus = '说出想去的终点，我会帮你找最近进站口。';
+  String _assistantRawText = '';
   Position? _lastKnownPosition;
   String? _assistantPreviewStart;
   String? _assistantPreviewEntrance;
@@ -442,6 +443,14 @@ class _HomePageState extends State<HomePage> {
 
     await Future.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
+    unawaited(_apiService.saveAssistantSession(
+      rawText: _assistantRawText,
+      parsedDestination: destination,
+      startStation: startStation.name,
+      startEntrance: startEntrance.label,
+      endStation: endStation.name,
+      endExit: endExit.label,
+    ));
     setState(() => _assistantExpanded = false);
     _goPlanning();
   }
@@ -457,6 +466,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<String> _resolveAssistantDestination(String text) async {
+    _assistantRawText = text;
     final fallback = _extractDestination(text);
     if (fallback.isEmpty) return fallback;
     final response = await _apiService.parseAssistantDestination(text);

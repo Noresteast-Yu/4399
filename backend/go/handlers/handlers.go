@@ -383,6 +383,108 @@ func ParseAssistantDestination(c *gin.Context) {
 	}})
 }
 
+func SaveAssistantSession(c *gin.Context) {
+	var req struct {
+		UserID            string `json:"userId"`
+		RawText           string `json:"rawText"`
+		ParsedDestination string `json:"parsedDestination"`
+		StartStation      string `json:"startStation" binding:"required"`
+		StartEntrance     string `json:"startEntrance"`
+		EndStation        string `json:"endStation" binding:"required"`
+		EndExit           string `json:"endExit"`
+		Source            string `json:"source"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供完整的助手规划信息"})
+		return
+	}
+	req.UserID = boundedString(req.UserID, "default", 100)
+	req.RawText = boundedString(req.RawText, "", 1000)
+	req.ParsedDestination = boundedString(req.ParsedDestination, req.EndStation, 200)
+	req.StartStation = strings.TrimSpace(req.StartStation)
+	req.StartEntrance = boundedString(req.StartEntrance, "", 200)
+	req.EndStation = strings.TrimSpace(req.EndStation)
+	req.EndExit = boundedString(req.EndExit, "", 200)
+	req.Source = boundedString(req.Source, "voice-assistant", 100)
+	if req.StartStation == "" || req.EndStation == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "请提供起点和终点"})
+		return
+	}
+
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+			"saved":   false,
+			"message": "演示模式未写入数据库",
+		}})
+		return
+	}
+
+	result, err := database.DB.Exec(
+		`INSERT INTO assistant_sessions
+		(user_id, raw_text, parsed_destination, start_station, start_entrance, end_station, end_exit, source)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		req.UserID, req.RawText, req.ParsedDestination, req.StartStation, req.StartEntrance, req.EndStation, req.EndExit, req.Source,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "助手规划记录保存失败"})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"id":    id,
+		"saved": true,
+	}})
+}
+
+func GetAssistantSessions(c *gin.Context) {
+	userID := boundedString(c.DefaultQuery("userId", "default"), "default", 100)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	if database.DB == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		return
+	}
+	rows, err := database.DB.Query(
+		`SELECT id, user_id, COALESCE(raw_text, ''), COALESCE(parsed_destination, ''),
+		COALESCE(start_station, ''), COALESCE(start_entrance, ''), COALESCE(end_station, ''),
+		COALESCE(end_exit, ''), source, created_at
+		FROM assistant_sessions
+		WHERE user_id = ?
+		ORDER BY created_at DESC
+		LIMIT ?`,
+		userID, limit,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": []gin.H{}})
+		return
+	}
+	defer rows.Close()
+
+	sessions := []gin.H{}
+	for rows.Next() {
+		var id int
+		var userID, rawText, parsedDestination, startStation, startEntrance, endStation, endExit, source, createdAt string
+		if err := rows.Scan(&id, &userID, &rawText, &parsedDestination, &startStation, &startEntrance, &endStation, &endExit, &source, &createdAt); err != nil {
+			continue
+		}
+		sessions = append(sessions, gin.H{
+			"id":                id,
+			"userId":            userID,
+			"rawText":           rawText,
+			"parsedDestination": parsedDestination,
+			"startStation":      startStation,
+			"startEntrance":     startEntrance,
+			"endStation":        endStation,
+			"endExit":           endExit,
+			"source":            source,
+			"createdAt":         createdAt,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": sessions})
+}
+
 type assistantStationMatch struct {
 	ID        string
 	Name      string
@@ -459,6 +561,21 @@ func commonRuneCount(a, b string) int {
 		}
 	}
 	return count
+}
+
+func boundedString(value, fallback string, maxRunes int) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return fallback
+	}
+	if maxRunes <= 0 {
+		return value
+	}
+	runes := []rune(value)
+	if len(runes) > maxRunes {
+		return string(runes[:maxRunes])
+	}
+	return value
 }
 
 func nearestStationGeoPoint(lat, lng float64) (*stationGeoPoint, float64, string) {

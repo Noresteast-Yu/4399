@@ -169,6 +169,48 @@ func TestParseAssistantDestinationRejectsEmptyBody(t *testing.T) {
 	}
 }
 
+func TestSaveAssistantSessionWithoutDatabaseReturnsOk(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.POST("/api/assistant/sessions", SaveAssistantSession)
+
+	body := `{"startStation":"同济大学","startEntrance":"5号口","endStation":"浦东国际机场","endExit":"1号口","parsedDestination":"浦东国际机场"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/assistant/sessions", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"saved":false`)) {
+		t.Fatalf("expected demo save response, got %s", rec.Body.String())
+	}
+}
+
+func TestGetAssistantSessionsWithoutDatabaseReturnsEmptyList(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	database.DB = nil
+
+	router := gin.New()
+	router.GET("/api/assistant/sessions", GetAssistantSessions)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/assistant/sessions?userId=default", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte(`"data":[]`)) {
+		t.Fatalf("expected empty session list, got %s", rec.Body.String())
+	}
+}
+
 func TestGetStationExitsGeneratesNetworkStationChoices(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	database.DB = nil

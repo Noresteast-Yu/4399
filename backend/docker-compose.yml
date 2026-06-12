@@ -23,6 +23,7 @@ services:
       - ./migrations/005_reference_data_maintenance.sql:/docker-entrypoint-initdb.d/08_reference_data_maintenance.sql:ro
       - ./migrations/006_facility_safe_defaults.sql:/docker-entrypoint-initdb.d/09_facility_safe_defaults.sql:ro
       - ./migrations/007_station_geo_points.sql:/docker-entrypoint-initdb.d/10_station_geo_points.sql:ro
+      - ./migrations/008_assistant_sessions.sql:/docker-entrypoint-initdb.d/11_assistant_sessions.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-psmart_travel_dev"]
       interval: 5s

@@ -23,7 +23,8 @@ UNION ALL SELECT 'common_route_segments', COUNT(*) FROM common_route_segments
 UNION ALL SELECT 'user_preferences', COUNT(*) FROM user_preferences
 UNION ALL SELECT 'user_abilities', COUNT(*) FROM user_abilities
 UNION ALL SELECT 'user_luggage', COUNT(*) FROM user_luggage
-UNION ALL SELECT 'feedbacks', COUNT(*) FROM feedbacks;
+UNION ALL SELECT 'feedbacks', COUNT(*) FROM feedbacks
+UNION ALL SELECT 'assistant_sessions', COUNT(*) FROM assistant_sessions;
 
 -- 关键关系完整性检查。所有结果都应为 0。
 SELECT 'orphan_line_stations' AS check_name, COUNT(*) AS issue_count
@@ -57,4 +58,5 @@ UNION ALL SELECT 'core_metro_lines', COUNT(*) FROM metro_lines
 UNION ALL SELECT 'core_line_stations', COUNT(*) FROM line_stations
 UNION ALL SELECT 'core_transfer_rules', COUNT(*) FROM transfer_rules
 UNION ALL SELECT 'core_static_resources', COUNT(*) FROM static_resources
-UNION ALL SELECT 'core_travel_alerts', COUNT(*) FROM travel_alerts;
+UNION ALL SELECT 'core_travel_alerts', COUNT(*) FROM travel_alerts
+UNION ALL SELECT 'core_station_geo_points', COUNT(*) FROM station_geo_points;
