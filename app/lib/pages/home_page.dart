@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_travel_app/components/common/bottom_nav_bar.dart';
@@ -10,7 +11,6 @@ import 'package:smart_travel_app/components/home/line10_interactive_metro_map.da
 import 'package:smart_travel_app/data/shanghai_metro_data.dart';
 import 'package:smart_travel_app/services/api_service.dart';
 import 'package:smart_travel_app/services/navigation_memory.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,6 +26,8 @@ class _HomePageState extends State<HomePage> {
   static const Color _surface = Color(0xFFF8F9FF);
   static const Color _surfaceBlue = Color(0xFFEFF4FF);
   static const Color _green = Color(0xFF008644);
+  static const MethodChannel _speechChannel =
+      MethodChannel('smart_travel_app/speech');
   static const List<_KnownStationGeo> _knownStationGeos = [
     _KnownStationGeo('同济大学', 31.2821, 121.5063),
     _KnownStationGeo('四平路', 31.2749, 121.5082),
@@ -46,7 +48,6 @@ class _HomePageState extends State<HomePage> {
   final FocusNode _startFocusNode = FocusNode();
   final FocusNode _endFocusNode = FocusNode();
   final ApiService _apiService = ApiService();
-  late final stt.SpeechToText _speechToText = stt.SpeechToText();
 
   List<Map<String, dynamic>> _travelAlerts = [];
   Map<String, dynamic>? _metroArrival;
@@ -89,6 +90,7 @@ class _HomePageState extends State<HomePage> {
       if (!mounted || _metroArrival == null) return;
       setState(() {});
     });
+    _speechChannel.setMethodCallHandler(_handleSpeechMethodCall);
     _loadData();
   }
 
@@ -104,7 +106,7 @@ class _HomePageState extends State<HomePage> {
     _startController.dispose();
     _endController.dispose();
     _assistantDestinationController.dispose();
-    _speechToText.stop();
+    unawaited(_speechChannel.invokeMethod<void>('stopSpeech'));
     super.dispose();
   }
 
@@ -283,18 +285,26 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _setSelectedAsStart() async {
+    final stationId = _canonicalStationId(
+      _selectedMetroStopId,
+      stationName: _selectedMetroStopName,
+    );
     setState(() {
       _startController.text = _selectedMetroStopName;
-      _startStationId = _selectedMetroStopId;
+      _startStationId = stationId;
       _startEntrance = null;
     });
     await _chooseAccessPoint(forStart: true);
   }
 
   Future<void> _setSelectedAsEnd() async {
+    final stationId = _canonicalStationId(
+      _selectedMetroStopId,
+      stationName: _selectedMetroStopName,
+    );
     setState(() {
       _endController.text = _selectedMetroStopName;
-      _endStationId = _selectedMetroStopId;
+      _endStationId = stationId;
       _endExit = null;
     });
     await _chooseAccessPoint(forStart: false);
@@ -329,7 +339,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _toggleAssistantListening() async {
     if (_assistantListening) {
-      await _speechToText.stop();
+      await _speechChannel.invokeMethod<void>('stopSpeech');
       if (mounted) {
         setState(() {
           _assistantListening = false;
@@ -339,51 +349,59 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    final available = await _speechToText.initialize(
-      onStatus: (status) {
-        if (!mounted) return;
-        if (status == 'done' || status == 'notListening') {
-          setState(() => _assistantListening = false);
-        }
-      },
-      onError: (error) {
-        if (!mounted) return;
-        setState(() {
-          _assistantListening = false;
-          _assistantStatus = '语音识别暂时不可用，可以手动输入终点。';
-        });
-      },
-    );
-
-    if (!available) {
-      if (!mounted) return;
-      setState(() {
-        _assistantStatus = '没有获得麦克风能力，可以手动输入终点。';
-      });
-      return;
-    }
-
     setState(() {
       _assistantListening = true;
       _assistantStatus = '正在听你说终点，例如：我要去浦东国际机场。';
     });
-    await _speechToText.listen(
-      localeId: 'zh_CN',
-      onResult: (result) {
-        final words = result.recognizedWords.trim();
-        if (words.isEmpty || !mounted) return;
+    try {
+      final available = await _speechChannel.invokeMethod<bool>(
+            'startSpeech',
+            {'locale': 'zh-CN'},
+          ) ??
+          false;
+      if (available || !mounted) return;
+      setState(() {
+        _assistantListening = false;
+        _assistantStatus = '没有获得麦克风能力，可以手动输入终点。';
+      });
+    } on PlatformException {
+      if (!mounted) return;
+      setState(() {
+        _assistantListening = false;
+        _assistantStatus = '语音识别暂时不可用，可以手动输入终点。';
+      });
+    }
+  }
+
+  Future<dynamic> _handleSpeechMethodCall(MethodCall call) async {
+    if (!mounted) return null;
+    switch (call.method) {
+      case 'onSpeechResult':
+        final args = Map<String, dynamic>.from(call.arguments as Map);
+        final words = (args['text'] ?? '').toString().trim();
+        if (words.isEmpty) return null;
         final destination = _extractDestination(words);
+        final isFinal = args['isFinal'] == true;
         setState(() {
           _assistantDestinationController.text = destination;
-          _assistantStatus = result.finalResult
-              ? '识别到：$destination'
-              : '正在识别：$destination';
+          _assistantListening = !isFinal;
+          _assistantStatus = isFinal ? '识别到：$destination' : '正在识别：$destination';
         });
-        if (result.finalResult) {
-          _resolveAssistantDestination(words);
+        if (isFinal) {
+          unawaited(_resolveAssistantDestination(words));
         }
-      },
-    );
+        return null;
+      case 'onSpeechError':
+        setState(() {
+          _assistantListening = false;
+          _assistantStatus = '语音识别暂时不可用，可以手动输入终点。';
+        });
+        return null;
+      case 'onSpeechDone':
+        setState(() => _assistantListening = false);
+        return null;
+    }
+    return null;
   }
 
   Future<void> _startAssistantPlan() async {
@@ -572,9 +590,26 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _chooseAccessPoint({required bool forStart}) async {
+    FocusScope.of(context).unfocus();
     final stationName =
         forStart ? _startController.text.trim() : _endController.text.trim();
-    if (stationName.isEmpty) return;
+    if (stationName.isEmpty) {
+      final station = await _chooseStationForAccess(forStart: forStart);
+      if (station == null || !mounted) return;
+      setState(() {
+        if (forStart) {
+          _startController.text = station.name;
+          _startStationId = station.id;
+          _startEntrance = null;
+        } else {
+          _endController.text = station.name;
+          _endStationId = station.id;
+          _endExit = null;
+        }
+      });
+      await _chooseAccessPoint(forStart: forStart);
+      return;
+    }
 
     final stationId = forStart ? _startStationId : _endStationId;
     final choices = await _loadAccessChoices(
@@ -721,12 +756,161 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<_StationSuggestion?> _chooseStationForAccess({
+    required bool forStart,
+  }) async {
+    final searchController = TextEditingController();
+    try {
+      return await showModalBottomSheet<_StationSuggestion>(
+        context: context,
+        useSafeArea: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetContext) {
+          var query = '';
+          List<_StationSuggestion> visibleStations() {
+            if (query.trim().isEmpty) {
+              final preferred = <_StationSuggestion>[];
+              const names = [
+                '同济大学',
+                '四平路',
+                '五角场',
+                '国权路',
+                '南京东路',
+                '人民广场',
+                '上海火车站',
+                '虹桥火车站',
+                '浦东国际机场',
+              ];
+              for (final name in names) {
+                final station = _stationSuggestionByName(name);
+                if (station != null) preferred.add(station);
+              }
+              return preferred;
+            }
+            return _matchedStations(query);
+          }
+
+          return StatefulBuilder(
+            builder: (context, setSheetState) {
+              final stations = visibleStations();
+              return Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.76,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 46,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE4D9E5),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      forStart ? '先选择起点站' : '先选择终点站',
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      onChanged: (value) => setSheetState(() => query = value),
+                      decoration: InputDecoration(
+                        hintText: '输入站名，如 浦东 / 上海火车站',
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        filled: true,
+                        fillColor: const Color(0xFFF8F5FA),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: stations.isEmpty
+                          ? const Center(
+                              child: Text(
+                                '没有匹配站点，换个关键词试试',
+                                style: TextStyle(
+                                  color: _muted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: stations.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final station = stations[index];
+                                final mainColor = station.lineColors.isEmpty
+                                    ? _line10
+                                    : station.lineColors.first;
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    backgroundColor: mainColor.withOpacity(0.14),
+                                    child: Icon(
+                                      Icons.subway_rounded,
+                                      color: mainColor,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    station.name,
+                                    style: const TextStyle(
+                                      color: _ink,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  subtitle: Text(station.lineNames.join(' / ')),
+                                  trailing:
+                                      const Icon(Icons.chevron_right_rounded),
+                                  onTap: () =>
+                                      Navigator.pop(sheetContext, station),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      searchController.dispose();
+    }
+  }
+
   Future<List<_AccessChoice>> _loadAccessChoices(
     String stationName, {
     required String? stationId,
     required bool forStart,
   }) async {
-    final id = stationId?.trim() ?? '';
+    final id = _canonicalStationId(stationId, stationName: stationName);
     if (id.isNotEmpty) {
       final response = await _apiService.getStationExits(id);
       final data = response.data;
@@ -744,6 +928,39 @@ class _HomePageState extends State<HomePage> {
       }
     }
     return _accessChoicesFor(stationName, forStart: forStart);
+  }
+
+  String _canonicalStationId(String? stationId, {required String stationName}) {
+    final id = stationId?.trim() ?? '';
+    if (id.isEmpty) return _stationIdByName(stationName) ?? '';
+    if (!id.startsWith('mock-')) return id;
+    return _stationIdByName(stationName) ?? id.replaceFirst('mock-l10-', '');
+  }
+
+  String? _stationIdByName(String stationName) {
+    final name = stationName.trim();
+    final suggestion = _stationSuggestionByName(name);
+    if (suggestion != null) return suggestion.id;
+    const knownIds = {
+      '同济大学': 'tongji_university_10',
+      '四平路': 'siping_road_8',
+      '五角场': 'wujiaochang_10',
+      '国权路': 'guoquan_road',
+      '南京东路': 'nanjing_east_2',
+      '上海火车站': 'shanghai_railway_1',
+      '人民广场': 'peoples_square',
+      '虹桥火车站': 'hongqiao_railway_2',
+      '浦东国际机场': 'pudong_airport_2',
+    };
+    return knownIds[name];
+  }
+
+  _StationSuggestion? _stationSuggestionByName(String stationName) {
+    final name = stationName.trim();
+    for (final item in _stationSuggestions) {
+      if (item.name == name) return item;
+    }
+    return null;
   }
 
   List<_AccessChoice> _accessChoicesFor(
@@ -1367,9 +1584,7 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.login_rounded,
               label: _startEntrance?.label ?? '选择进站口',
               active: _startEntrance != null,
-              onTap: _startController.text.trim().isEmpty
-                  ? null
-                  : () => _chooseAccessPoint(forStart: true),
+              onTap: () => _chooseAccessPoint(forStart: true),
             ),
           ),
           const SizedBox(width: 8),
@@ -1378,9 +1593,7 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.logout_rounded,
               label: _endExit?.label ?? '选择出站口',
               active: _endExit != null,
-              onTap: _endController.text.trim().isEmpty
-                  ? null
-                  : () => _chooseAccessPoint(forStart: false),
+              onTap: () => _chooseAccessPoint(forStart: false),
             ),
           ),
         ],
