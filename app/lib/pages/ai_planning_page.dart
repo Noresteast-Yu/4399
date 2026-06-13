@@ -1051,7 +1051,13 @@ class _ScenePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortcutHint = _exitShortcutHint(step);
     final photoUrl = _resolvePhotoUrl(step.photoUrl);
-    final assetPhoto = _fallbackPhotoAsset(step);
+    final hasRealPhoto = step.photoSource == 'real' ||
+        (step.photoSource.isEmpty && photoUrl.contains('/static/'));
+    final guideLabel = hasRealPhoto
+        ? '实景指引'
+        : photoUrl.isNotEmpty
+            ? '示意指引'
+            : '暂无实景';
 
     return Container(
       width: double.infinity,
@@ -1074,15 +1080,13 @@ class _ScenePanel extends StatelessWidget {
               photoUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                return _AssetScenePhoto(
-                  assetPath: assetPhoto,
+                return _ScenePlaceholder(
                   color: step.lineColor,
                 );
               },
             )
           else
-            _AssetScenePhoto(
-              assetPath: assetPhoto,
+            _ScenePlaceholder(
               color: step.lineColor,
             ),
           DecoratedBox(
@@ -1133,18 +1137,18 @@ class _ScenePanel extends StatelessWidget {
                     color: Colors.white.withOpacity(0.86),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.photo_camera_outlined,
                         color: _AIPlanningPageState._muted,
                         size: 14,
                       ),
-                      SizedBox(width: 5),
+                      const SizedBox(width: 5),
                       Text(
-                        '实景指引',
-                        style: TextStyle(
+                        guideLabel,
+                        style: const TextStyle(
                           color: _AIPlanningPageState._muted,
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
@@ -1385,24 +1389,16 @@ class _LineBadge extends StatelessWidget {
   }
 }
 
-class _AssetScenePhoto extends StatelessWidget {
-  final String assetPath;
+class _ScenePlaceholder extends StatelessWidget {
   final Color color;
 
-  const _AssetScenePhoto({
-    required this.assetPath,
+  const _ScenePlaceholder({
     required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      assetPath,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return CustomPaint(painter: _ScenePainter(color: color));
-      },
-    );
+    return CustomPaint(painter: _ScenePainter(color: color));
   }
 }
 
@@ -1500,6 +1496,7 @@ class _NavStep {
   final Map<String, dynamic> arrivalQuery;
   final String photoKey;
   final String photoUrl;
+  final String photoSource;
   final String? fromNodeId;
   final String? nodeId;
 
@@ -1520,6 +1517,7 @@ class _NavStep {
     this.doorHint = '车门',
     this.photoKey = '',
     this.photoUrl = '',
+    this.photoSource = '',
     this.fromNodeId,
     this.nodeId,
   });
@@ -1548,6 +1546,7 @@ class _NavStep {
       doorHint: json['doorHint']?.toString() ?? '车门',
       photoKey: json['photoKey']?.toString() ?? '',
       photoUrl: json['photoUrl']?.toString() ?? '',
+      photoSource: json['photoSource']?.toString() ?? '',
       fromNodeId: json['fromNodeId']?.toString(),
       nodeId: json['toNodeId']?.toString() ?? json['nodeId']?.toString(),
     );
@@ -1573,6 +1572,7 @@ class _NavStep {
       icon: _topologyEdgeIcon(edgeType),
       photoKey: json['photoKey']?.toString() ?? '',
       photoUrl: json['photoUrl']?.toString() ?? '',
+      photoSource: (json['photoUrl']?.toString() ?? '').isEmpty ? '' : 'real',
       fromNodeId: fromNode is Map ? fromNode['id']?.toString() : null,
       nodeId: toNode is Map ? toNode['id']?.toString() : null,
     );
@@ -1599,6 +1599,7 @@ class _NavStep {
       doorHint: doorHint,
       photoKey: photoKey,
       photoUrl: photoUrl,
+      photoSource: photoSource,
       fromNodeId: fromNodeId,
       nodeId: nodeId,
     );
@@ -1680,20 +1681,6 @@ String _resolvePhotoUrl(String rawUrl) {
     return baseUri.replace(path: path, query: '').toString();
   } catch (_) {
     return value;
-  }
-}
-
-String _fallbackPhotoAsset(_NavStep step) {
-  switch (step.stage) {
-    case _StepStage.entry:
-      return 'assets/images/tongji_station_entry.jpg';
-    case _StepStage.exit:
-      return 'assets/images/tongji_station_exit.jpg';
-    case _StepStage.platform:
-    case _StepStage.transfer:
-    case _StepStage.transferWait:
-    case _StepStage.ride:
-      return 'assets/images/tongji_station_transfer.jpg';
   }
 }
 
