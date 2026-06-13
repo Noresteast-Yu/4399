@@ -1,6 +1,8 @@
 package com.example.smart_travel_app
 
 import android.Manifest
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -15,8 +17,11 @@ import java.util.Locale
 
 class MainActivity : FlutterActivity() {
     private val speechChannelName = "smart_travel_app/speech"
+    private val speechPermissionRequestCode = 7012
+    private val speechActivityRequestCode = 7013
     private var speechRecognizer: SpeechRecognizer? = null
     private var speechChannel: MethodChannel? = null
+    private var pendingSpeechLocale: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -38,15 +43,16 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun startSpeech(localeTag: String): Boolean {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            speechChannel?.invokeMethod("onSpeechError", mapOf("message" to "speech unavailable"))
-            return false
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
             checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
         ) {
-            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 7012)
-            return false
+            pendingSpeechLocale = localeTag
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), speechPermissionRequestCode)
+            return true
+        }
+
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            return startSpeechActivity(localeTag)
         }
 
         speechRecognizer?.destroy()
@@ -61,7 +67,16 @@ class MainActivity : FlutterActivity() {
                 }
 
                 override fun onError(error: Int) {
-                    speechChannel?.invokeMethod("onSpeechError", mapOf("code" to error))
+                    val handledByActivity = when (error) {
+                        SpeechRecognizer.ERROR_CLIENT,
+                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY,
+                        SpeechRecognizer.ERROR_SERVER,
+                        SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> startSpeechActivity(localeTag)
+                        else -> false
+                    }
+                    if (!handledByActivity) {
+                        speechChannel?.invokeMethod("onSpeechError", mapOf("code" to error))
+                    }
                 }
 
                 override fun onResults(results: Bundle?) {
@@ -86,6 +101,25 @@ class MainActivity : FlutterActivity() {
         return true
     }
 
+    private fun startSpeechActivity(localeTag: String): Boolean {
+        return try {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.forLanguageTag(localeTag).toLanguageTag())
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "请说出终点站")
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            }
+            startActivityForResult(intent, speechActivityRequestCode)
+            true
+        } catch (error: ActivityNotFoundException) {
+            speechChannel?.invokeMethod("onSpeechError", mapOf("message" to "speech unavailable"))
+            false
+        }
+    }
+
     private fun sendSpeechResult(bundle: Bundle?, isFinal: Boolean) {
         val text = bundle
             ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -104,5 +138,46 @@ class MainActivity : FlutterActivity() {
         speechRecognizer?.destroy()
         speechRecognizer = null
         super.onDestroy()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != speechPermissionRequestCode) return
+
+        val locale = pendingSpeechLocale
+        pendingSpeechLocale = null
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED && locale != null) {
+            startSpeech(locale)
+        } else {
+            speechChannel?.invokeMethod(
+                "onSpeechError",
+                mapOf("message" to "microphone permission denied")
+            )
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != speechActivityRequestCode) return
+
+        if (resultCode == Activity.RESULT_OK) {
+            val text = data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                ?.trim()
+                .orEmpty()
+            if (text.isNotEmpty()) {
+                speechChannel?.invokeMethod(
+                    "onSpeechResult",
+                    mapOf("text" to text, "isFinal" to true)
+                )
+                return
+            }
+        }
+        speechChannel?.invokeMethod("onSpeechDone", null)
     }
 }
