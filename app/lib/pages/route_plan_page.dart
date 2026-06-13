@@ -522,6 +522,11 @@ class _RoutePlanPageState extends State<RoutePlanPage> {
       return;
     }
 
+    // 用户主动从路线方案进入指引，代表开始一轮新的站内导航。
+    // 清除上一轮结束时保存的步骤和节点；切换 Tab 返回本页不会经过这里，
+    // 因此同一轮导航的进度仍然可以恢复。
+    NavigationMemory.restartIndoorGuide();
+
     // 同步站内位置上下文到 NavigationMemory，供服务页自动定位
     _syncStationContextToMemory(start, end);
 

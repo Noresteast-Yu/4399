@@ -25,11 +25,22 @@ class NavigationMemory {
   /// 站内导航当前步进索引，切 Tab 回来后恢复进度
   static int lastStepIndex = 0;
 
-  /// 清除站内位置上下文
-  static void clearStationContext() {
+  /// 开始一条新的路线规划，清除上一条站内导航留下的位置和步骤。
+  static void beginNewRoutePlan() {
     currentStationId = null;
     currentStationName = null;
     currentNodeId = null;
     lastStepIndex = 0;
+  }
+
+  /// 从路线方案进入站内指引时，总是从入口和第一步重新开始。
+  static void restartIndoorGuide() {
+    currentNodeId = null;
+    lastStepIndex = 0;
+  }
+
+  /// 清除站内位置上下文
+  static void clearStationContext() {
+    beginNewRoutePlan();
   }
 }

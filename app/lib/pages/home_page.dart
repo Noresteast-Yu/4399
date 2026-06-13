@@ -333,6 +333,7 @@ class _HomePageState extends State<HomePage> {
         '&startEntranceName=${Uri.encodeComponent(_startEntrance!.label)}'
         '&endExitId=${Uri.encodeComponent(_endExit!.id)}'
         '&endExitName=${Uri.encodeComponent(_endExit!.label)}';
+    NavigationMemory.beginNewRoutePlan();
     NavigationMemory.routePlanLocation = location;
     context.go(location);
   }
@@ -489,9 +490,8 @@ class _HomePageState extends State<HomePage> {
     if (fallback.isEmpty) return fallback;
     final response = await _apiService.parseAssistantDestination(text);
     final stationName = response.data?['stationName']?.toString() ?? '';
-    final destination = response.success && stationName.isNotEmpty
-        ? stationName
-        : fallback;
+    final destination =
+        response.success && stationName.isNotEmpty ? stationName : fallback;
     if (mounted && destination.isNotEmpty) {
       setState(() {
         _assistantDestinationController.text = destination;
@@ -871,7 +871,8 @@ class _HomePageState extends State<HomePage> {
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   leading: CircleAvatar(
-                                    backgroundColor: mainColor.withOpacity(0.14),
+                                    backgroundColor:
+                                        mainColor.withOpacity(0.14),
                                     child: Icon(
                                       Icons.subway_rounded,
                                       color: mainColor,
